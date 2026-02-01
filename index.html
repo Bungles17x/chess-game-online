@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern Chess</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="alert-area"></div>
+
+  <div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Modern Chess</h1>
+        <span class="tagline">Play beautifully, think brutally.</span>
+      </div>
+
+      <div id="popup-container"></div>
+
+      <div class="top-right">
+        <button id="theme-toggle" class="pill-btn">
+          <span class="pill-dot"></span>
+          <span class="pill-label">Dark mode</span>
+        </button>
+
+        <div class="mode-buttons">
+          <button id="bot-mode" data-mode="bot" class="pill-btn">Bot</button>
+          <button id="online-mode" data-mode="online" class="pill-btn">Online</button>
+          <button id="lobby-btn" class="pill-btn">Lobby</button>
+        </div>
+
+        <div class="status">
+          <span id="turn-indicator">White to move</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="layout">
+      <section class="board-card">
+        <div id="chessboard" class="chessboard"></div>
+      </section>
+
+      <aside class="side-panel">
+        <h2>Moves</h2>
+        <ul id="moves-list"></ul>
+        <button id="reset-btn" class="primary-btn">Reset Game</button>
+        <button id="draw-btn" class="primary-btn">Offer Draw</button>
+        <button id="resign-btn" class="primary-btn">Resign</button>
+      </aside>
+    </main>
+  </div>
+
+  <!-- SOUNDS -->
+  <audio id="move-sound"></audio>
+  <audio id="capture-sound"></audio>
+
+  <div id="alert-box" class="alert hidden">
+    <div class="alert-content">
+      <span id="alert-message"></span>
+      <button id="alert-close" class="primary-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- LOBBY MODAL -->
+  <div id="lobby-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Available Rooms</h2>
+      <ul id="room-list"></ul>
+
+      <button id="create-room-btn" class="primary-btn">Create Room</button>
+      <button id="close-lobby-btn" class="primary-btn">Close</button>
+      <div id="popup-container"></div>
+
+    </div>
+  </div>
+
+  <!-- CHESS.JS + SCRIPT -->
+  <script src="chess.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>
