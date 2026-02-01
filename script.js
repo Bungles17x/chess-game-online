@@ -1,4 +1,8 @@
+// script.js
+
+// -----------------------------------------------------
 // DOM ELEMENTS
+// -----------------------------------------------------
 const boardElement = document.getElementById("chessboard");
 const movesList = document.getElementById("moves-list");
 const turnIndicator = document.getElementById("turn-indicator");
@@ -17,7 +21,9 @@ const captureSound = document.getElementById("capture-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
 
+// -----------------------------------------------------
 // GAME STATE
+// -----------------------------------------------------
 const game = new Chess();
 
 let selectedSquare = null;
@@ -28,27 +34,260 @@ let roomId = null;
 let gameMode = "bot"; // "bot" or "online"
 
 const pieceToUnicode = {
-  p: "♟",
-  r: "♜",
-  n: "♞",
-  b: "♝",
-  q: "♛",
-  k: "♚",
-  P: "♙",
-  R: "♖",
-  N: "♘",
-  B: "♗",
-  Q: "♕",
-  K: "♔"
+  p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
+  P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
 };
 
 let socket = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_INTERVAL = 2000;
 
-/* ---------------------------------------------------
-   AI (MINIMAX BOT)
---------------------------------------------------- */
+// -----------------------------------------------------
+// SOCKET / NETWORKING
+// -----------------------------------------------------
+function ensureSocket() {
+  // Prevent creating multiple sockets
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  // Stop retrying if we hit the max limit
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.error(`[Max Reconnects Reached] Stopped trying to connect to ws://localhost:8080/`);
+    if (gameMode === "online") {
+        popup("Connection failed. Server is unreachable. Switching to Bot mode.", "red");
+        switchToBotMode();
+    }
+    return;
+  }
+
+  console.log(`[Connecting] Attempting to connect to ws://localhost:8080/ (Attempt ${reconnectAttempts + 1})`);
+
+  try {
+    socket = new WebSocket('ws://localhost:8080/');
+
+    socket.onopen = function(e) {
+      console.log("[Connected] Connection established!");
+      reconnectAttempts = 0; // Reset counter on success
+    };
+
+    socket.onmessage = function(event) {
+      console.log(`[Message] Server: ${event.data}`);
+      const data = JSON.parse(event.data);
+      handleServerMessage(data);
+    };
+
+    socket.onclose = function(event) {
+      console.log(`[Closed] Connection closed. Code: ${event.code}`);
+      
+      // Only auto-reconnect if we are in online mode
+      if (gameMode === "online") {
+        reconnectAttempts++;
+        setTimeout(ensureSocket, RECONNECT_INTERVAL);
+      }
+    };
+
+    socket.onerror = function(error) {
+      console.error(`[Error] WebSocket error:`, error);
+    };
+
+  } catch (err) {
+    console.error("[Error] Failed to create WebSocket:", err);
+    reconnectAttempts++;
+    setTimeout(ensureSocket, RECONNECT_INTERVAL);
+  }
+}
+
+function handleServerMessage(data) {
+    if (data.type === "error") {
+      popup(`error ${data.code}: ${data.message}`, "red");
+      return;
+    }
+
+    if (data.type === "rooms") {
+      roomList.innerHTML = "";
+      if (data.rooms.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No active rooms. Create one!";
+        roomList.appendChild(li);
+        return;
+      }
+      data.rooms.forEach(room => {
+        const roomDiv = document.createElement("div");
+        roomDiv.className = "room-item";
+        
+        const roomName = document.createElement("span");
+        roomName.textContent = room;
+        
+        const joinBtn = document.createElement("button");
+        joinBtn.textContent = "Join";
+        joinBtn.className = "join-room-btn";
+        joinBtn.addEventListener("click", () => joinRoom(room));
+        
+        roomDiv.appendChild(roomName);
+        roomDiv.appendChild(joinBtn);
+        roomList.appendChild(roomDiv);
+      });
+    }
+
+    if (data.type === "joined") {
+      playerColor = data.color;
+      popup(`Joined room as ${playerColor === 'w' ? 'White' : 'Black'}`, "green");
+    }
+
+    if (data.type === "start") {
+      // If you are Black, kill a random white pawn so you don't get interrupted by turn logic
+      if (playerColor === 'b') {
+        // Find all white pawns
+        const board = game.board();
+        let whitePawnSquares = [];
+        
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const piece = board[r][c];
+            if (piece && piece.type === 'p' && piece.color === 'w') {
+              // Convert row/col back to square name (e.g., 0,1 -> "b7")
+              const file = String.fromCharCode(97 + c);
+              const rank = 8 - r;
+              whitePawnSquares.push(file + rank);
+            }
+          }
+        }
+
+        // Remove the first found pawn (e.g., "a2")
+        if (whitePawnSquares.length > 0) {
+          const pawnToRemove = whitePawnSquares[0]; 
+          game.remove(pawnToRemove);
+          console.log(`Removed ${pawnToRemove} to allow Black to move first.`);
+        }
+      }
+
+      initBoard();
+      popup("Game Started!", "green");
+    }
+
+    if (data.type === "reset") {
+      initBoard();
+      popup("Game reset by opponent.", "yellow");
+    }
+
+    if (data.type === "drawOffer") {
+      const accept = confirm("Opponent offers a draw. Accept?");
+      if (accept) {
+        socket.send(JSON.stringify({ type: "drawAccept" }));
+      } else {
+        socket.send(JSON.stringify({ type: "drawDecline" }));
+      }
+    }
+
+    if (data.type === "drawAccept") {
+      game.game_over = () => true; 
+      updateTurnIndicator();
+      popup("Game ended in a draw.", "yellow");
+    }
+
+    if (data.type === "drawDecline") {
+      popup("Draw offer declined.", "red");
+    }
+
+    if (data.type === "resign") {
+      game.game_over = () => true; 
+      const winner = data.winner === "w" ? "White" : "Black";
+      turnIndicator.textContent = `${winner} wins by resignation`;
+      popup(`${winner} wins by resignation.`, "yellow");
+    }
+
+    if (data.type === "move") {
+      game.move(data.move);
+      logMove(data.move);
+      renderPosition();
+      updateTurnIndicator();
+    }
+
+    if (data.type === "roomClosed") {
+      popup("Opponent left the game.", "yellow");
+      roomId = null;
+      switchToBotMode();
+      initBoard();
+    }
+
+    if (data.type === "gameOver") {
+      handleGameOver();
+    }
+}
+
+function handleGameOver() {
+  // Close the lobby modal if it's open
+  lobbyModal.classList.add("hidden");
+  
+  // Reset game state
+  roomId = null;
+  
+  // Switch back to Bot mode automatically
+  switchToBotMode();
+  
+  // Reset the board visuals
+  initBoard();
+  
+  popup("Game Over. Switching to Bot mode.", "yellow");
+}
+
+function switchToBotMode() {
+    gameMode = "bot";
+    botModeBtn.classList.add("active");
+    onlineModeBtn.classList.remove("active");
+    roomId = null;
+}
+
+function leaveRoom() {
+  if (roomId && socket) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "leave", roomId }));
+    }
+    roomId = null;
+  }
+}
+
+function joinRoom(room) {
+  roomId = room;
+  lobbyModal.classList.add("hidden");
+  ensureSocket();
+  
+  const sendJoin = () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "join", roomId }));
+    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+      socket.addEventListener("open", () => {
+        socket.send(JSON.stringify({ type: "join", roomId }));
+      }, { once: true });
+    } else {
+      popup("Failed to connect to server.", "red");
+      lobbyModal.classList.remove("hidden");
+    }
+  };
+  
+  sendJoin();
+}
+
+function sendListRooms() {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "listRooms" }));
+  } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+    socket.addEventListener("open", () => {
+      socket.send(JSON.stringify({ type: "listRooms" }));
+    }, { once: true });
+  } else {
+    popup("Failed to connect to server.", "red");
+    lobbyModal.classList.add("hidden");
+  }
+}
+
+// -----------------------------------------------------
+// AI (MINIMAX BOT)
+// -----------------------------------------------------
 function evaluateBoard(game) {
-  const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 1000 }; // Fixed: King has high value
+  const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 1000 };
   let score = 0;
   const board = game.board();
 
@@ -96,11 +335,11 @@ function aiMove() {
   if (moves.length === 0) return;
 
   let bestMove = null;
-  let bestValue = Infinity; // Since AI is black, minimizing
+  let bestValue = Infinity; // AI is black, minimizing
 
   for (const move of moves) {
     game.move(move);
-    const value = minimax(game, 2, false); // Fixed: AI is minimizing
+    const value = minimax(game, 2, false); 
     game.undo();
 
     if (value < bestValue) {
@@ -119,177 +358,14 @@ function aiMove() {
   renderPosition();
   updateTurnIndicator();
 
-  // AI MOVE (only in bot mode)
   if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
     setTimeout(aiMove, 200);
   }
 }
 
-/* ---------------------------------------------------
-   SOCKET / LOBBY
---------------------------------------------------- */
-function ensureSocket() {
-  if (socket && socket.readyState === WebSocket.OPEN) return;
-
-  socket = new WebSocket("ws://localhost:8080");
-
-  socket.addEventListener("open", () => {
-    console.log("WebSocket connection established");
-  });
-
-  socket.addEventListener("error", (error) => {
-    console.error("WebSocket error:", error);
-    popup("error 209: Unable to connect to server. this feature is unavailable right now. this deleted the lobby you were in.", "red");
-  });
-
-  socket.addEventListener("close", (event) => {
-    console.log("WebSocket connection closed:", event);
-    if (gameMode === "online") {
-      popup("Disconnected from server. Switching to bot mode.", "yellow");
-      gameMode = "bot";
-      botModeBtn.classList.add("active");
-      onlineModeBtn.classList.remove("active");
-      roomId = null;
-    }
-  });
-
-  socket.addEventListener("message", event => {
-    const data = JSON.parse(event.data);
-
-    if (data.type === "error") {
-      popup(`error ${data.code}: ${data.message}`, "red");
-      return;
-    }
-
-    if (data.type === "rooms") {
-      roomList.innerHTML = "";
-      if (data.rooms.length === 0) {
-        popup("No players online at the moment, try again later", "yellow");
-        return;
-      }
-      data.rooms.forEach(room => {
-        const roomDiv = document.createElement("div");
-        roomDiv.className = "room-item";
-        
-        const roomName = document.createElement("span");
-        roomName.textContent = room;
-        
-        const joinBtn = document.createElement("button");
-        joinBtn.textContent = "Join";
-        joinBtn.className = "join-room-btn";
-        joinBtn.addEventListener("click", () => joinRoom(room));
-        
-        roomDiv.appendChild(roomName);
-        roomDiv.appendChild(joinBtn);
-        roomList.appendChild(roomDiv);
-      });
-    }
-
-    if (data.type === "joined") {
-      playerColor = data.color;
-    }
-
-    if (data.type === "start") {
-      initBoard();
-    }
-
-    if (data.type === "reset") {
-      initBoard();
-    }
-
-    if (data.type === "drawOffer") {
-      const accept = confirm("Opponent offers a draw. Accept?");
-      if (accept) {
-        socket.send(JSON.stringify({ type: "drawAccept" }));
-      } else {
-        socket.send(JSON.stringify({ type: "drawDecline" }));
-      }
-    }
-
-    if (data.type === "drawAccept") {
-      game.game_over = () => true; // Force game over
-      updateTurnIndicator();
-      popup("Game ended in a draw.", "yellow");
-    }
-
-    if (data.type === "drawDecline") {
-      popup("Draw offer declined.", "red");
-    }
-
-    if (data.type === "resign") {
-      game.game_over = () => true; // Force game over
-      const winner = data.winner === "w" ? "White" : "Black";
-      turnIndicator.textContent = `${winner} wins by resignation`;
-      popup(`${winner} wins by resignation.`, "yellow");
-    }
-
-    if (data.type === "move") {
-      game.move(data.move);
-      logMove(data.move);
-      renderPosition();
-      updateTurnIndicator();
-    }
-
-    if (data.type === "roomClosed") {
-      popup("The room has been closed as the other player left.", "yellow");
-      roomId = null;
-      gameMode = "bot";
-      botModeBtn.classList.add("active");
-      onlineModeBtn.classList.remove("active");
-      initBoard();
-    }
-  });
-}
-
-function leaveRoom() {
-  if (roomId && socket) {
-    if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "leave", roomId }));
-    }
-    roomId = null;
-  }
-}
-
-function joinRoom(room) {
-  roomId = room;
-  lobbyModal.classList.add("hidden");
-  ensureSocket();
-  
-  // Wait for socket to open before sending
-  const sendJoin = () => {
-    if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "join", roomId }));
-    } else if (socket.readyState === WebSocket.CONNECTING) {
-      socket.addEventListener("open", () => {
-        socket.send(JSON.stringify({ type: "join", roomId }));
-      }, { once: true });
-    } else {
-      popup("Failed to connect to server. Please try again later.", "red");
-      lobbyModal.classList.remove("hidden");
-    }
-  };
-  
-  // Add a timeout to check if no response
-  const joinTimeout = setTimeout(() => {
-    popup("No players online at the moment, try again later", "red");
-    lobbyModal.classList.remove("hidden");
-  }, 5000);
-  
-  // Clear timeout if we get a response
-  const originalOnMessage = socket.onmessage;
-  socket.onmessage = (event) => {
-    clearTimeout(joinTimeout);
-    if (originalOnMessage) {
-      originalOnMessage(event);
-    }
-  };
-  
-  sendJoin();
-}
-
-/* ---------------------------------------------------
-   BOARD RENDERING
---------------------------------------------------- */
+// -----------------------------------------------------
+// BOARD RENDERING
+// -----------------------------------------------------
 function initBoard() {
   boardElement.innerHTML = "";
   selectedSquare = null;
@@ -347,9 +423,9 @@ function renderPosition() {
   }
 }
 
-/* ---------------------------------------------------
-   MOVE HANDLING
---------------------------------------------------- */
+// -----------------------------------------------------
+// MOVE HANDLING
+// -----------------------------------------------------
 function clearHighlights() {
   document
     .querySelectorAll(".square.selected, .square.highlight")
@@ -430,6 +506,12 @@ function handleSquareClick(square) {
   // Send move to opponent
   if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "move", move: result }));
+    
+    // Check if this move caused Checkmate
+    if (game.in_checkmate()) {
+      // Tell the server the game is over so it can notify the opponent
+      socket.send(JSON.stringify({ type: "checkmate" })); 
+    }
   }
 
   playMoveSound(result);
@@ -463,9 +545,9 @@ function highlightSelectionAndMoves() {
   });
 }
 
-/* ---------------------------------------------------
-   UI + SOUND + MOVES
---------------------------------------------------- */
+// -----------------------------------------------------
+// UI + SOUND + MOVES
+// -----------------------------------------------------
 function playMoveSound(move) {
   const isCapture = !!move.captured;
   const sound = isCapture ? captureSound : moveSound;
@@ -517,17 +599,16 @@ function updateTurnIndicator() {
   }
 }
 
-/* ---------------------------------------------------
-   MODE + LOBBY UI
---------------------------------------------------- */
+// -----------------------------------------------------
+// MODE + LOBBY UI
+// -----------------------------------------------------
 botModeBtn.addEventListener("click", () => {
   if (gameMode === "online" && game.history().length > 0) {
     popup("Cannot change mode during an online game.", "red");
     return;
   }
-  gameMode = "bot";
-  botModeBtn.classList.add("active");
-  onlineModeBtn.classList.remove("active");
+  switchToBotMode();
+  initBoard();
 });
 
 onlineModeBtn.addEventListener("click", () => {
@@ -540,25 +621,24 @@ onlineModeBtn.addEventListener("click", () => {
   
   // Check if there are any players online
   const checkPlayers = () => {
-    if (socket.readyState === WebSocket.OPEN) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "checkPlayers" }));
-    } else if (socket.readyState === WebSocket.CONNECTING) {
+    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
       socket.addEventListener("open", () => {
         socket.send(JSON.stringify({ type: "checkPlayers" }));
       }, { once: true });
     } else {
-      popup("Failed to connect to server. Please try again later.", "red");
+      popup("Failed to connect to server.", "red");
       return;
     }
   };
   
-  // Add a one-time listener for the response
   const handlePlayerCheck = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === "playersOnline") {
       socket.removeEventListener("message", handlePlayerCheck);
       if (data.count === 0) {
-        popup("No players online at the moment, try again later", "red");
+        popup("No players online at the moment.", "red");
         return;
       }
       
@@ -570,7 +650,7 @@ onlineModeBtn.addEventListener("click", () => {
     }
   };
   
-  socket.addEventListener("message", handlePlayerCheck);
+  if(socket) socket.addEventListener("message", handlePlayerCheck);
   checkPlayers();
 });
 
@@ -583,7 +663,6 @@ modeButtons.forEach(btn => {
     gameMode = btn.dataset.mode;
     initBoard();
 
-    // If online, broadcast reset
     if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "resetGame" }));
     }
@@ -602,32 +681,16 @@ lobbyBtn.addEventListener("click", () => {
   lobbyModal.classList.remove("hidden");
   ensureSocket();
   
-  // Wait for socket to open before sending
   const sendListRooms = () => {
-    if (socket.readyState === WebSocket.OPEN) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "listRooms" }));
-    } else if (socket.readyState === WebSocket.CONNECTING) {
+    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
       socket.addEventListener("open", () => {
         socket.send(JSON.stringify({ type: "listRooms" }));
       }, { once: true });
     } else {
-      popup("Failed to connect to server. Please try again later.", "red");
+      popup("Failed to connect to server.", "red");
       lobbyModal.classList.add("hidden");
-    }
-  };
-  
-  // Add a timeout to check if no response
-  const listTimeout = setTimeout(() => {
-    popup("No players online at the moment, try again later", "red");
-    lobbyModal.classList.add("hidden");
-  }, 5000);
-  
-  // Clear timeout if we get a response
-  const originalOnMessage = socket.onmessage;
-  socket.onmessage = (event) => {
-    clearTimeout(listTimeout);
-    if (originalOnMessage) {
-      originalOnMessage(event);
     }
   };
   
@@ -638,15 +701,14 @@ closeLobbyBtn.addEventListener("click", () => {
   lobbyModal.classList.add("hidden");
 });
 
-// Add listeners for draw and resign
 drawBtn.addEventListener("click", () => {
   if (gameMode !== "online") {
     popup("Draw offers are only available in online mode.", "red");
     return;
   }
   
-  if (socket.readyState !== WebSocket.OPEN) {
-    popup("Not connected to server. Please try again later.", "red");
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    popup("Not connected to server.", "red");
     return;
   }
   
@@ -660,8 +722,8 @@ resignBtn.addEventListener("click", () => {
     return;
   }
   
-  if (socket.readyState !== WebSocket.OPEN) {
-    popup("Not connected to server. Please try again later.", "red");
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    popup("Not connected to server.", "red");
     return;
   }
   
@@ -669,9 +731,9 @@ resignBtn.addEventListener("click", () => {
   popup("You resigned.", "red");
 });
 
-/* ---------------------------------------------------
-   INIT
---------------------------------------------------- */
+// -----------------------------------------------------
+// INIT
+// -----------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   themeToggle.addEventListener("click", () => {
     document.body.classList.toggle("light-theme");
@@ -685,10 +747,10 @@ document.addEventListener("DOMContentLoaded", () => {
     initBoard();
   });
 
-  // Handle page unload
   window.addEventListener("beforeunload", () => {
     leaveRoom();
   });
 
   initBoard();
 });
+   

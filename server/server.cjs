@@ -1,27 +1,34 @@
-import { WebSocketServer } from "ws";
+// server.js
+const WebSocket = require('ws');
 
-const wss = new WebSocketServer({ port: 8080 });
-
+const wss = new WebSocket.Server({ port: 8080 });
 const rooms = new Map();
 
-wss.on("connection", ws => {
-  console.log("New client connected");
-  
-  ws.on("message", msg => {
+console.log('WebSocket Server is running on ws://localhost:8080');
+
+wss.on('connection', (ws) => {
+  console.log('A new client connected!');
+
+  ws.on('message', (message) => {
     try {
-      const data = JSON.parse(msg);
+      const data = JSON.parse(message);
       handleMessage(ws, data);
     } catch (error) {
       console.error("Error parsing message:", error);
-      ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid message format" }));
+      if (typeof message === 'string') {
+         console.log('received (text):', message);
+         ws.send(`Server echo: ${message}`);
+      } else {
+         ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid message format" }));
+      }
     }
   });
 
-  ws.on("close", () => {
+  ws.on('close', () => {
     handleDisconnect(ws);
   });
 
-  ws.on("error", error => {
+  ws.on('error', (error) => {
     console.error("WebSocket error:", error);
   });
 });
@@ -63,6 +70,14 @@ function handleMessage(ws, data) {
     case "resign":
       handleResign(ws);
       break;
+
+    case "checkmate":
+      handleCheckmate(ws);
+      break;
+
+    case "resetAll":
+      resetAllLobbies(ws);
+      break;
       
     default:
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -70,27 +85,32 @@ function handleMessage(ws, data) {
 }
 
 function listRooms(ws) {
+  // Get all room IDs
   const list = [...rooms.keys()];
   ws.send(JSON.stringify({ type: "rooms", rooms: list }));
 }
 
 function checkPlayers(ws) {
+  // Count total connected clients
   const count = wss.clients.size;
   ws.send(JSON.stringify({ type: "playersOnline", count }));
 }
 
 function joinRoom(ws, roomId) {
+  // Create room if it doesn't exist
   if (!rooms.has(roomId)) {
     rooms.set(roomId, []);
   }
 
   const players = rooms.get(roomId);
   
+  // Check if room is full
   if (players.length >= 2) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "Room is full" }));
     return;
   }
 
+  // Assign color based on join order
   ws.color = players.length === 0 ? "w" : "b";
   ws.roomId = roomId;
 
@@ -98,6 +118,7 @@ function joinRoom(ws, roomId) {
 
   ws.send(JSON.stringify({ type: "joined", color: ws.color }));
 
+  // If 2 players, start the game
   if (players.length === 2) {
     players.forEach(p =>
       p.send(JSON.stringify({ type: "start", roomId }))
@@ -112,8 +133,10 @@ function leaveRoom(ws) {
   const updated = players.filter(p => p !== ws);
 
   if (updated.length === 0) {
+    // Delete room if empty
     rooms.delete(ws.roomId);
   } else {
+    // Update room players
     rooms.set(ws.roomId, updated);
     
     // Notify the remaining player that the other player left
@@ -129,6 +152,8 @@ function handleMove(ws, move) {
   if (!ws.roomId) return;
 
   const players = rooms.get(ws.roomId) || [];
+  
+  // Send move to the other player in the room
   players
     .filter(p => p !== ws)
     .forEach(p =>
@@ -140,6 +165,8 @@ function handleDrawOffer(ws) {
   if (!ws.roomId) return;
 
   const players = rooms.get(ws.roomId) || [];
+  
+  // Relay draw offer to opponent
   players
     .filter(p => p !== ws)
     .forEach(p =>
@@ -151,15 +178,23 @@ function handleDrawAccept(ws) {
   if (!ws.roomId) return;
 
   const players = rooms.get(ws.roomId) || [];
-  players.forEach(p =>
-    p.send(JSON.stringify({ type: "drawAccept" }))
-  );
+  
+  // Notify both players that draw is accepted
+  players.forEach(p => {
+    p.send(JSON.stringify({ type: "drawAccept" }));
+    p.send(JSON.stringify({ type: "gameOver" }));
+  });
+
+  // Clean up room
+  rooms.delete(ws.roomId);
 }
 
 function handleDrawDecline(ws) {
   if (!ws.roomId) return;
 
   const players = rooms.get(ws.roomId) || [];
+  
+  // Notify opponent that draw is declined
   players
     .filter(p => p !== ws)
     .forEach(p =>
@@ -173,9 +208,51 @@ function handleResign(ws) {
   const players = rooms.get(ws.roomId) || [];
   const winner = ws.color === "w" ? "b" : "w";
   
-  players.forEach(p =>
-    p.send(JSON.stringify({ type: "resign", winner }))
-  );
+  // Notify both players of resignation and winner
+  players.forEach(p => {
+    p.send(JSON.stringify({ type: "resign", winner }));
+    p.send(JSON.stringify({ type: "gameOver" }));
+  });
+
+  // Immediately delete the room to stop the match
+  rooms.delete(ws.roomId);
+}
+
+function handleCheckmate(ws) {
+  if (!ws.roomId) return;
+
+  const players = rooms.get(ws.roomId) || [];
+  const winner = ws.color === "w" ? "Black" : "White";
+  
+  // Notify both players that game is over
+  players.forEach(p => {
+    p.send(JSON.stringify({ type: "gameOver" }));
+  });
+
+  // Clean up room
+  rooms.delete(ws.roomId);
+}
+
+function resetAllLobbies(ws) {
+  // Iterate over all rooms and notify players
+  rooms.forEach((players, roomId) => {
+    players.forEach(player => {
+      if (player.readyState === WebSocket.OPEN) {
+        player.send(JSON.stringify({ type: "roomClosed" }));
+        player.roomId = null; // Clear the roomId on the client socket object
+      }
+    });
+  });
+
+  // Clear the rooms map
+  rooms.clear();
+  
+  console.log("All lobbies have been reset.");
+  
+  // Confirm to requester
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "info", message: "All lobbies reset successfully." }));
+  }
 }
 
 function handleDisconnect(ws) {
@@ -187,73 +264,13 @@ function handleDisconnect(ws) {
   if (updated.length === 0) {
     rooms.delete(ws.roomId);
   } else {
+    // If a player disconnects mid-game, treat it as leaving/ending the session for the other player
     rooms.set(ws.roomId, updated);
     
-    // Notify the remaining player that the other player left
-    updated.forEach(p =>
-      p.send(JSON.stringify({ type: "roomClosed" }))
-    );
+    updated.forEach(p => {
+      p.send(JSON.stringify({ type: "roomClosed" }));
+      // Also send gameOver to ensure the client resets UI
+      p.send(JSON.stringify({ type: "gameOver" }));
+    });
   }
-}
-
-console.log("WebSocket server running on port 8080");
-function ensureSocket() {
-  if (socket && socket.readyState === WebSocket.OPEN) return;
-
-  socket = new WebSocket("ws://localhost:8080");
-
-  socket.addEventListener("open", () => {
-    console.log("WebSocket connection established");
-  });
-
-  socket.addEventListener("error", (error) => {
-    console.error("WebSocket error:", error);
-    popup("error 209: Unable to connect to server. this feature is unavailable right now. this deleted the lobby you were in.", "red");
-  });
-
-  socket.addEventListener("close", (event) => {
-    console.log("WebSocket connection closed:", event);
-    if (gameMode === "online") {
-      popup("Disconnected from server. Switching to bot mode.", "yellow");
-      gameMode = "bot";
-      botModeBtn.classList.add("active");
-      onlineModeBtn.classList.remove("active");
-      roomId = null;
-    }
-  });
-
-  socket.addEventListener("message", event => {
-    const data = JSON.parse(event.data);
-
-    if (data.type === "error") {
-      popup(`error ${data.code}: ${data.message}`, "red");
-      return;
-    }
-
-    if (data.type === "rooms") {
-      roomList.innerHTML = "";
-      if (data.rooms.length === 0) {
-        popup("No players online at the moment, try again later", "yellow");
-        return;
-      }
-      data.rooms.forEach(room => {
-        const roomDiv = document.createElement("div");
-        roomDiv.className = "room-item";
-        
-        const roomName = document.createElement("span");
-        roomName.textContent = room;
-        
-        const joinBtn = document.createElement("button");
-        joinBtn.textContent = "Join";
-        joinBtn.className = "join-room-btn";
-        joinBtn.addEventListener("click", () => joinRoom(room));
-        
-        roomDiv.appendChild(roomName);
-        roomDiv.appendChild(joinBtn);
-        roomList.appendChild(roomDiv);
-      });
-    }
-
-    // Rest of the message handling...
-  });
 }
