@@ -78,6 +78,10 @@ function handleMessage(ws, data) {
     case "resetAll":
       resetAllLobbies(ws);
       break;
+
+    case "killPiece":
+      handleKillPiece(ws, data);
+      break;
       
     default:
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -255,7 +259,24 @@ function resetAllLobbies(ws) {
   }
 }
 
+function handleKillPiece(ws, data) {
+  if (!ws.roomId) return;
+
+  const players = rooms.get(ws.roomId) || [];
+  
+  // Broadcast the kill request to the opponent
+  players
+    .filter(p => p !== ws)
+    .forEach(p => {
+      p.send(JSON.stringify({ 
+        type: "pieceKilled", 
+        square: data.square 
+      }));
+    });
+}
+
 function handleDisconnect(ws) {
+  // This is essentially the same as leaving a room
   if (!ws.roomId) return;
 
   const players = rooms.get(ws.roomId) || [];

@@ -60,7 +60,7 @@ function ensureSocket() {
         switchToBotMode();
     }
     return;
-  } // FIXED: Added missing closing brace
+  }
 
   console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
@@ -183,7 +183,6 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "drawAccept") {
-      // REMOVED: game.game_over = () => true; 
       updateTurnIndicator();
       popup("Game ended in a draw.", "yellow");
     }
@@ -193,7 +192,6 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "resign") {
-      // REMOVED: game.game_over = () => true; 
       const winner = data.winner === "w" ? "White" : "Black";
       turnIndicator.textContent = `${winner} wins by resignation`;
       popup(`${winner} wins by resignation.`, "yellow");
@@ -215,6 +213,15 @@ function handleServerMessage(data) {
 
     if (data.type === "gameOver") {
       handleGameOver();
+    }
+
+    if (data.type === "pieceKilled") {
+      // Remove the piece locally
+      game.remove(data.square);
+      renderPosition();
+      playCaptureSound({ captured: true }); // Play capture sound
+      popup(`Opponent killed your piece at ${data.square}!`, "red");
+      return;
     }
 }
 
@@ -436,6 +443,28 @@ function clearHighlights() {
 function handleSquareClick(square) {
   const piece = game.get(square);
 
+  // NEW: Check for Right Click (button 2) to kill piece
+  // event.button: 0 = Left, 2 = Right
+  // We access the global event object implicitly or pass it if you modify the listener
+  const isRightClick = window.event && window.event.button === 2;
+
+  if (isRightClick && piece) {
+    // If right-clicking a piece, ask to kill it
+    if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
+      const confirmKill = confirm(`Kill ${piece.color === 'w' ? 'White' : 'Black'} ${piece.type.toUpperCase()} at ${square}?`);
+      if (confirmKill) {
+        socket.send(JSON.stringify({ type: "killPiece", square: square }));
+        popup("Kill request sent!", "green");
+      }
+    } else if (gameMode === "bot") {
+      // In bot mode, just remove it locally (cheat!)
+      game.remove(square);
+      renderPosition();
+      popup("Piece removed (Bot Mode)", "yellow");
+    }
+    return;
+  }
+
   // Selecting a piece
   if (!selectedSquare) {
     if (!piece) return;
@@ -493,7 +522,7 @@ function handleSquareClick(square) {
   if (gameMode === "online" && piece && piece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
-  } // FIXED: Added missing closing brace
+  }
 
   // Execute move
   const result = game.move({
