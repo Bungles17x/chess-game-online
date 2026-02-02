@@ -65,7 +65,7 @@ function ensureSocket() {
   console.log(`[Connecting] Attempting to connect to ws://localhost:8080/ (Attempt ${reconnectAttempts + 1})`);
 
   try {
-    socket = new WebSocket('ws://localhost:8080/');
+    socket = new WebSocket('https://chess-game-online-u34h.onrender.com');
 
     socket.onopen = function(e) {
       console.log("[Connected] Connection established!");
