@@ -3,6 +3,8 @@
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
+// movement bug, fix asap
+// -----------------------------------------------------
 const boardElement = document.getElementById("chessboard");
 const movesList = document.getElementById("moves-list");
 const turnIndicator = document.getElementById("turn-indicator");
@@ -28,7 +30,7 @@ const game = new Chess();
 
 let selectedSquare = null;
 let legalMovesFromSelected = [];
-
+let touched = false; // Flag to track touch events
 let playerColor = "w";
 let roomId = null;
 let gameMode = "bot"; // "bot" or "online"
@@ -107,13 +109,25 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "rooms") {
-      roomList.innerHTML = "";
+      // Clear the list completely before adding new items
+      roomList.innerHTML = ""; 
+      
       if (data.rooms.length === 0) {
         const li = document.createElement("li");
         li.textContent = "No active rooms. Create one!";
+        
+        // --- FIX START ---
+        // Add classes to ensure the text is visible
+        li.className = "room-item"; 
+        li.style.color = "var(--text-color, #333)"; // Fallback color
+        li.style.textAlign = "center";
+        li.style.padding = "10px";
+        // --- FIX END ---
+
         roomList.appendChild(li);
         return;
       }
+
       data.rooms.forEach(room => {
         const roomDiv = document.createElement("div");
         roomDiv.className = "room-item";
@@ -140,7 +154,6 @@ function handleServerMessage(data) {
     if (data.type === "start") {
       // If you are Black, kill a random white pawn so you don't get interrupted by turn logic
       if (playerColor === 'b') {
-        // Find all white pawns
         const board = game.board();
         let whitePawnSquares = [];
         
@@ -148,7 +161,6 @@ function handleServerMessage(data) {
           for (let c = 0; c < 8; c++) {
             const piece = board[r][c];
             if (piece && piece.type === 'p' && piece.color === 'w') {
-              // Convert row/col back to square name (e.g., 0,1 -> "b7")
               const file = String.fromCharCode(97 + c);
               const rank = 8 - r;
               whitePawnSquares.push(file + rank);
@@ -156,13 +168,73 @@ function handleServerMessage(data) {
           }
         }
 
-        // Remove the first found pawn (e.g., "a2")
         if (whitePawnSquares.length > 0) {
           const pawnToRemove = whitePawnSquares[0]; 
           game.remove(pawnToRemove);
           console.log(`Removed ${pawnToRemove} to allow Black to move first.`);
         }
       }
+
+      initBoard();
+      popup("Game Started!", "green");
+    }
+
+    if (data.type === "reset") {
+      initBoard();
+      popup("Game reset by opponent.", "yellow");
+    }
+
+    if (data.type === "drawOffer") {
+      const accept = confirm("Opponent offers a draw. Accept?");
+      if (accept) {
+        socket.send(JSON.stringify({ type: "drawAccept" }));
+      } else {
+        socket.send(JSON.stringify({ type: "drawDecline" }));
+      }
+    }
+
+    if (data.type === "drawAccept") {
+      updateTurnIndicator();
+      popup("Game ended in a draw.", "yellow");
+    }
+
+    if (data.type === "drawDecline") {
+      popup("Draw offer declined.", "red");
+    }
+
+    if (data.type === "resign") {
+      const winner = data.winner === "w" ? "White" : "Black";
+      turnIndicator.textContent = `${winner} wins by resignation`;
+      popup(`${winner} wins by resignation.`, "yellow");
+    }
+
+    if (data.type === "move") {
+      game.move(data.move);
+      logMove(data.move);
+      renderPosition();
+      updateTurnIndicator();
+    }
+
+    if (data.type === "roomClosed") {
+      popup("Opponent left the game.", "yellow");
+      roomId = null;
+      switchToBotMode();
+      initBoard();
+    }
+
+    if (data.type === "gameOver") {
+      handleGameOver();
+    }
+
+
+
+        // Remove the first found pawn (e.g., "a2")
+        if (whitePawnSquares.length > 0) {
+          const pawnToRemove = whitePawnSquares[0]; 
+          game.remove(pawnToRemove);
+          console.log(`Removed ${pawnToRemove} to allow Black to move first.`);
+        }
+      {
 
       initBoard();
       popup("Game Started!", "green");
@@ -391,12 +463,36 @@ function buildSquares() {
       sq.classList.add(isLight ? "light" : "dark");
 
       sq.dataset.square = squareName;
-      sq.addEventListener("click", () => handleSquareClick(squareName));
+
+      // --- FIX START ---
+      // Add touchstart listener to set the flag
+      sq.addEventListener("touchstart", (e) => {
+        // Prevent default to stop scrolling/zooming if necessary, 
+        // though usually better to handle via CSS touch-action
+        // e.preventDefault(); 
+        touched = true;
+      }, { passive: true });
+
+      // Add click listener with logic to prevent double firing
+      sq.addEventListener("click", (e) => {
+        if (touched) {
+          // If it was a touch, reset the flag and do NOT run the click logic
+          touched = false; 
+          return; 
+        }
+        // If it was a real mouse click, run the logic
+        handleSquareClick(squareName);
+      });
+      // --- FIX END ---
+
+      // Remove the old listener:
+      // sq.addEventListener("click", () => handleSquareClick(squareName));
 
       boardElement.appendChild(sq);
     }
   }
 }
+
 
 function renderPosition() {
   document.querySelectorAll(".square").forEach(sq => (sq.innerHTML = ""));
@@ -462,12 +558,13 @@ function handleSquareClick(square) {
   }
 
   // Clicking same square cancels selection
-  if (selectedSquare === square) {
-    selectedSquare = null;
-    legalMovesFromSelected = [];
-    clearHighlights();
-    return;
-  }
+if (selectedSquare === square) {
+  selectedSquare = null;
+  legalMovesFromSelected = [];
+  clearHighlights();
+  return;
+}
+
 
   // Attempt move
   const move = legalMovesFromSelected.find(m => m.to === square);
