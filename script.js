@@ -54,7 +54,7 @@ function ensureSocket() {
 
   // Stop retrying if we hit the max limit
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.error(`[Max Reconnects Reached] Stopped trying to connect to ws://localhost:8080/`);
+    console.error(`[Max Reconnects Reached] Stopped trying to connect to wss://chess-game-online-u34h.onrender.com/`);
     if (gameMode === "online") {
         popup("Connection failed. Server is unreachable. Switching to Bot mode.", "red");
         switchToBotMode();
@@ -62,10 +62,11 @@ function ensureSocket() {
     return;
   }
 
-  console.log(`[Connecting] Attempting to connect to ws://localhost:8080/ (Attempt ${reconnectAttempts + 1})`);
+  console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
   try {
-    socket = new WebSocket('https://chess-game-online-u34h.onrender.com');
+    // FIX: Changed https:// to wss://
+    socket = new WebSocket('wss://chess-game-online-u34h.onrender.com');
 
     socket.onopen = function(e) {
       console.log("[Connected] Connection established!");
@@ -753,4 +754,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initBoard();
 });
-   
