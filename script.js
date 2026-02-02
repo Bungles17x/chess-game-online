@@ -21,6 +21,9 @@ const captureSound = document.getElementById("capture-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
 
+// Check for mobile device (Touchscreens)
+const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 // -----------------------------------------------------
 // GAME STATE
 // -----------------------------------------------------
@@ -197,8 +200,7 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "move") {
-      // IMPORTANT: Do NOT check turn here. 
-      // The server validated this move, so we trust it.
+      // IMPORTANT: Do NOT check turn here. Trust the server.
       game.move(data.move);
       logMove(data.move);
       renderPosition();
@@ -401,6 +403,12 @@ function buildSquares() {
 
       sq.dataset.square = squareName;
       sq.addEventListener("click", () => handleSquareClick(squareName));
+      
+      // FIX: Add context menu for mobile "Right Click" (Long Press)
+      sq.addEventListener("contextmenu", (e) => {
+        e.preventDefault(); // Stop default browser menu
+        handleSquareClick(squareName, true); // Pass true to indicate it's a "Kill" action
+      });
 
       boardElement.appendChild(sq);
     }
@@ -442,23 +450,35 @@ function clearHighlights() {
     .forEach(sq => sq.classList.remove("selected", "highlight"));
 }
 
-function handleSquareClick(square) {
+function handleSquareClick(square, isKillAction = false) {
   // 1. PRIORITY: Check for Right Click (Kill Piece) FIRST
+  // We use isKillAction instead of relying solely on window.event
   const isRightClick = window.event && window.event.button === 2;
 
-  let piece = null; // FIX: Define piece variable at function scope
-
-  if (isRightClick) {
-    piece = game.get(square); // Assign piece here
+  if (isKillAction || isRightClick) {
+    const piece = game.get(square);
     if (piece) {
-      // ... kill logic ...
+      // If right-clicking a piece, ask to kill it
+      if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
+        const confirmKill = confirm(`Kill ${piece.color === 'w' ? 'White' : 'Black'} ${piece.type.toUpperCase()} at ${square}?`);
+        if (confirmKill) {
+          socket.send(JSON.stringify({ type: "killPiece", square: square }));
+          popup("Kill request sent!", "green");
+        }
+      } else if (gameMode === "bot") {
+        // In bot mode, just remove it locally (cheat!)
+        game.remove(square);
+        renderPosition();
+        playCaptureSound();
+        popup("Piece removed (Bot Mode)", "yellow");
+      }
     }
-    return;
+    return; // Stop processing immediately after handling right click
   }
 
   // 2. Selecting a piece
   if (!selectedSquare) {
-    piece = game.get(square); // Assign piece here
+    const piece = game.get(square);
     if (!piece) return;
 
     // ONLINE MODE: Strict checks
@@ -473,6 +493,15 @@ function handleSquareClick(square) {
         popup("You can only select your own pieces.", "red");
         return;
       }
+    }
+
+    // BOT MODE: Only check turn (optional, allows playing both sides)
+    if (gameMode === "bot") {
+       if (piece.color !== game.turn()) {
+         // In bot mode, usually you play both, but let's enforce turn for consistency
+         // or just remove this check if you want to move anytime
+         return;
+       }
     }
 
     selectedSquare = square;
@@ -495,7 +524,7 @@ function handleSquareClick(square) {
   const move = legalMovesFromSelected.find(m => m.to === square);
 
   if (!move) {
-    const newPiece = game.get(square); // Assign piece here
+    const newPiece = game.get(square);
 
     // If clicking another piece, try to select it instead
     if (newPiece) {
@@ -530,10 +559,8 @@ function handleSquareClick(square) {
   }
 
   // 5. Online: only allow moving your own color (Double check for safety)
-  // We use 'piece' from the move object (move.from) instead of re-fetching
-  const movingPiece = game.get(move.from);
-  
-  if (gameMode === "online" && movingPiece && movingPiece.color !== playerColor) {
+  // NOTE: This check is redundant now because we check turn above, but kept for safety
+  if (gameMode === "online" && piece && piece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
   }
@@ -571,7 +598,6 @@ function handleSquareClick(square) {
     setTimeout(aiMove, 200);
   }
 }
-
 
 function highlightSelectionAndMoves() {
   clearHighlights();
