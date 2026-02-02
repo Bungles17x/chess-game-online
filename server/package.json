@@ -1,6 +1,9 @@
- {
+{
   "type": "module",
   "dependencies": {
     "ws": "^8.13.0"
+  },
+  "scripts": {
+    "build": "react-scripts build"
   }
 }
