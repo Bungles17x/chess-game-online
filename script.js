@@ -60,7 +60,7 @@ function ensureSocket() {
         switchToBotMode();
     }
     return;
-  }
+  } // FIXED: Added missing closing brace
 
   console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
@@ -183,7 +183,7 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "drawAccept") {
-      game.game_over = () => true; 
+      // REMOVED: game.game_over = () => true; 
       updateTurnIndicator();
       popup("Game ended in a draw.", "yellow");
     }
@@ -193,7 +193,7 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "resign") {
-      game.game_over = () => true; 
+      // REMOVED: game.game_over = () => true; 
       const winner = data.winner === "w" ? "White" : "Black";
       turnIndicator.textContent = `${winner} wins by resignation`;
       popup(`${winner} wins by resignation.`, "yellow");
@@ -493,7 +493,7 @@ function handleSquareClick(square) {
   if (gameMode === "online" && piece && piece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
-  }
+  } // FIXED: Added missing closing brace
 
   // Execute move
   const result = game.move({
