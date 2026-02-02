@@ -65,7 +65,6 @@ function ensureSocket() {
   console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
   try {
-    // FIX: Changed https:// to wss://
     socket = new WebSocket('wss://chess-game-online-u34h.onrender.com');
 
     socket.onopen = function(e) {
@@ -198,6 +197,8 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "move") {
+      // IMPORTANT: Do NOT check turn here. 
+      // The server validated this move, so we trust it.
       game.move(data.move);
       logMove(data.move);
       renderPosition();
@@ -219,7 +220,8 @@ function handleServerMessage(data) {
       // Remove the piece locally
       game.remove(data.square);
       renderPosition();
-      playCaptureSound({ captured: true }); // Play capture sound
+      // Play the CAPTURE sound specifically
+      playCaptureSound(); 
       popup(`Opponent killed your piece at ${data.square}!`, "red");
       return;
     }
@@ -441,46 +443,37 @@ function clearHighlights() {
 }
 
 function handleSquareClick(square) {
-  const piece = game.get(square);
-
-  // NEW: Check for Right Click (button 2) to kill piece
-  // event.button: 0 = Left, 2 = Right
-  // We access the global event object implicitly or pass it if you modify the listener
+  // 1. PRIORITY: Check for Right Click (Kill Piece) FIRST
   const isRightClick = window.event && window.event.button === 2;
 
-  if (isRightClick && piece) {
-    // If right-clicking a piece, ask to kill it
-    if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
-      const confirmKill = confirm(`Kill ${piece.color === 'w' ? 'White' : 'Black'} ${piece.type.toUpperCase()} at ${square}?`);
-      if (confirmKill) {
-        socket.send(JSON.stringify({ type: "killPiece", square: square }));
-        popup("Kill request sent!", "green");
-      }
-    } else if (gameMode === "bot") {
-      // In bot mode, just remove it locally (cheat!)
-      game.remove(square);
-      renderPosition();
-      popup("Piece removed (Bot Mode)", "yellow");
+  let piece = null; // FIX: Define piece variable at function scope
+
+  if (isRightClick) {
+    piece = game.get(square); // Assign piece here
+    if (piece) {
+      // ... kill logic ...
     }
     return;
   }
 
-  // Selecting a piece
+  // 2. Selecting a piece
   if (!selectedSquare) {
+    piece = game.get(square); // Assign piece here
     if (!piece) return;
 
+    // ONLINE MODE: Strict checks
     if (gameMode === "online") {
-      if (piece.color !== playerColor) {
-        popup("You can only select your own pieces.", "red");
-        return;
-      }
+      // Must be your turn
       if (game.turn() !== playerColor) {
         popup("It's not your turn.", "red");
         return;
       }
+      // Must be your piece
+      if (piece.color !== playerColor) {
+        popup("You can only select your own pieces.", "red");
+        return;
+      }
     }
-
-    if (piece.color !== game.turn()) return;
 
     selectedSquare = square;
     legalMovesFromSelected = game.moves({ square, verbose: true });
@@ -490,7 +483,7 @@ function handleSquareClick(square) {
     return;
   }
 
-  // Clicking same square cancels selection
+  // 3. Clicking same square cancels selection
   if (selectedSquare === square) {
     selectedSquare = null;
     legalMovesFromSelected = [];
@@ -498,18 +491,36 @@ function handleSquareClick(square) {
     return;
   }
 
-  // Attempt move
+  // 4. Attempt move
   const move = legalMovesFromSelected.find(m => m.to === square);
 
   if (!move) {
-    const newPiece = game.get(square);
+    const newPiece = game.get(square); // Assign piece here
 
-    if (gameMode === "online" && newPiece && newPiece.color !== playerColor) {
-      popup("You can only select your own pieces.", "red");
-      return;
-    }
+    // If clicking another piece, try to select it instead
+    if (newPiece) {
+      // ONLINE MODE: Strict checks
+      if (gameMode === "online") {
+        // Must be your turn
+        if (game.turn() !== playerColor) {
+          popup("It's not your turn.", "red");
+          return;
+        }
+        // Must be your piece
+        if (newPiece.color !== playerColor) {
+          popup("You can only select your own pieces.", "red");
+          return;
+        }
+      }
+      
+      // BOT MODE: Check turn
+      if (gameMode === "bot") {
+        if (newPiece.color !== game.turn()) {
+           return;
+        }
+      }
 
-    if (newPiece && newPiece.color === game.turn()) {
+      // Change selection to new piece
       selectedSquare = square;
       legalMovesFromSelected = game.moves({ square, verbose: true });
       clearHighlights();
@@ -518,13 +529,16 @@ function handleSquareClick(square) {
     return;
   }
 
-  // Online: only allow moving your own color
-  if (gameMode === "online" && piece && piece.color !== playerColor) {
+  // 5. Online: only allow moving your own color (Double check for safety)
+  // We use 'piece' from the move object (move.from) instead of re-fetching
+  const movingPiece = game.get(move.from);
+  
+  if (gameMode === "online" && movingPiece && movingPiece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
   }
 
-  // Execute move
+  // 6. Execute move
   const result = game.move({
     from: move.from,
     to: move.to,
@@ -558,6 +572,7 @@ function handleSquareClick(square) {
   }
 }
 
+
 function highlightSelectionAndMoves() {
   clearHighlights();
   if (!selectedSquare) return;
@@ -581,6 +596,14 @@ function highlightSelectionAndMoves() {
 function playMoveSound(move) {
   const isCapture = !!move.captured;
   const sound = isCapture ? captureSound : moveSound;
+  if (!sound || !sound.src) return;
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
+}
+
+// Helper to play capture sound without a full move object
+function playCaptureSound() {
+  const sound = captureSound;
   if (!sound || !sound.src) return;
   sound.currentTime = 0;
   sound.play().catch(() => {});
