@@ -62,7 +62,7 @@ function ensureSocket() {
         switchToBotMode();
     }
     return;
-  } // FIXED: Added missing closing brace
+  }
 
   console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
@@ -104,7 +104,7 @@ function ensureSocket() {
 
 function handleServerMessage(data) {
     if (data.type === "error") {
-      popup(`error ${data.code}: ${data.message}`, "red");
+      popup(`there was an error, ${data.code}: ${data.message}`, "red");
       return;
     }
 
@@ -113,20 +113,21 @@ function handleServerMessage(data) {
       roomList.innerHTML = ""; 
       
       if (data.rooms.length === 0) {
-        const li = document.createElement("li");
-        li.textContent = "No active rooms. Create one!";
-        
-        // --- FIX START ---
-        // Add classes to ensure the text is visible
-        li.className = "room-item"; 
-        li.style.color = "var(--text-color, #333)"; // Fallback color
-        li.style.textAlign = "center";
-        li.style.padding = "10px";
-        // --- FIX END ---
+  const li = document.createElement("li");
+  li.textContent = "No active rooms. Create one!";
+  
+  // --- FIX START ---
+  // Add classes to ensure the text is visible
+  li.className = "room-item"; 
+  li.style.color = "var(--text-color, #ff0000)"; // Fallback color
+  li.style.textAlign = "center";
+  li.style.padding = "10px";
+  // --- FIX END ---
 
-        roomList.appendChild(li);
-        return;
-      }
+  roomList.appendChild(li);
+  return;
+}
+
 
       data.rooms.forEach(room => {
         const roomDiv = document.createElement("div");
@@ -203,69 +204,6 @@ function handleServerMessage(data) {
     }
 
     if (data.type === "resign") {
-      const winner = data.winner === "w" ? "White" : "Black";
-      turnIndicator.textContent = `${winner} wins by resignation`;
-      popup(`${winner} wins by resignation.`, "yellow");
-    }
-
-    if (data.type === "move") {
-      game.move(data.move);
-      logMove(data.move);
-      renderPosition();
-      updateTurnIndicator();
-    }
-
-    if (data.type === "roomClosed") {
-      popup("Opponent left the game.", "yellow");
-      roomId = null;
-      switchToBotMode();
-      initBoard();
-    }
-
-    if (data.type === "gameOver") {
-      handleGameOver();
-    }
-
-
-
-        // Remove the first found pawn (e.g., "a2")
-        if (whitePawnSquares.length > 0) {
-          const pawnToRemove = whitePawnSquares[0]; 
-          game.remove(pawnToRemove);
-          console.log(`Removed ${pawnToRemove} to allow Black to move first.`);
-        }
-      {
-
-      initBoard();
-      popup("Game Started!", "green");
-    }
-
-    if (data.type === "reset") {
-      initBoard();
-      popup("Game reset by opponent.", "yellow");
-    }
-
-    if (data.type === "drawOffer") {
-      const accept = confirm("Opponent offers a draw. Accept?");
-      if (accept) {
-        socket.send(JSON.stringify({ type: "drawAccept" }));
-      } else {
-        socket.send(JSON.stringify({ type: "drawDecline" }));
-      }
-    }
-
-    if (data.type === "drawAccept") {
-      // REMOVED: game.game_over = () => true; 
-      updateTurnIndicator();
-      popup("Game ended in a draw.", "yellow");
-    }
-
-    if (data.type === "drawDecline") {
-      popup("Draw offer declined.", "red");
-    }
-
-    if (data.type === "resign") {
-      // REMOVED: game.game_over = () => true; 
       const winner = data.winner === "w" ? "White" : "Black";
       turnIndicator.textContent = `${winner} wins by resignation`;
       popup(`${winner} wins by resignation.`, "yellow");
@@ -558,13 +496,12 @@ function handleSquareClick(square) {
   }
 
   // Clicking same square cancels selection
-if (selectedSquare === square) {
-  selectedSquare = null;
-  legalMovesFromSelected = [];
-  clearHighlights();
-  return;
-}
-
+  if (selectedSquare === square) {
+    selectedSquare = null;
+    legalMovesFromSelected = [];
+    clearHighlights();
+    return;
+  }
 
   // Attempt move
   const move = legalMovesFromSelected.find(m => m.to === square);
@@ -590,7 +527,7 @@ if (selectedSquare === square) {
   if (gameMode === "online" && piece && piece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
-  } // FIXED: Added missing closing brace
+  }
 
   // Execute move
   const result = game.move({
