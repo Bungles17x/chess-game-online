@@ -1,24 +1,10 @@
 {
-  "name": "chess-game",
-  "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Bungles17x/chess-game-online.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Bungles17x/chess-game-online/issues"
-  },
-  "homepage": "https://github.com/Bungles17x/chess-game-online#readme",
+  "type": "module",
   "dependencies": {
-    "ws": "^8.19.0"
+    "ws": "^8.13.0"
+  },
+  "scripts": {
+    "start": "node server.cjs",
+    "build": "react-scripts build"
   }
 }
