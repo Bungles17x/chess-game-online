@@ -115,9 +115,9 @@ function handleServerMessage(data) {
         const li = document.createElement("li");
         li.textContent = "No active rooms. Create one!";
         
-        // Add classes to ensure the text is visible 
+        // Add classes to ensure the text is visible
         li.className = "room-item"; 
-        li.style.color = "var(--text-color, #ff0000)"; // Fallback color
+        li.style.color = "var(--text-color, #333)"; // Fallback color
         li.style.textAlign = "center";
         li.style.padding = "10px";
 
@@ -308,7 +308,7 @@ function startRoomUpdates() {
   // Set up interval to update room list every 5 seconds
   roomUpdateInterval = setInterval(() => {
     sendListRooms();
-  }, 1000);
+  }, 5000);
 }
 
 function stopRoomUpdates() {
@@ -557,7 +557,9 @@ function handleSquareClick(square) {
   }
 
   // Online: only allow moving your own color
-  if (gameMode === "online" && piece && piece.color !== playerColor) {
+  // Get the piece at the from square (not the to square)
+  const fromPiece = game.get(move.from);
+  if (gameMode === "online" && fromPiece && fromPiece.color !== playerColor) {
     popup("You can only move your own pieces.", "red");
     return;
   }
@@ -569,7 +571,10 @@ function handleSquareClick(square) {
     promotion: "q"
   });
 
-  if (!result) return;
+  if (!result) {
+    console.error("Move failed:", move);
+    return;
+  }
 
   // Send move to opponent
   if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
@@ -614,6 +619,7 @@ function highlightSelectionAndMoves() {
       // Add a visual indicator for capture moves
       if (m.captured) {
         targetSq.classList.add("capture");
+        console.log(`Capture move: ${m.from} to ${m.to}, captured: ${m.captured}`);
       }
     }
   });
