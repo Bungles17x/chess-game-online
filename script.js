@@ -28,7 +28,8 @@ const game = new Chess();
 
 let selectedSquare = null;
 let legalMovesFromSelected = [];
-let touched = false; // Flag to track touch events
+let touchStartSquare = null; // Track where touch started
+let touchStartTime = 0; // Track when touch started
 let playerColor = "w";
 let roomId = null;
 let gameMode = "bot"; // "bot" or "online"
@@ -42,6 +43,7 @@ let socket = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
 const RECONNECT_INTERVAL = 2000;
+let roomUpdateInterval = null;
 
 // -----------------------------------------------------
 // SOCKET / NETWORKING
@@ -257,6 +259,10 @@ function leaveRoom() {
 function joinRoom(room) {
   roomId = room;
   lobbyModal.classList.add("hidden");
+  
+  // Stop updating the room list when joining a room
+  stopRoomUpdates();
+  
   ensureSocket();
   
   const sendJoin = () => {
@@ -269,6 +275,8 @@ function joinRoom(room) {
     } else {
       popup("Failed to connect to server.", "red");
       lobbyModal.classList.remove("hidden");
+      // Restart room updates if joining failed
+      startRoomUpdates();
     }
   };
   
@@ -285,6 +293,28 @@ function sendListRooms() {
   } else {
     popup("Failed to connect to server.", "red");
     lobbyModal.classList.add("hidden");
+  }
+}
+
+function startRoomUpdates() {
+  // Clear any existing interval
+  if (roomUpdateInterval) {
+    clearInterval(roomUpdateInterval);
+  }
+  
+  // Request room list immediately
+  sendListRooms();
+  
+  // Set up interval to update room list every 5 seconds
+  roomUpdateInterval = setInterval(() => {
+    sendListRooms();
+  }, 1000);
+}
+
+function stopRoomUpdates() {
+  if (roomUpdateInterval) {
+    clearInterval(roomUpdateInterval);
+    roomUpdateInterval = null;
   }
 }
 
@@ -395,24 +425,39 @@ function buildSquares() {
       sq.classList.add(isLight ? "light" : "dark");
 
       sq.dataset.square = squareName;
+      
+      // Add touch-action style to prevent browser zooming/scrolling on touch
+      sq.style.touchAction = "manipulation";
 
-      // Add touchstart listener to set the flag
+      // Improved touch event handling for mobile
       sq.addEventListener("touchstart", (e) => {
-        // Prevent default to stop scrolling/zooming if necessary, 
-        // though usually better to handle via CSS touch-action
-        // e.preventDefault(); 
-        touched = true;
+        // Record where and when the touch started
+        touchStartSquare = squareName;
+        touchStartTime = Date.now();
       }, { passive: true });
 
-      // Add click listener with logic to prevent double firing
-      sq.addEventListener("click", (e) => {
-        if (touched) {
-          // If it was a touch, reset the flag and do NOT run the click logic
-          touched = false; 
-          return; 
+      // Handle touch end to detect taps
+      sq.addEventListener("touchend", (e) => {
+        // Calculate touch duration
+        const touchDuration = Date.now() - touchStartTime;
+        
+        // If it was a quick tap (less than 300ms) and on the same square, handle it
+        if (touchDuration < 300 && touchStartSquare === squareName) {
+          e.preventDefault(); // Prevent default to avoid mouse events
+          handleSquareClick(squareName);
         }
-        // If it was a real mouse click, run the logic
-        handleSquareClick(squareName);
+        
+        // Reset touch tracking
+        touchStartSquare = null;
+        touchStartTime = 0;
+      }, { passive: false });
+
+      // Handle click events for desktop
+      sq.addEventListener("click", (e) => {
+        // Only handle click if we're not tracking a touch (to avoid double handling)
+        if (!touchStartSquare) {
+          handleSquareClick(squareName);
+        }
       });
 
       boardElement.appendChild(sq);
@@ -675,6 +720,8 @@ onlineModeBtn.addEventListener("click", () => {
       onlineModeBtn.classList.add("active");
       botModeBtn.classList.remove("active");
       lobbyModal.classList.remove("hidden");
+      // Start updating the room list when opening the lobby
+      startRoomUpdates();
       sendListRooms();
     }
   };
@@ -710,24 +757,15 @@ lobbyBtn.addEventListener("click", () => {
   lobbyModal.classList.remove("hidden");
   ensureSocket();
   
-  const sendListRooms = () => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "listRooms" }));
-    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
-      socket.addEventListener("open", () => {
-        socket.send(JSON.stringify({ type: "listRooms" }));
-      }, { once: true });
-    } else {
-      popup("Failed to connect to server. if this persists, contact us through email", "red");
-      lobbyModal.classList.add("hidden");
-    }
-  };
-  
-  sendListRooms();
+  // Start updating the room list
+  startRoomUpdates();
 });
 
 closeLobbyBtn.addEventListener("click", () => {
   lobbyModal.classList.add("hidden");
+  
+  // Stop updating the room list when closing the lobby
+  stopRoomUpdates();
 });
 
 drawBtn.addEventListener("click", () => {
@@ -752,7 +790,7 @@ resignBtn.addEventListener("click", () => {
   }
   
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    popup("Not connected to server. check internet connection", "red");
+    popup("Not connected to server.", "red");
     return;
   }
   
