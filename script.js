@@ -3,8 +3,6 @@
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
-// movement bug, fix asap
-// -----------------------------------------------------
 const boardElement = document.getElementById("chessboard");
 const movesList = document.getElementById("moves-list");
 const turnIndicator = document.getElementById("turn-indicator");
@@ -67,7 +65,6 @@ function ensureSocket() {
   console.log(`[Connecting] Attempting to connect to wss://chess-game-online-u34h.onrender.com/ (Attempt ${reconnectAttempts + 1})`);
 
   try {
-    // FIX: Changed https:// to wss://
     socket = new WebSocket('wss://chess-game-online-u34h.onrender.com');
 
     socket.onopen = function(e) {
@@ -104,7 +101,7 @@ function ensureSocket() {
 
 function handleServerMessage(data) {
     if (data.type === "error") {
-      popup(`there was an error, ${data.code}: ${data.message}`, "red");
+      popup(`error ${data.code}: ${data.message}`, "red");
       return;
     }
 
@@ -113,21 +110,18 @@ function handleServerMessage(data) {
       roomList.innerHTML = ""; 
       
       if (data.rooms.length === 0) {
-  const li = document.createElement("li");
-  li.textContent = "No active rooms. Create one!";
-  
-  // --- FIX START ---
-  // Add classes to ensure the text is visible
-  li.className = "room-item"; 
-  li.style.color = "var(--text-color, #ff0000)"; // Fallback color
-  li.style.textAlign = "center";
-  li.style.padding = "10px";
-  // --- FIX END ---
+        const li = document.createElement("li");
+        li.textContent = "No active rooms. Create one!";
+        
+        // Add classes to ensure the text is visible
+        li.className = "room-item"; 
+        li.style.color = "var(--text-color, #ff0000)"; // Fallback color
+        li.style.textAlign = "center";
+        li.style.padding = "10px";
 
-  roomList.appendChild(li);
-  return;
-}
-
+        roomList.appendChild(li);
+        return;
+      }
 
       data.rooms.forEach(room => {
         const roomDiv = document.createElement("div");
@@ -402,7 +396,6 @@ function buildSquares() {
 
       sq.dataset.square = squareName;
 
-      // --- FIX START ---
       // Add touchstart listener to set the flag
       sq.addEventListener("touchstart", (e) => {
         // Prevent default to stop scrolling/zooming if necessary, 
@@ -421,16 +414,11 @@ function buildSquares() {
         // If it was a real mouse click, run the logic
         handleSquareClick(squareName);
       });
-      // --- FIX END ---
-
-      // Remove the old listener:
-      // sq.addEventListener("click", () => handleSquareClick(squareName));
 
       boardElement.appendChild(sq);
     }
   }
 }
-
 
 function renderPosition() {
   document.querySelectorAll(".square").forEach(sq => (sq.innerHTML = ""));
@@ -463,8 +451,8 @@ function renderPosition() {
 // -----------------------------------------------------
 function clearHighlights() {
   document
-    .querySelectorAll(".square.selected, .square.highlight")
-    .forEach(sq => sq.classList.remove("selected", "highlight"));
+    .querySelectorAll(".square.selected, .square.highlight, .square.capture")
+    .forEach(sq => sq.classList.remove("selected", "highlight", "capture"));
 }
 
 function handleSquareClick(square) {
@@ -576,7 +564,13 @@ function highlightSelectionAndMoves() {
     const targetSq = document.querySelector(
       `.square[data-square="${m.to}"]`
     );
-    if (targetSq) targetSq.classList.add("highlight");
+    if (targetSq) {
+      targetSq.classList.add("highlight");
+      // Add a visual indicator for capture moves
+      if (m.captured) {
+        targetSq.classList.add("capture");
+      }
+    }
   });
 }
 
@@ -724,7 +718,7 @@ lobbyBtn.addEventListener("click", () => {
         socket.send(JSON.stringify({ type: "listRooms" }));
       }, { once: true });
     } else {
-      popup("Failed to connect to server.", "red");
+      popup("Failed to connect to server. if this persists, contact us through email", "red");
       lobbyModal.classList.add("hidden");
     }
   };
@@ -758,7 +752,7 @@ resignBtn.addEventListener("click", () => {
   }
   
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    popup("Not connected to server.", "red");
+    popup("Not connected to server. check internet connection", "red");
     return;
   }
   
