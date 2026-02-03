@@ -115,7 +115,7 @@ function handleServerMessage(data) {
         const li = document.createElement("li");
         li.textContent = "No active rooms. Create one!";
         
-        // Add classes to ensure the text is visible
+        // Add classes to ensure the text is visible 
         li.className = "room-item"; 
         li.style.color = "var(--text-color, #ff0000)"; // Fallback color
         li.style.textAlign = "center";
