@@ -15,8 +15,10 @@
 <body>
   <div id="alert-area"></div>
 
-  <div class="app-shell">
 
+
+  <!-- Game Box - Contains all game elements -->
+  <div class="app-shell">
     <!-- HEADER -->
     <header class="top-bar">
       <div class="brand">
@@ -76,17 +78,34 @@
     <div class="modal-content">
       <h2>Available Rooms</h2>
       <ul id="room-list"></ul>
-
       <button id="create-room-btn" class="primary-btn">Create Room</button>
       <button id="close-lobby-btn" class="primary-btn">Close</button>
       <div id="popup-container"></div>
+    </div>
+  </div>
 
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="loading-screen hidden">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <h2>Connecting to server...</h2>
+      <p>Please wait while we establish a connection.</p>
+    </div>
+  </div>
+
+  <!-- NO CONNECTION SCREEN -->
+  <div id="no-connection-screen" class="no-connection-screen hidden">
+    <div class="no-connection-content">
+      <div class="connection-icon">⚠️</div>
+      <h2>Connection Failed</h2>
+      <p>Unable to connect to the server. Please check your internet connection and try again.</p>
+      <button id="retry-connection-btn" class="primary-btn">Retry Connection</button>
+      <button id="back-to-bot-btn" class="primary-btn">Back to Bot Mode</button>
     </div>
   </div>
 
   <!-- CHESS.JS + SCRIPT -->
   <script src="chess.js"></script>
   <script src="script.js"></script>
-
 </body>
 </html>

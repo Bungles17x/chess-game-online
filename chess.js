@@ -1747,6 +1747,8 @@ if (typeof define !== 'undefined')
   define(function() {
     return Chess
   })
+/* export Chess object for browser */
+if (typeof window !== 'undefined') window.Chess = Chess
 
   function aiMove() {
   const moves = game.moves();
@@ -1764,10 +1766,4 @@ function evaluateBoard(game) {
 
 function minimax(game, depth, isMaximizing) {
   // recursive search
-}
-
-function aiMove() {
-  const bestMove = minimax(game, 2, true);
-  game.move(bestMove);
-  renderBoard();
 }

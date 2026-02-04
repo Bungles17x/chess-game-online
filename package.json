@@ -1,6 +1,6 @@
 {
-  "type": "module",
   "dependencies": {
+    "chess.js": "^1.4.0",
     "ws": "^8.13.0"
   },
   "scripts": {

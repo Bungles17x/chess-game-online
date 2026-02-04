@@ -1,23 +1,29 @@
-// server.js
+// server.cjs
 const WebSocket = require('ws');
+const { Chess } = require('chess.js');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ port: 8081 });
+
 const rooms = new Map();
 
-console.log('WebSocket Server is running on ws://localhost:8080');
+console.log('WebSocket Server is running on ws://localhost:8081');
 
 wss.on('connection', (ws) => {
   console.log('A new client connected!');
 
   ws.on('message', (message) => {
     try {
-      const data = JSON.parse(message);
+      // Convert Buffer to string if necessary
+      const messageString = Buffer.isBuffer(message) ? message.toString() : message;
+      console.log('Received message:', messageString);
+      const data = JSON.parse(messageString);
       handleMessage(ws, data);
     } catch (error) {
       console.error("Error parsing message:", error);
-      if (typeof message === 'string') {
-         console.log('received (text):', message);
-         ws.send(`Server echo: ${message}`);
+      const messageString = Buffer.isBuffer(message) ? message.toString() : message;
+      if (typeof messageString === 'string') {
+         console.log('received (text):', messageString);
+         ws.send(`Server echo: ${messageString}`);
       } else {
          ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid message format" }));
       }
@@ -34,264 +40,345 @@ wss.on('connection', (ws) => {
 });
 
 function handleMessage(ws, data) {
+  console.log("Received message type:", data.type, "Full data:", data);
   switch (data.type) {
     case "listRooms":
       listRooms(ws);
       break;
-      
     case "checkPlayers":
       checkPlayers(ws);
       break;
-      
     case "join":
       joinRoom(ws, data.roomId);
       break;
-      
     case "leave":
       leaveRoom(ws);
       break;
-      
     case "move":
       handleMove(ws, data.move);
       break;
-      
     case "drawOffer":
       handleDrawOffer(ws);
       break;
-      
     case "drawAccept":
       handleDrawAccept(ws);
       break;
-      
     case "drawDecline":
       handleDrawDecline(ws);
       break;
-      
     case "resign":
       handleResign(ws);
       break;
-
     case "checkmate":
       handleCheckmate(ws);
       break;
-
-    case "resetAll":
+    case "resetGame":
       resetAllLobbies(ws);
       break;
-
     case "killPiece":
       handleKillPiece(ws, data);
       break;
-      
+    case "chat":
+      handleChat(ws, data);
+      break;
     default:
+      console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
   }
 }
 
 function listRooms(ws) {
-  // Get all room IDs
-  const list = [...rooms.keys()];
-  ws.send(JSON.stringify({ type: "rooms", rooms: list }));
+  const roomList = Array.from(rooms.keys());
+  ws.send(JSON.stringify({ type: "rooms", rooms: roomList }));
 }
 
 function checkPlayers(ws) {
-  // Count total connected clients
-  const count = wss.clients.size;
+  let count = 0;
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      count++;
+    }
+  });
   ws.send(JSON.stringify({ type: "playersOnline", count }));
 }
 
 function joinRoom(ws, roomId) {
-  // Create room if it doesn't exist
+  // Check if room exists
   if (!rooms.has(roomId)) {
-    rooms.set(roomId, []);
+    // Create new room
+    rooms.set(roomId, {
+      players: [],
+      game: new Chess(),
+      white: null,
+      black: null
+    });
   }
-
-  const players = rooms.get(roomId);
-  
+  const room = rooms.get(roomId);
   // Check if room is full
-  if (players.length >= 2) {
-    ws.send(JSON.stringify({ type: "error", code: 400, message: "Room is full" }));
+  if (room.players.length >= 2) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Room is full" }));
     return;
   }
-
-  // Assign color based on join order
-  ws.color = players.length === 0 ? "w" : "b";
+  // Assign color
+  let color;
+  if (!room.white) {
+    color = 'w';
+    room.white = ws;
+  } else if (!room.black) {
+    color = 'b';
+    room.black = ws;
+  } else {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Room is full" }));
+    return;
+  }
+  // Add player to room
   ws.roomId = roomId;
-
-  players.push(ws);
-
-  ws.send(JSON.stringify({ type: "joined", color: ws.color }));
-
-  // If 2 players, start the game
-  if (players.length === 2) {
-    players.forEach(p =>
-      p.send(JSON.stringify({ type: "start", roomId }))
-    );
+  ws.color = color;
+  room.players.push(ws);
+  // Send join confirmation
+  ws.send(JSON.stringify({ type: "joined", color }));
+  // If room is now full, start the game
+  if (room.players.length === 2) {
+    // Notify both players that game is starting
+    room.players.forEach(player => {
+      player.send(JSON.stringify({ type: "start" }));
+    });
   }
 }
+
 
 function leaveRoom(ws) {
   if (!ws.roomId) return;
 
-  const players = rooms.get(ws.roomId) || [];
-  const updated = players.filter(p => p !== ws);
+  const room = rooms.get(ws.roomId);
+  if (!room) return;
 
-  if (updated.length === 0) {
-    // Delete room if empty
+  // Remove player from room
+  room.players = room.players.filter(player => player !== ws);
+
+  // Reset color assignments
+  if (ws.color === 'w') {
+    room.white = null;
+  } else if (ws.color === 'b') {
+    room.black = null;
+  }
+
+  // If room is empty, delete it
+  if (room.players.length === 0) {
     rooms.delete(ws.roomId);
   } else {
-    // Update room players
-    rooms.set(ws.roomId, updated);
-    
-    // Notify the remaining player that the other player left
-    updated.forEach(p =>
-      p.send(JSON.stringify({ type: "roomClosed" }))
-    );
+    // Notify remaining player that opponent left
+    room.players.forEach(player => {
+      player.send(JSON.stringify({ type: "roomClosed" }));
+    });
   }
-  
+
   ws.roomId = null;
+  ws.color = null;
 }
 
 function handleMove(ws, move) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  
-  // Send move to the other player in the room
-  players
-    .filter(p => p !== ws)
-    .forEach(p =>
-      p.send(JSON.stringify({ type: "move", move }))
-    );
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Verify it's the player's turn
+  if (room.game.turn() !== ws.color) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not your turn" }));
+    return;
+  }
+
+  // Try to make the move
+  const result = room.game.move(move);
+  if (!result) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid move" }));
+    return;
+  }
+
+  // Broadcast move to all players in the room
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "move", move: result }));
+    }
+  });
 }
 
 function handleDrawOffer(ws) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  
-  // Relay draw offer to opponent
-  players
-    .filter(p => p !== ws)
-    .forEach(p =>
-      p.send(JSON.stringify({ type: "drawOffer" }))
-    );
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Send draw offer to opponent
+  room.players.forEach(player => {
+    if (player !== ws && player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "drawOffer" }));
+    }
+  });
 }
 
 function handleDrawAccept(ws) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
   // Notify both players that draw is accepted
-  players.forEach(p => {
-    p.send(JSON.stringify({ type: "drawAccept" }));
-    p.send(JSON.stringify({ type: "gameOver" }));
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "drawAccept" }));
+    }
   });
-
-  // Clean up room
-  rooms.delete(ws.roomId);
 }
 
 function handleDrawDecline(ws) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  
-  // Notify opponent that draw is declined
-  players
-    .filter(p => p !== ws)
-    .forEach(p =>
-      p.send(JSON.stringify({ type: "drawDecline" }))
-    );
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Notify player that draw is declined
+  ws.send(JSON.stringify({ type: "drawDecline" }));
 }
 
 function handleResign(ws) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  const winner = ws.color === "w" ? "b" : "w";
-  
-  // Notify both players of resignation and winner
-  players.forEach(p => {
-    p.send(JSON.stringify({ type: "resign", winner }));
-    p.send(JSON.stringify({ type: "gameOver" }));
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Determine winner
+  const winner = ws.color === 'w' ? 'b' : 'w';
+
+  // Notify both players of resignation
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "resign", winner }));
+    }
   });
-
-  // Immediately delete the room to stop the match
-  rooms.delete(ws.roomId);
 }
 
 function handleCheckmate(ws) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
-  const winner = ws.color === "w" ? "Black" : "White";
-  
-  // Notify both players that game is over
-  players.forEach(p => {
-    p.send(JSON.stringify({ type: "gameOver" }));
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Notify both players of checkmate
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "gameOver" }));
+    }
   });
-
-  // Clean up room
-  rooms.delete(ws.roomId);
 }
 
 function resetAllLobbies(ws) {
-  // Iterate over all rooms and notify players
-  rooms.forEach((players, roomId) => {
-    players.forEach(player => {
+  // Reset all rooms
+  rooms.forEach((room, roomId) => {
+    room.game.reset();
+    room.players.forEach(player => {
       if (player.readyState === WebSocket.OPEN) {
-        player.send(JSON.stringify({ type: "roomClosed" }));
-        player.roomId = null; // Clear the roomId on the client socket object
+        player.send(JSON.stringify({ type: "reset" }));
       }
     });
   });
-
-  // Clear the rooms map
-  rooms.clear();
-  
-  console.log("All lobbies have been reset.");
-  
-  // Confirm to requester
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: "info", message: "All lobbies reset successfully." }));
-  }
 }
 
 function handleKillPiece(ws, data) {
-  if (!ws.roomId) return;
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
 
-  const players = rooms.get(ws.roomId) || [];
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+
+  // Remove the specified piece from the board
+  const result = room.game.remove(data.square);
+  if (!result) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid square" }));
+    return;
+  }
+
+  // Broadcast the updated board to all players
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify({ type: "move", move: { from: data.square, to: data.square } }));
+    }
+  });
+}
+
+// New function to handle chat messages
+function handleChat(ws, data) {
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
   
-  // Broadcast the kill request to the opponent
-  players
-    .filter(p => p !== ws)
-    .forEach(p => {
-      p.send(JSON.stringify({ 
-        type: "pieceKilled", 
-        square: data.square 
-      }));
-    });
+  const room = rooms.get(ws.roomId);
+  if (!room) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+    return;
+  }
+  
+  // Broadcast the chat message to all players in the room
+  const message = {
+    type: "chat",
+    message: data.message,
+    sender: data.sender,
+    roomId: ws.roomId
+  };
+  
+  room.players.forEach(player => {
+    if (player.readyState === WebSocket.OPEN) {
+      player.send(JSON.stringify(message));
+    }
+  });
 }
 
 function handleDisconnect(ws) {
-  // This is essentially the same as leaving a room
-  if (!ws.roomId) return;
-
-  const players = rooms.get(ws.roomId) || [];
-  const updated = players.filter(p => p !== ws);
-
-  if (updated.length === 0) {
-    rooms.delete(ws.roomId);
-  } else {
-    // If a player disconnects mid-game, treat it as leaving/ending the session for the other player
-    rooms.set(ws.roomId, updated);
-    
-    updated.forEach(p => {
-      p.send(JSON.stringify({ type: "roomClosed" }));
-      // Also send gameOver to ensure the client resets UI
-      p.send(JSON.stringify({ type: "gameOver" }));
-    });
+  // If player was in a room, handle leaving
+  if (ws.roomId) {
+    leaveRoom(ws);
   }
 }
