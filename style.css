@@ -1037,6 +1037,12 @@ body.light-theme .alert-message {
   .stat-item {
     min-width: 80px;
   }
+
+  /* Enlarge pieces for tablets and larger mobile devices */
+  .piece {
+    font-size: 3rem !important;
+    line-height: 1;
+  }
 }
 
 /* Mobile Phone Responsive */
@@ -1093,7 +1099,7 @@ body.light-theme .alert-message {
 
   /* Enlarge pieces for mobile */
   .piece {
-    font-size: 2.5rem !important;
+    font-size: 3.5rem !important;
     line-height: 1;
   }
 
@@ -1267,6 +1273,12 @@ body.light-theme .alert-message {
 
   .stat-label {
     font-size: 0.65rem;
+  }
+
+  /* Enlarge pieces for smaller mobile devices */
+  .piece {
+    font-size: 3rem !important;
+    line-height: 1;
   }
 }
 
