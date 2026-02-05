@@ -18,6 +18,8 @@ const botModeBtn = document.getElementById("bot-mode");
 const onlineModeBtn = document.getElementById("online-mode");
 const moveSound = document.getElementById("move-sound");
 const captureSound = document.getElementById("capture-sound");
+const connectionLostSound = document.getElementById("connection-lost-sound");
+const reconnectedSound = document.getElementById("reconnected-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
 
@@ -25,6 +27,21 @@ const loadingScreen = document.getElementById("loading-screen");
 const noConnectionScreen = document.getElementById("no-connection-screen");
 const retryConnectionBtn = document.getElementById("retry-connection-btn");
 const backToBotBtn = document.getElementById("back-to-bot-btn");
+const connectionParticles = document.getElementById("connection-particles");
+const connectionDot = document.getElementById("connection-dot");
+const connectionText = document.getElementById("connection-text");
+const connectionQuality = document.getElementById("connection-quality");
+const latencyGraph = document.getElementById("latency-graph");
+const latencyValue = document.getElementById("latency-value");
+
+// Connection quality tracking
+let connectionLatency = 0;
+let lastPingTime = 0;
+let pingInterval = null;
+let pingTimeout = null;
+let latencyHistory = [];
+const MAX_LATENCY_HISTORY = 30;
+const PING_TIMEOUT = 10000; // 10 seconds timeout for ping response
 
 // -----------------------------------------------------
 // GAME STATE
@@ -87,6 +104,52 @@ function debugLog(category, message, data = null) {
 // -----------------------------------------------------
 // SOCKET / NETWORKING
 // -----------------------------------------------------
+
+// Function to check for actual internet connectivity
+function checkInternetConnection() {
+  return new Promise((resolve) => {
+    // Try to fetch a small resource with a timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      debugLog("NETWORK", "Connection check timed out");
+      resolve(false);
+    }, 5000);
+    
+    // Try multiple endpoints for better reliability
+    const endpoints = [
+      'https://www.google.com/favicon.ico',
+      'https://www.cloudflare.com/favicon.ico',
+      'https://www.gstatic.com/generate_204'
+    ];
+    
+    const tryEndpoint = async (index) => {
+      if (index >= endpoints.length) {
+        clearTimeout(timeoutId);
+        debugLog("NETWORK", "All connection checks failed");
+        resolve(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch(endpoints[index], {
+          mode: 'no-cors',
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        debugLog("NETWORK", "Connection check succeeded", { endpoint: endpoints[index] });
+        resolve(true);
+      } catch (error) {
+        debugLog("NETWORK", "Connection check failed", { endpoint: endpoints[index], error: error.message });
+        tryEndpoint(index + 1);
+      }
+    };
+    
+    tryEndpoint(0);
+  });
+}
+
 function ensureSocket() {
   debugLog("SOCKET", "ensureSocket called", {
     socketExists: !!socket,
@@ -135,6 +198,12 @@ function ensureSocket() {
       });
       reconnectAttempts = 0; // Reset counter on success
       isDisconnected = false; // Reset flag when connection is established
+      localStorage.setItem('isDisconnected', 'false'); // Persist the connection state
+      // Update connection status
+      updateConnectionStatus(true);
+      // Latency measurement disabled - server doesn't support ping/pong protocol
+      // if (pingInterval) clearInterval(pingInterval);
+      // pingInterval = setInterval(measureLatency, 5000);
       // Cancel the no connection timeout
       if (noConnectionTimeout) {
         clearTimeout(noConnectionTimeout);
@@ -165,6 +234,18 @@ function ensureSocket() {
         gameMode
       });
       
+      // Stop measuring latency
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+      
+      // Clear ping timeout
+      if (pingTimeout) {
+        clearTimeout(pingTimeout);
+        pingTimeout = null;
+      }
+
       // Only auto-reconnect if we are in online mode
       if (gameMode === "online") {
         reconnectAttempts++;
@@ -176,6 +257,7 @@ function ensureSocket() {
       }
       // Show no connection screen immediately when connection is lost
       isDisconnected = true; // Set flag to indicate we're disconnected
+      localStorage.setItem('isDisconnected', 'true'); // Persist the disconnected state
       // Cancel any existing timeout
       if (noConnectionTimeout) {
         clearTimeout(noConnectionTimeout);
@@ -213,6 +295,35 @@ function handleServerMessage(data) {
       message: data.message
     });
     popup(`error ${data.code}: ${data.message}`, "red");
+    return;
+  }
+
+  if (data.type === "pong") {
+    // Clear ping timeout
+    if (pingTimeout) {
+      clearTimeout(pingTimeout);
+      pingTimeout = null;
+    }
+    
+    // Validate the pong response
+    if (!data.timestamp || typeof data.timestamp !== "number") {
+      debugLog("NETWORK", "Invalid pong response", { data });
+      return;
+    }
+    
+    // Calculate latency
+    const currentTime = Date.now();
+    const latency = currentTime - lastPingTime;
+    
+    // Validate latency is reasonable
+    if (latency < 0 || latency > 60000) {
+      debugLog("NETWORK", "Invalid latency calculated", { latency, lastPingTime, currentTime });
+      return;
+    }
+    
+    connectionLatency = latency;
+    debugLog("NETWORK", "Pong received", { latency, timestamp: data.timestamp });
+    updateConnectionQuality(latency);
     return;
   }
 
@@ -478,9 +589,10 @@ function sendListRooms() {
     socket.send(JSON.stringify({ type: "listRooms" }));
     debugLog("LOBBY", "Room list request sent to server");
   } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+    // Wait for socket to open then send request
     socket.addEventListener("open", () => {
-      debugLog("LOBBY", "Socket opened, requesting room list");
       socket.send(JSON.stringify({ type: "listRooms" }));
+      debugLog("LOBBY", "Room list request sent after connection");
     }, { once: true });
   } else {
     debugLog("LOBBY", "Failed to connect to server");
@@ -831,8 +943,8 @@ function renderPosition() {
 // -----------------------------------------------------
 function clearHighlights() {
   document
-    .querySelectorAll(".square.selected, .square.highlight, .square.capture, .square.last-move, .square.in-check, .square.checkmate")
-    .forEach(sq => sq.classList.remove("selected", "highlight", "capture", "last-move", "in-check", "checkmate"));
+    .querySelectorAll(".square.selected, .square.highlight, .square.capture, .square.last-move, .square.in-check, .square.checkmate, .square.from-square, .square.to-square")
+    .forEach(sq => sq.classList.remove("selected", "highlight", "capture", "last-move", "in-check", "checkmate", "from-square", "to-square"));
 }
 
 function handleSquareClick(square) {
@@ -990,8 +1102,14 @@ function highlightLastMoveAndCheck() {
     const toSq = document.querySelector(
       `.square[data-square="${lastMove.to}"]`
     );
-    if (fromSq) fromSq.classList.add("last-move");
-    if (toSq) toSq.classList.add("last-move");
+    if (fromSq) {
+      fromSq.classList.add("last-move");
+      fromSq.classList.add("from-square");
+    }
+    if (toSq) {
+      toSq.classList.add("last-move");
+      toSq.classList.add("to-square");
+    }
   }
 
   // Highlight king if in check
@@ -1116,36 +1234,32 @@ onlineModeBtn.addEventListener("click", () => {
   ensureSocket();
   
   // Check if there are any players online
-  const checkPlayers = () => {
+  // checkPlayers function removed - lobby is shown directly
     debugLog("MODE", "Checking for online players");
     
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "checkPlayers" }));
-    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
-      socket.addEventListener("open", () => {
-        debugLog("MODE", "Socket opened, checking for online players");
-        socket.send(JSON.stringify({ type: "checkPlayers" }));
-      }, { once: true });
-    } else {
-      debugLog("MODE", "Failed to connect to server");
-      popup("Failed to connect to server.", "red");
-      return;
-    }
-  };
+    // Simplified: directly show lobby without checking players
+    gameMode = "online";
+    onlineModeBtn.classList.add("active");
+    botModeBtn.classList.remove("active");
+    lobbyModal.classList.remove("hidden");
+    startRoomUpdates();
+    sendListRooms();
+    return;
+  });
   
-  const handlePlayerCheck = (event) => {
+const handlePlayerCheck = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === "playersOnline") {
       debugLog("MODE", "Online players check result", {
         count: data.count
       });
-      
+
       socket.removeEventListener("message", handlePlayerCheck);
       if (data.count === 0) {
         popup("No players online at the moment.", "red");
         return;
       }
-      
+
       gameMode = "online";
       onlineModeBtn.classList.add("active");
       botModeBtn.classList.remove("active");
@@ -1155,10 +1269,9 @@ onlineModeBtn.addEventListener("click", () => {
       sendListRooms();
     }
   };
-  
+
   if(socket) socket.addEventListener("message", handlePlayerCheck);
-  checkPlayers();
-});
+
 
 modeButtons.forEach(btn => {
   btn.addEventListener("click", () => {
@@ -1304,14 +1417,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Detect when the user comes back online
-  window.addEventListener("online", () => {
+  window.addEventListener("online", async () => {
     debugLog("NETWORK", "User came back online");
-    // Check if we can actually connect to the server before hiding the screen
-    if (gameMode === "online") {
-      reconnectAttempts = 0;
-      ensureSocket();
+    // Check if there's actual internet connectivity
+    const hasInternet = await checkInternetConnection();
+    if (hasInternet) {
+      debugLog("NETWORK", "Internet connection confirmed");
+      // Try to reconnect to the server if in online mode
+      if (gameMode === "online") {
+        reconnectAttempts = 0;
+        ensureSocket();
+      }
+    } else {
+      debugLog("NETWORK", "No actual internet connection detected");
+      // Keep showing the no connection screen
     }
-    // Don't hide the screen yet - wait for successful connection
   });
 });
 
@@ -1329,15 +1449,263 @@ function hideLoadingScreen() {
 }
 
 // -----------------------------------------------------
+// CONNECTION STATUS FUNCTIONS
+// -----------------------------------------------------
+function updateConnectionStatus(connected) {
+  if (!connectionDot || !connectionText) return;
+  
+  if (connected) {
+    connectionDot.classList.remove("disconnected");
+    connectionText.textContent = "Connected";
+  } else {
+    connectionDot.classList.add("disconnected");
+    connectionText.textContent = "Disconnected";
+  }
+}
+
+function measureLatency() {
+  // Disabled - server doesn't support ping/pong protocol
+  // Latency measurement will be added when server supports it
+  return;
+}
+
+function updateConnectionQuality(latency) {
+  if (!connectionQuality) return;
+  
+  // Handle timeout case
+  const isTimeout = latency >= 9999;
+  
+  // Remove all quality classes
+  connectionQuality.classList.remove("good", "fair", "poor");
+  
+  if (isTimeout) {
+    connectionQuality.textContent = "Timeout";
+    connectionQuality.classList.add("poor");
+  } else if (latency < 100) {
+    connectionQuality.textContent = "Excellent";
+    connectionQuality.classList.add("good");
+  } else if (latency < 200) {
+    connectionQuality.textContent = "Good";
+    connectionQuality.classList.add("good");
+  } else if (latency < 300) {
+    connectionQuality.textContent = "Fair";
+    connectionQuality.classList.add("fair");
+  } else {
+    connectionQuality.textContent = "Poor";
+    connectionQuality.classList.add("poor");
+  }
+  
+  // Update latency value display
+  if (latencyValue) {
+    latencyValue.textContent = isTimeout ? "Timeout" : `${latency}ms`;
+  }
+  
+  // Update latency history and graph
+  if (!isTimeout) {
+    latencyHistory.push(latency);
+    if (latencyHistory.length > MAX_LATENCY_HISTORY) {
+      latencyHistory.shift();
+    }
+    drawLatencyGraph();
+  }
+}
+
+function drawLatencyGraph() {
+  if (!latencyGraph) return;
+  
+  const canvas = latencyGraph;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width = canvas.offsetWidth;
+  const height = canvas.height = canvas.offsetHeight;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  if (latencyHistory.length < 2) return;
+  
+  // Find max latency for scaling
+  const maxLatency = Math.max(...latencyHistory, 500);
+  
+  // Draw the line
+  ctx.beginPath();
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  const stepX = width / (MAX_LATENCY_HISTORY - 1);
+  
+  latencyHistory.forEach((latency, index) => {
+    const x = index * stepX;
+    const y = height - (latency / maxLatency) * height;
+    
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.stroke();
+  
+  // Add gradient fill
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--accent-soft').trim() || 'rgba(56, 189, 248, 0.2)');
+  gradient.addColorStop(1, 'transparent');
+  
+  ctx.lineTo(width, height);
+  ctx.lineTo(0, height);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+}
+
+// -----------------------------------------------------
 // NO CONNECTION SCREEN FUNCTIONS
 // -----------------------------------------------------
+
+// Particle effect for no connection screen
+let particles = [];
+let particleAnimationId = null;
+
+class Particle {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.reset();
+  }
+
+  reset() {
+    this.x = Math.random() * this.canvas.width;
+    this.y = Math.random() * this.canvas.height;
+    this.size = Math.random() * 3 + 1;
+    this.speedX = Math.random() * 2 - 1;
+    this.speedY = Math.random() * 2 - 1;
+    this.opacity = Math.random() * 0.5 + 0.2;
+    this.color = `rgba(239, 68, 68, ${this.opacity})`; // Red color for warning
+  }
+
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+
+    // Wrap around the screen
+    if (this.x < 0) this.x = this.canvas.width;
+    if (this.x > this.canvas.width) this.x = 0;
+    if (this.y < 0) this.y = this.canvas.height;
+    if (this.y > this.canvas.height) this.y = 0;
+  }
+
+  draw(ctx) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+  }
+}
+
+function initParticles() {
+  if (!connectionParticles) return;
+  
+  const canvas = connectionParticles;
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  // Create particles
+  particles = [];
+  const particleCount = 100;
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle(canvas));
+  }
+  
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+  
+  // Animation loop
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw connections between nearby particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 150) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(239, 68, 68, ${0.1 * (1 - distance / 150)})`;
+          ctx.lineWidth = 1;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    
+    // Update and draw particles
+    particles.forEach(particle => {
+      particle.update();
+      particle.draw(ctx);
+    });
+    
+    particleAnimationId = requestAnimationFrame(animate);
+  }
+  
+  animate();
+}
+
+function stopParticles() {
+  if (particleAnimationId) {
+    cancelAnimationFrame(particleAnimationId);
+    particleAnimationId = null;
+  }
+}
+
 function showNoConnectionScreen() {
   debugLog("UI", "Showing no connection screen");
   noConnectionScreen.classList.remove("hidden");
+  // Update connection status
+  updateConnectionStatus(false);
+  // Add a small delay to ensure the transition is smooth
+  setTimeout(() => {
+    noConnectionScreen.style.opacity = "1";
+    // Start particle effect
+    initParticles();
+    // Play connection lost sound
+    if (connectionLostSound) {
+      connectionLostSound.currentTime = 0;
+      connectionLostSound.volume = 0.3;
+      connectionLostSound.play().catch(err => {
+        debugLog("AUDIO", "Failed to play connection lost sound", { error: err.message });
+      });
+    }
+  }, 10);
 }
 
 function hideNoConnectionScreen() {
   debugLog("UI", "Hiding no connection screen");
-  noConnectionScreen.classList.add("hidden");
+  // Add a fade-out effect
+  noConnectionScreen.style.opacity = "0";
+  // Stop particle effect
+  stopParticles();
+  // Update connection status
+  updateConnectionStatus(true);
+  // Play reconnection sound
+  if (reconnectedSound) {
+    reconnectedSound.currentTime = 0;
+    reconnectedSound.volume = 0.3;
+    reconnectedSound.play().catch(err => {
+      debugLog("AUDIO", "Failed to play reconnection sound", { error: err.message });
+    });
+  }
+  // Wait for the transition to complete before hiding
+  setTimeout(() => {
+    noConnectionScreen.classList.add("hidden");
+  }, 300);
 }
-;

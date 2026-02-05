@@ -42,6 +42,10 @@
 
         <div class="status">
           <span id="turn-indicator">White to move</span>
+          <div class="connection-status">
+            <div id="connection-dot" class="connection-dot"></div>
+            <span id="connection-text">Connected</span>
+          </div>
         </div>
       </div>
     </header>
@@ -65,6 +69,8 @@
   <!-- SOUNDS -->
   <audio id="move-sound"></audio>
   <audio id="capture-sound"></audio>
+  <audio id="connection-lost-sound"></audio>
+  <audio id="reconnected-sound"></audio>
 
   <div id="alert-box" class="alert hidden">
     <div class="alert-content">
@@ -95,10 +101,11 @@
 
   <!-- NO CONNECTION SCREEN -->
   <div id="no-connection-screen" class="no-connection-screen hidden">
+    <canvas id="connection-particles" class="connection-particles"></canvas>
     <div class="no-connection-content">
       <div class="connection-icon">⚠️</div>
       <h2>Connection Failed</h2>
-      <p>Unable to connect to the server. Please check your internet connection and try again.</p>
+      <p>We're having trouble connecting to our servers. Please check your internet connection and try again.</p>
       <button id="retry-connection-btn" class="primary-btn">Retry Connection</button>
       <button id="back-to-bot-btn" class="primary-btn">Back to Bot Mode</button>
     </div>
