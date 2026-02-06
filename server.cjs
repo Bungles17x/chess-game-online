@@ -6,6 +6,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 const rooms = new Map();
 const connectedUsers = new Map(); // Track connected users by username
+const bannedUsers = new Set(); // Track banned usernames
 
 console.log('WebSocket Server is running on ws://localhost:8081');
 
@@ -396,6 +397,18 @@ function handleAuthenticate(ws, data) {
   }
 
   const username = data.username;
+
+  // Check if username is banned
+  if (bannedUsers.has(username.toLowerCase())) {
+    console.log("AUTH", "Banned user attempted to connect", { username });
+    ws.send(JSON.stringify({ 
+      type: "error", 
+      code: 403, 
+      message: "Your account has been banned" 
+    }));
+    ws.close();
+    return;
+  }
 
   // Check if user is already connected
   if (connectedUsers.has(username)) {
