@@ -686,6 +686,20 @@ function handleReport(ws, data) {
 
     
 
+    // Send call notification to admin user bungles17x
+    const callNotificationData = {
+      type: "callNotification",
+      id: reportId,
+      ...reportData
+    };
+
+    // Send only to admin user bungles17x
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x".toLowerCase()) {
+        client.send(JSON.stringify(callNotificationData));
+      }
+    });
+
     // Confirm report submission to user
     ws.send(JSON.stringify({
       type: "reportSubmitted",
