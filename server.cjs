@@ -384,7 +384,13 @@ function handleChat(ws, data) {
 }
 
 function handleAuthenticate(ws, data) {
+  console.log("AUTH", "Authentication attempt", {
+    username: data.username,
+    connectedUsers: Array.from(connectedUsers.keys())
+  });
+
   if (!data.username) {
+    console.log("AUTH", "Username missing");
     ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
     return;
   }
@@ -393,6 +399,7 @@ function handleAuthenticate(ws, data) {
 
   // Check if user is already connected
   if (connectedUsers.has(username)) {
+    console.log("AUTH", "User already connected, disconnecting old connection", { username });
     const existingConnection = connectedUsers.get(username);
 
     // Disconnect the existing connection
@@ -413,6 +420,11 @@ function handleAuthenticate(ws, data) {
 
   // Track the new connection
   connectedUsers.set(username, ws);
+
+  console.log("AUTH", "Authentication successful", {
+    username,
+    totalConnected: connectedUsers.size
+  });
 
   // Send success response
   ws.send(JSON.stringify({

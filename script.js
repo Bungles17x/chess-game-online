@@ -221,11 +221,23 @@ function ensureSocket() {
       const playerData = JSON.parse(localStorage.getItem('chessPlayerData') || '{}');
       const username = currentUser?.username || playerData?.username || 'Player';
 
+      debugLog("AUTH", "Sending authentication", {
+        username,
+        currentUser: !!currentUser.username,
+        playerData: !!playerData.username
+      });
+
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({
           type: "authenticate",
           username: username
         }));
+        debugLog("AUTH", "Authentication message sent");
+      } else {
+        debugLog("AUTH", "Failed to send authentication - socket not ready", {
+          socketExists: !!socket,
+          readyState: socket?.readyState
+        });
       }
 
       // Latency measurement disabled - server doesn't support ping/pong protocol
@@ -330,11 +342,16 @@ function handleServerMessage(data) {
       message: data.message
     });
 
+    console.error("Account conflict:", data.message);
+
     // Show alert message
     alert(data.message || "Another user is using this account");
 
     // Clear current user session
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('chessPlayerData');
+
+    console.log("Redirecting to login page...");
 
     // Redirect to login page
     window.location.href = 'login.html';
