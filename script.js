@@ -2428,6 +2428,13 @@ function inviteFriendToGame(username) {
 
 // Ban Management Functions
 function showBanManagementModal() {
+  // Check if current user is bungles17x
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  if (currentUser.username !== 'bungles17x') {
+    popup("You don't have permission to manage bans.", "red");
+    return;
+  }
+
   // Request list of banned users from server
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "getBannedUsers" }));
@@ -2845,6 +2852,13 @@ function updateBannedUsersList(users) {
 }
 
 function banUser(username, reason, duration, unit) {
+  // Check if current user is bungles17x
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  if (currentUser.username !== 'bungles17x') {
+    popup("You don't have permission to ban users.", "red");
+    return;
+  }
+
   if (!username || username.trim() === '') {
     popup('Please enter a username', 'red');
     return;
@@ -2864,6 +2878,13 @@ function banUser(username, reason, duration, unit) {
 }
 
 function unbanUser(username) {
+  // Check if current user is bungles17x
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  if (currentUser.username !== 'bungles17x') {
+    popup("You don't have permission to unban users.", "red");
+    return;
+  }
+
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: "unbanUser",
