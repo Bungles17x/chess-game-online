@@ -5,6 +5,7 @@ const { Chess } = require('chess.js');
 const wss = new WebSocket.Server({ port: 8080 });
 
 const rooms = new Map();
+const connectedUsers = new Map(); // Track connected users by username
 
 console.log('WebSocket Server is running on ws://localhost:8081');
 
@@ -42,6 +43,9 @@ wss.on('connection', (ws) => {
 function handleMessage(ws, data) {
   console.log("Received message type:", data.type, "Full data:", data);
   switch (data.type) {
+    case "authenticate":
+      handleAuthenticate(ws, data);
+      break;
     case "listRooms":
       listRooms(ws);
       break;
@@ -379,6 +383,44 @@ function handleChat(ws, data) {
   });
 }
 
+function handleAuthenticate(ws, data) {
+  if (!data.username) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  const username = data.username;
+
+  // Check if user is already connected
+  if (connectedUsers.has(username)) {
+    const existingConnection = connectedUsers.get(username);
+
+    // Disconnect the existing connection
+    if (existingConnection.readyState === WebSocket.OPEN) {
+      existingConnection.send(JSON.stringify({
+        type: "accountConflict",
+        message: "Another user is using this account"
+      }));
+      existingConnection.close();
+    }
+
+    // Remove old connection from tracking
+    connectedUsers.delete(username);
+  }
+
+  // Set username on the new connection
+  ws.username = username;
+
+  // Track the new connection
+  connectedUsers.set(username, ws);
+
+  // Send success response
+  ws.send(JSON.stringify({
+    type: "authenticated",
+    username: username
+  }));
+}
+
 function handleInvite(ws, data) {
   if (!ws.roomId) {
     ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
@@ -391,7 +433,7 @@ function handleInvite(ws, data) {
   }
 
   // Find the invited user's connection
-  const invitedUser = Array.from(clients).find(client => 
+  const invitedUser = Array.from(connectedUsers.values()).find(client => 
     client.username === data.username && client.readyState === WebSocket.OPEN
   );
 
@@ -419,5 +461,10 @@ function handleDisconnect(ws) {
   // If player was in a room, handle leaving
   if (ws.roomId) {
     leaveRoom(ws);
+  }
+
+  // Remove user from connected users tracking
+  if (ws.username && connectedUsers.has(ws.username)) {
+    connectedUsers.delete(ws.username);
   }
 }

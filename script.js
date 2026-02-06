@@ -215,6 +215,19 @@ function ensureSocket() {
       localStorage.setItem('isDisconnected', 'false'); // Persist the connection state
       // Update connection status
       updateConnectionStatus(true);
+
+      // Send authentication with username
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const playerData = JSON.parse(localStorage.getItem('chessPlayerData') || '{}');
+      const username = currentUser?.username || playerData?.username || 'Player';
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "authenticate",
+          username: username
+        }));
+      }
+
       // Latency measurement disabled - server doesn't support ping/pong protocol
       // if (pingInterval) clearInterval(pingInterval);
       // pingInterval = setInterval(measureLatency, 5000);
