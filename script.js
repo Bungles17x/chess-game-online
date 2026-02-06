@@ -2389,3 +2389,195 @@ function inviteFriendToGame(username) {
     popup("Not connected to server. Please try again.", "red");
   }
 }
+
+// Ban Management Functions
+function showBanManagementModal() {
+  // Request list of banned users from server
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "getBannedUsers" }));
+  } else {
+    popup("Not connected to server. Please try again.", "red");
+    return;
+  }
+
+  // Create modal overlay
+  const modalOverlay = document.createElement('div');
+  modalOverlay.id = 'ban-management-modal';
+  modalOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  `;
+
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.style.cssText = `
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  `;
+
+  // Create header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  `;
+
+  const title = document.createElement('h2');
+  title.textContent = 'Manage Bans';
+  title.style.cssText = `
+    margin: 0;
+    color: #333;
+  `;
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = '✕';
+  closeButton.style.cssText = `
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+  `;
+  closeButton.onclick = () => modalOverlay.remove();
+
+  header.appendChild(title);
+  header.appendChild(closeButton);
+
+  // Create user list container
+  const userListContainer = document.createElement('div');
+  userListContainer.id = 'banned-users-list';
+  userListContainer.style.cssText = `
+    margin-bottom: 20px;
+  `;
+
+  // Create add user section
+  const addUserSection = document.createElement('div');
+  addUserSection.style.cssText = `
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+  `;
+
+  const usernameInput = document.createElement('input');
+  usernameInput.type = 'text';
+  usernameInput.placeholder = 'Enter username to ban';
+  usernameInput.id = 'ban-username-input';
+  usernameInput.style.cssText = `
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+  `;
+
+  const banButton = document.createElement('button');
+  banButton.textContent = 'Ban User';
+  banButton.style.cssText = `
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  banButton.onclick = () => banUser(usernameInput.value);
+
+  addUserSection.appendChild(usernameInput);
+  addUserSection.appendChild(banButton);
+
+  // Assemble modal
+  modalContent.appendChild(header);
+  modalContent.appendChild(userListContainer);
+  modalContent.appendChild(addUserSection);
+  modalOverlay.appendChild(modalContent);
+
+  // Show modal
+  document.body.appendChild(modalOverlay);
+}
+
+function updateBannedUsersList(users) {
+  const listContainer = document.getElementById('banned-users-list');
+  if (!listContainer) return;
+
+  if (users.length === 0) {
+    listContainer.innerHTML = '<p style="color: #666; text-align: center;">No banned users</p>';
+    return;
+  }
+
+  listContainer.innerHTML = users.map((username, index) => `
+    <div style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      margin-bottom: 8px;
+    ">
+      <div>
+        <div style="font-weight: 500; color: #333;">${username}</div>
+        <div style="font-size: 12px; color: #666;">Account #${index + 1}</div>
+      </div>
+      <button 
+        onclick="unbanUser('${username}')"
+        style="
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 12px;
+        "
+      >
+        Unban
+      </button>
+    </div>
+  `).join('');
+}
+
+function banUser(username) {
+  if (!username || username.trim() === '') {
+    popup('Please enter a username', 'red');
+    return;
+  }
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: "banUser",
+      username: username.trim()
+    }));
+  } else {
+    popup("Not connected to server. Please try again.", "red");
+  }
+}
+
+function unbanUser(username) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: "unbanUser",
+      username: username
+    }));
+  } else {
+    popup("Not connected to server. Please try again.", "red");
+  }
+}
