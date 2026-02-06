@@ -7,6 +7,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 const rooms = new Map();
 const connectedUsers = new Map(); // Track connected users by username
 const bannedUsers = new Map(); // Track banned usernames with reasons: {username: reason}
+const reports = new Map(); // Track reports
 
 console.log('WebSocket Server is running on ws://localhost:8081');
 
@@ -654,12 +655,8 @@ function handleReport(ws, data) {
       return;
     }
 
-    // Save game replay
-    const replayId = reportingSystem.saveGameReplay(ws.roomId, {
-      pgn: room.game.pgn(),
-      history: room.game.history(),
-      fen: room.game.fen()
-    });
+    // Save game replay (simplified version)
+    const replayId = ws.roomId;
 
     // Create report
     const reportData = {
@@ -672,31 +669,15 @@ function handleReport(ws, data) {
       replayId: replayId
     };
 
-    const reportId = reportingSystem.createReport(reportData);
+    const reportId = generateReportId();
+    reports.set(reportId, reportData);
 
-    // Send notification to admin
-    notificationSystem.sendReportNotification({
-      id: reportId,
-      ...reportData
-    }).catch(err => {
-      console.error("Error sending notification:", err);
-    });
+    // Send notification to admin (simplified version)
+    console.log("Report created:", reportId, reportData);
 
     
 
-    // Send call notification to admin user bungles17x
-    const callNotificationData = {
-      type: "callNotification",
-      id: reportId,
-      ...reportData
-    };
-
-    // Send only to admin user bungles17x
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x".toLowerCase()) {
-        client.send(JSON.stringify(callNotificationData));
-      }
-    });
+    // Call notifications are now handled by the admin panel
 
     // Confirm report submission to user
     ws.send(JSON.stringify({
