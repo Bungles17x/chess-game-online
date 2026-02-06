@@ -684,7 +684,7 @@ function handleReport(ws, data) {
       console.error("Error sending notification:", err);
     });
 
-    // Send call notification to admin user bungles17x
+    // Call notifications are now handled by the notification system
     const callNotificationData = {
       type: "callNotification",
       id: reportId,
