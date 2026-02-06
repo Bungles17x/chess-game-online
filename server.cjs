@@ -777,3 +777,220 @@ function handleUpdateReportStatus(ws, data) {
     ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to update report status" }));
   }
 }
+
+// Friend system functions
+function handleSendFriendRequest(ws, data) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    if (!data.friendUsername) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Friend username required" }));
+      return;
+    }
+
+    if (data.friendUsername.toLowerCase() === ws.username.toLowerCase()) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Cannot add yourself as a friend" }));
+      return;
+    }
+
+    // Check if user exists
+    let friendExists = false;
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === data.friendUsername.toLowerCase()) {
+        friendExists = true;
+      }
+    });
+
+    if (!friendExists) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "User not found" }));
+      return;
+    }
+
+    // Send friend request to the target user
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === data.friendUsername.toLowerCase()) {
+        client.send(JSON.stringify({
+          type: "friendRequest",
+          from: ws.username
+        }));
+      }
+    });
+
+    ws.send(JSON.stringify({
+      type: "friendRequestSent",
+      message: "Friend request sent successfully"
+    }));
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to send friend request" }));
+  }
+}
+
+function handleAcceptFriendRequest(ws, data) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    if (!data.from) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Sender username required" }));
+      return;
+    }
+
+    // Add to both users' friend lists
+    if (!friends.has(ws.username)) {
+      friends.set(ws.username, []);
+    }
+    if (!friends.has(data.from)) {
+      friends.set(data.from, []);
+    }
+
+    const userFriends = friends.get(ws.username);
+    const friendFriends = friends.get(data.from);
+
+    if (!userFriends.includes(data.from)) {
+      userFriends.push(data.from);
+    }
+    if (!friendFriends.includes(ws.username)) {
+      friendFriends.push(ws.username);
+    }
+
+    // Notify both users
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === data.from.toLowerCase()) {
+        client.send(JSON.stringify({
+          type: "friendAccepted",
+          friend: ws.username
+        }));
+      }
+    });
+
+    ws.send(JSON.stringify({
+      type: "friendAccepted",
+      friend: data.from
+    }));
+  } catch (error) {
+    console.error("Error accepting friend request:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to accept friend request" }));
+  }
+}
+
+function handleRejectFriendRequest(ws, data) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    if (!data.from) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Sender username required" }));
+      return;
+    }
+
+    // Notify the sender that the request was rejected
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === data.from.toLowerCase()) {
+        client.send(JSON.stringify({
+          type: "friendRequestRejected",
+          from: ws.username
+        }));
+      }
+    });
+
+    ws.send(JSON.stringify({
+      type: "friendRequestRejected",
+      message: "Friend request rejected"
+    }));
+  } catch (error) {
+    console.error("Error rejecting friend request:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to reject friend request" }));
+  }
+}
+
+function handleGetFriends(ws) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    const userFriends = friends.get(ws.username) || [];
+    const onlineFriends = userFriends.filter(friendUsername => {
+      let isOnline = false;
+      wss.clients.forEach(client => {
+        if (client.username && client.username.toLowerCase() === friendUsername.toLowerCase()) {
+          isOnline = true;
+        }
+      });
+      return isOnline;
+    });
+
+    ws.send(JSON.stringify({
+      type: "friendsList",
+      friends: userFriends,
+      onlineFriends: onlineFriends
+    }));
+  } catch (error) {
+    console.error("Error getting friends:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get friends" }));
+  }
+}
+
+function handleRemoveFriend(ws, data) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    if (!data.friendUsername) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Friend username required" }));
+      return;
+    }
+
+    // Remove from user's friend list
+    const userFriends = friends.get(ws.username);
+    if (userFriends) {
+      const index = userFriends.indexOf(data.friendUsername);
+      if (index > -1) {
+        userFriends.splice(index, 1);
+      }
+    }
+
+    // Remove from friend's friend list
+    const friendFriends = friends.get(data.friendUsername);
+    if (friendFriends) {
+      const index = friendFriends.indexOf(ws.username);
+      if (index > -1) {
+        friendFriends.splice(index, 1);
+      }
+    }
+
+    // Notify both users
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === data.friendUsername.toLowerCase()) {
+        client.send(JSON.stringify({
+          type: "friendRemoved",
+          friend: ws.username
+        }));
+      }
+    });
+
+    ws.send(JSON.stringify({
+      type: "friendRemoved",
+      friend: data.friendUsername
+    }));
+  } catch (error) {
+    console.error("Error removing friend:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to remove friend" }));
+  }
+}
+
+function handleAddFriend(ws, data) {
+  // This function is deprecated, use handleSendFriendRequest instead
+  handleSendFriendRequest(ws, data);
+}
