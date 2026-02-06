@@ -67,13 +67,18 @@ function loadPlayerData() {
         draws: 0,
         currentStreak: 0
       },
-      savedGames: currentUser.savedGames || []
+      savedGames: currentUser.savedGames || [],
+      friends: currentUser.friends || []
     };
   } else {
     // Fall back to local storage
     const savedData = localStorage.getItem("chessPlayerData");
     if (savedData) {
       playerData = JSON.parse(savedData);
+      // Ensure friends array exists
+      if (!playerData.friends) {
+        playerData.friends = [];
+      }
     }
   }
 
@@ -400,7 +405,12 @@ function saveGame(gameState) {
 function displayFriends() {
   if (!friendsList) return;
 
-  if (!playerData.friends || playerData.friends.length === 0) {
+  // Ensure friends array exists
+  if (!playerData.friends) {
+    playerData.friends = [];
+  }
+
+  if (playerData.friends.length === 0) {
     friendsList.innerHTML = '<p class="no-friends">No friends yet. Add some to play together!</p>';
     return;
   }
@@ -470,6 +480,12 @@ function addFriend(username) {
 }
 
 function removeFriend(index) {
+  // Ensure friends array exists
+  if (!playerData.friends) {
+    playerData.friends = [];
+    return;
+  }
+
   if (confirm('Are you sure you want to remove this friend?')) {
     playerData.friends.splice(index, 1);
     savePlayerData();
