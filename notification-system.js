@@ -30,12 +30,12 @@ if (isTwilioConfigured) {
 
 // Send SMS notification
 async function sendSMSNotification(message) {
-  try {
-    if (!twilioClient) {
-      console.error('Twilio client not initialized');
-      return false;
-    }
+  if (!isTwilioConfigured || !twilioClient) {
+    console.log('[SMS NOTIFICATION - NOT CONFIGURED]:', message);
+    return false;
+  }
 
+  try {
     const result = await twilioClient.messages.create({
       body: message,
       from: TWILIO_CONFIG.phoneNumber,
@@ -52,12 +52,12 @@ async function sendSMSNotification(message) {
 
 // Make phone call notification
 async function makePhoneCallNotification(message) {
-  try {
-    if (!twilioClient) {
-      console.error('Twilio client not initialized');
-      return false;
-    }
+  if (!isTwilioConfigured || !twilioClient) {
+    console.log('[PHONE CALL NOTIFICATION - NOT CONFIGURED]:', message);
+    return false;
+  }
 
+  try {
     const result = await twilioClient.calls.create({
       url: `http://demo.twilio.com/docs/voice.xml?message=${encodeURIComponent(message)}`,
       from: TWILIO_CONFIG.phoneNumber,
