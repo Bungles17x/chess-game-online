@@ -397,18 +397,6 @@ function handleAuthenticate(ws, data) {
 
   const username = data.username;
 
-  // Check if username is banned
-  if (username.toLowerCase() === 'bungles17x') {
-    console.log("AUTH", "Banned user attempted to connect", { username });
-    ws.send(JSON.stringify({ 
-      type: "error", 
-      code: 403, 
-      message: "Your account has been banned" 
-    }));
-    ws.close();
-    return;
-  }
-
   // Check if user is already connected
   if (connectedUsers.has(username)) {
     console.log("AUTH", "User already connected, disconnecting old connection", { username });
