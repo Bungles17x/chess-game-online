@@ -335,10 +335,9 @@ function handleServerMessage(data) {
       message: data.message
     });
 
-    // Display ban reason if provided
-    if (data.code === 403 && data.reason) {
-      popup(`error ${data.code}: ${data.message}
-Reason: ${data.reason}`, "red");
+    // Show custom ban modal for banned users
+    if (data.code === 403) {
+      showBanModal(data.message, data.reason || 'No reason provided');
     } else {
       popup(`error ${data.code}: ${data.message}`, "red");
     }
