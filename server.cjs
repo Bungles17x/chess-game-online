@@ -1,8 +1,6 @@
 // server.cjs
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
-const reportingSystem = require('./reporting-system');
-const notificationSystem = require('./notification-system');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -107,10 +105,6 @@ function handleMessage(ws, data) {
       break;
     case "updateReportStatus":
       handleUpdateReportStatus(ws, data);
-      break;
-    case "callNotification":
-      // Call notifications are sent from server to client, not processed as requests
-      console.log("Call notification received (should not happen)");
       break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
