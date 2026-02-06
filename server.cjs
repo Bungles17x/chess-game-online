@@ -694,10 +694,13 @@ function handleReport(ws, data) {
 
 function handleGetReports(ws) {
   try {
-    const reports = reportingSystem.getAllReports();
+    const reportsList = Array.from(reports.entries()).map(([id, report]) => ({
+      id,
+      ...report
+    }));
     ws.send(JSON.stringify({
       type: "reportsList",
-      reports: reports
+      reports: reportsList
     }));
   } catch (error) {
     console.error("Error getting reports:", error);
@@ -712,22 +715,18 @@ function handleGetReportDetails(ws, data) {
       return;
     }
 
-    const report = reportingSystem.getReportById(data.reportId);
+    const report = reports.get(data.reportId);
     if (!report) {
       ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
       return;
     }
 
-    // Get game replay if available
-    let replay = null;
-    if (report.replayId) {
-      replay = reportingSystem.getGameReplay(report.replayId);
-    }
-
     ws.send(JSON.stringify({
       type: "reportDetails",
-      report: report,
-      replay: replay
+      report: {
+        id: data.reportId,
+        ...report
+      }
     }));
   } catch (error) {
     console.error("Error getting report details:", error);
@@ -742,16 +741,18 @@ function handleUpdateReportStatus(ws, data) {
       return;
     }
 
-    const success = reportingSystem.updateReportStatus(data.reportId, data.status);
-    if (success) {
-      ws.send(JSON.stringify({
-        type: "reportStatusUpdated",
-        reportId: data.reportId,
-        status: data.status
-      }));
-    } else {
+    const report = reports.get(data.reportId);
+    if (!report) {
       ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
+      return;
     }
+
+    report.status = data.status;
+    ws.send(JSON.stringify({
+      type: "reportStatusUpdated",
+      reportId: data.reportId,
+      status: data.status
+    }));
   } catch (error) {
     console.error("Error updating report status:", error);
     ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to update report status" }));
