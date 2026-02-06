@@ -2575,11 +2575,11 @@ function updateBannedUsersList(users) {
       margin-bottom: 8px;
     ">
       <div>
-        <div style="font-weight: 500; color: #333;">${username}</div>
-        <div style="font-size: 12px; color: #666;">Account #${index + 1}</div>
+        <div style="font-weight: 500; color: #333;">${user.username}</div>
+        <div style="font-size: 12px; color: #666;">Reason: ${user.reason || 'No reason provided'}</div>
       </div>
       <button 
-        onclick="unbanUser('${username}')"
+        onclick="unbanUser('${user.username}')"
         style="
           background: #4CAF50;
           color: white;
