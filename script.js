@@ -773,6 +773,7 @@ function handleServerMessage(data) {
       reportId: data.reportId
     });
     popup(data.message, "green");
+    return;
   }
 
   if (data.type === "reportsList") {
@@ -782,6 +783,7 @@ function handleServerMessage(data) {
     if (typeof renderReportsList === "function") {
       renderReportsList(data.reports);
     }
+    return;
   }
 
   if (data.type === "reportDetails") {
@@ -791,13 +793,6 @@ function handleServerMessage(data) {
     if (typeof loadGameReplay === "function" && data.replay) {
       loadGameReplay(data.replay);
     }
-  }
-
-  if (data.type === "reportStatusUpdated") {
-    debugLog("REPORT", "Report status updated", {
-      reportId: data.reportId,
-      status: data.status
-    });
   }
 
   // Call notification
