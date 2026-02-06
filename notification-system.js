@@ -82,13 +82,7 @@ async function sendReportNotification(reportData) {
   // Make phone call notification
   const callMade = await makePhoneCallNotification('New chess game report received. Please check your admin panel.');
 
-  // Trigger simulated call notification
-  try {
-    const callNotification = require('./call-notification');
-    callNotification.showCallNotification(reportData);
-  } catch (error) {
-    console.error('Error showing call notification:', error);
-  }
+  // Note: Call notification is handled by the client via WebSocket message
 
   return {
     smsSent,
