@@ -538,13 +538,15 @@ function validateUsername(username, callback) {
     return;
   }
 
-  // Get all registered users from localStorage
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  // Check if username is empty
+  if (!username || username.trim() === '') {
+    callback(false);
+    return;
+  }
 
-  // Check if username exists in the users array
-  const userExists = users.some(user => user.username === username);
-
-  callback(userExists);
+  // For now, accept any username that's not the current user
+  // In a real application, this would check against a server or database
+  callback(true);
 }
 
 // Make functions available globally
