@@ -14,6 +14,9 @@ const currentStreak = document.getElementById("current-streak");
 const savedGamesList = document.getElementById("saved-games-list");
 const backToGameBtn = document.getElementById("back-to-game-btn");
 const usernameDisplay = document.getElementById("username-display");
+const addFriendInput = document.getElementById("add-friend-input");
+const addFriendBtn = document.getElementById("add-friend-btn");
+const friendsList = document.getElementById("friends-list");
 
 // Player Data
 let playerData = {
@@ -29,7 +32,8 @@ let playerData = {
     draws: 0,
     currentStreak: 0
   },
-  savedGames: []
+  savedGames: [],
+  friends: []
 };
 
 // Initialize
