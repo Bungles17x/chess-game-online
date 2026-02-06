@@ -8,6 +8,7 @@ const rooms = new Map();
 const connectedUsers = new Map(); // Track connected users by username
 const bannedUsers = new Map(); // Track banned usernames with reasons: {username: reason}
 const reports = new Map(); // Track reports
+const friends = new Map(); // Track friendships: {username: [friend1, friend2, ...]}
 
 console.log('WebSocket Server is running on ws://localhost:8081');
 
@@ -106,6 +107,24 @@ function handleMessage(ws, data) {
       break;
     case "updateReportStatus":
       handleUpdateReportStatus(ws, data);
+      break;
+    case "addFriend":
+      handleAddFriend(ws, data);
+      break;
+    case "removeFriend":
+      handleRemoveFriend(ws, data);
+      break;
+    case "getFriends":
+      handleGetFriends(ws);
+      break;
+    case "acceptFriendRequest":
+      handleAcceptFriendRequest(ws, data);
+      break;
+    case "rejectFriendRequest":
+      handleRejectFriendRequest(ws, data);
+      break;
+    case "sendFriendRequest":
+      handleSendFriendRequest(ws, data);
       break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
