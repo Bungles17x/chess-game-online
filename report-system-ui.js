@@ -2,51 +2,11 @@
 // Report System UI functionality
 
 // DOM Elements
-const reportBtn = document.getElementById('report-btn');
-const reportModal = document.getElementById('report-modal');
-const closeReportBtn = document.getElementById('close-report-btn');
-const reportForm = document.getElementById('report-form');
 const reportsModal = document.getElementById('reports-modal');
 const closeReportsBtn = document.getElementById('close-reports-btn');
 const reportsList = document.getElementById('reports-list');
 
-// Open report modal
-reportBtn.addEventListener('click', () => {
-  if (!isOnlineGame) {
-    showAlert('You can only report players in online games');
-    return;
-  }
-  reportModal.classList.remove('hidden');
-});
-
-// Close report modal
-closeReportBtn.addEventListener('click', () => {
-  reportModal.classList.add('hidden');
-});
-
-// Handle report form submission
-reportForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const reportData = {
-    type: document.getElementById('report-type').value,
-    reason: document.getElementById('report-reason').value,
-    description: document.getElementById('report-description').value
-  };
-
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({
-      type: 'report',
-      ...reportData
-    }));
-
-    reportForm.reset();
-    reportModal.classList.add('hidden');
-    showAlert('Report submitted successfully. Thank you for helping us improve the game!');
-  } else {
-    showAlert('Connection error. Please try again.');
-  }
-});
+// Note: Report button and form event listeners are handled in script.js to avoid conflicts
 
 // Close reports modal
 closeReportsBtn.addEventListener('click', () => {

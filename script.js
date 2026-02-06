@@ -2269,11 +2269,6 @@ function hideNoConnectionScreen() {
 // SAVE/LOAD GAME FUNCTIONS
 // -----------------------------------------------------
 function saveCurrentGame() {
-  if (gameMode === "online") {
-    popup("Cannot save games in online mode.", "red");
-    return;
-  }
-
   const gameState = {
     fen: game.fen(),
     pgn: game.pgn(),
@@ -2281,7 +2276,9 @@ function saveCurrentGame() {
     moveHistory: moveHistory,
     moveCount: moveCount,
     captureCount: captureCount,
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
+    mode: gameMode,
+    roomId: roomId || null
   };
 
   // Save to localStorage
