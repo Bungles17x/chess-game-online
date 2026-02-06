@@ -344,17 +344,85 @@ function handleServerMessage(data) {
 
     console.error("Account conflict:", data.message);
 
-    // Show alert message
-    popup('You have been logged out successfully. If this was unexpected, reset your password immediately.', 'red');
-
     // Clear current user session
     localStorage.removeItem('currentUser');
     localStorage.removeItem('chessPlayerData');
 
-    console.log("Redirecting to login page...");
+    console.log("Showing logout modal...");
 
-    // Redirect to login page
-    window.location.href = 'login.html';
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    // Create icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+      font-size: 60px;
+      margin-bottom: 20px;
+    `;
+    icon.textContent = '🔒';
+
+    // Create message
+    const message = document.createElement('p');
+    message.style.cssText = `
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    `;
+    message.textContent = 'You have been logged out successfully. If this was unexpected, reset your password immediately.';
+
+    // Create OK button
+    const okButton = document.createElement('button');
+    okButton.textContent = 'OK';
+    okButton.style.cssText = `
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    `;
+    okButton.onmouseover = () => okButton.style.background = '#45a049';
+    okButton.onmouseout = () => okButton.style.background = '#4CAF50';
+    okButton.onclick = () => {
+      modalOverlay.remove();
+      window.location.href = 'login.html';
+    };
+
+    // Assemble modal
+    modalContent.appendChild(icon);
+    modalContent.appendChild(message);
+    modalContent.appendChild(okButton);
+    modalOverlay.appendChild(modalContent);
+
+    // Show modal
+    document.body.appendChild(modalOverlay);
+
     return;
   }
 
