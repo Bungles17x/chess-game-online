@@ -1,22 +1,31 @@
 // notification-system.js
-const twilio = require('twilio');
+// Note: Twilio integration is optional. Without it, notifications will be logged to console
 
 // Configuration - 你需要在这里填入你的 Twilio 凭证
 const TWILIO_CONFIG = {
-  accountSid: process.env.TWILIO_ACCOUNT_SID || 'YOUR_TWILIO_ACCOUNT_SID',
-  authToken: process.env.TWILIO_AUTH_TOKEN || 'YOUR_TWILIO_AUTH_TOKEN',
-  phoneNumber: process.env.TWILIO_PHONE_NUMBER || 'YOUR_TWILIO_PHONE_NUMBER',
+  accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+  authToken: process.env.TWILIO_AUTH_TOKEN || '',
+  phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
   // 你的电话号码，用于接收通知
-  adminPhoneNumber: process.env.ADMIN_PHONE_NUMBER || 'YOUR_ADMIN_PHONE_NUMBER'
+  adminPhoneNumber: process.env.ADMIN_PHONE_NUMBER || ''
 };
 
-// Initialize Twilio client
+// Check if Twilio is configured
+const isTwilioConfigured = TWILIO_CONFIG.accountSid && TWILIO_CONFIG.authToken && 
+                              TWILIO_CONFIG.phoneNumber && TWILIO_CONFIG.adminPhoneNumber;
+
+// Initialize Twilio client only if configured
 let twilioClient;
-try {
-  twilioClient = twilio(TWILIO_CONFIG.accountSid, TWILIO_CONFIG.authToken);
-  console.log('Twilio client initialized successfully');
-} catch (error) {
-  console.error('Error initializing Twilio client:', error);
+if (isTwilioConfigured) {
+  try {
+    const twilio = require('twilio');
+    twilioClient = twilio(TWILIO_CONFIG.accountSid, TWILIO_CONFIG.authToken);
+    console.log('Twilio client initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Twilio client:', error);
+  }
+} else {
+  console.log('Twilio not configured - notifications will be logged to console only');
 }
 
 // Send SMS notification
