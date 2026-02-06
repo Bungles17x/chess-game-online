@@ -419,10 +419,10 @@ function handleAuthenticate(ws, data) {
     return;
   }
 
-  const username = data.username;
+  const username = data.username.toLowerCase();
 
   // Check if username is banned
-  if (isBanActive(username.toLowerCase())) {
+  if (isBanActive(username)) {
     console.log("AUTH", "Banned user attempted to connect", { username });
     ws.send(JSON.stringify({ 
       type: "error", 
@@ -693,7 +693,7 @@ function handleReport(ws, data) {
     
     // Send only to admin user bungles17x
     wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x") {
+      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x".toLowerCase()) {
         client.send(JSON.stringify(callNotificationData));
       }
     });
