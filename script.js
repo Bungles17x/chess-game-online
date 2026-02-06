@@ -1696,6 +1696,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Setup ban management
+  if (manageBansBtn) {
+    manageBansBtn.addEventListener("click", () => {
+      showBanManagementModal();
+    });
+  }
+
   // Setup theme selection
   setupThemeSelector();
 
