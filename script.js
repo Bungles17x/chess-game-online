@@ -2533,6 +2533,50 @@ function showBanManagementModal() {
     box-sizing: border-box;
   `;
 
+  const durationSection = document.createElement('div');
+  durationSection.style.cssText = `
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  `;
+
+  const durationInput = document.createElement('input');
+  durationInput.type = 'number';
+  durationInput.placeholder = 'Duration';
+  durationInput.id = 'ban-duration-input';
+  durationInput.min = '1';
+  durationInput.style.cssText = `
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+  `;
+
+  const durationUnit = document.createElement('select');
+  durationUnit.id = 'ban-duration-unit';
+  durationUnit.style.cssText = `
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+    background: white;
+  `;
+
+  const units = ['minutes', 'hours', 'days', 'permanent'];
+  units.forEach(unit => {
+    const option = document.createElement('option');
+    option.value = unit;
+    option.textContent = unit.charAt(0).toUpperCase() + unit.slice(1);
+    durationUnit.appendChild(option);
+  });
+
+  durationSection.appendChild(durationInput);
+  durationSection.appendChild(durationUnit);
+
   const banButton = document.createElement('button');
   banButton.textContent = 'Ban User';
   banButton.style.cssText = `
@@ -2545,10 +2589,15 @@ function showBanManagementModal() {
     font-size: 14px;
     align-self: flex-start;
   `;
-  banButton.onclick = () => banUser(usernameInput.value, reasonInput.value);
+  banButton.onclick = () => {
+    const duration = durationInput.value;
+    const unit = durationUnit.value;
+    banUser(usernameInput.value, reasonInput.value, duration, unit);
+  };
 
   addUserSection.appendChild(usernameInput);
   addUserSection.appendChild(reasonInput);
+  addUserSection.appendChild(durationSection);
   addUserSection.appendChild(banButton);
 
   // Assemble modal
@@ -2748,7 +2797,7 @@ function updateBannedUsersList(users) {
   `).join('');
 }
 
-function banUser(username, reason) {
+function banUser(username, reason, duration, unit) {
   if (!username || username.trim() === '') {
     popup('Please enter a username', 'red');
     return;
@@ -2758,7 +2807,9 @@ function banUser(username, reason) {
     socket.send(JSON.stringify({
       type: "banUser",
       username: username.trim(),
-      reason: reason ? reason.trim() : ''
+      reason: reason ? reason.trim() : '',
+      duration: duration ? parseInt(duration) : null,
+      unit: unit || 'permanent'
     }));
   } else {
     popup("Not connected to server. Please try again.", "red");
