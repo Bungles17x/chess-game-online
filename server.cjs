@@ -108,6 +108,10 @@ function handleMessage(ws, data) {
     case "updateReportStatus":
       handleUpdateReportStatus(ws, data);
       break;
+    case "callNotification":
+      // Call notifications are sent from server to client, not processed as requests
+      console.log("Call notification received (should not happen)");
+      break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
