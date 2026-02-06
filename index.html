@@ -46,6 +46,7 @@
             <button id="profile-btn" class="dropdown-item">Profile</button>
             <button id="theme-btn" class="dropdown-item">🎨 Themes</button>
             <button id="manage-bans-btn" class="dropdown-item">🔒 Manage Bans</button>
+            <button id="report-btn" class="dropdown-item">📢 Report Player</button>
             <button id="login-btn" class="dropdown-item">Login</button>
             <button id="register-btn" class="dropdown-item">Register</button>
           </div>
@@ -223,6 +224,45 @@
       </div>
 
       <button id="close-theme-btn" class="primary-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- REPORT MODAL -->
+  <div id="report-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Report Player</h2>
+      <form id="report-form">
+        <div class="form-group">
+          <label for="report-type">Report Type:</label>
+          <select id="report-type" class="form-input" required>
+            <option value="cheating">Cheating</option>
+            <option value="abuse">Abuse or Harassment</option>
+            <option value="bug">Bug Report</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="report-reason">Reason:</label>
+          <input type="text" id="report-reason" class="form-input" placeholder="Brief reason for report" required>
+        </div>
+        <div class="form-group">
+          <label for="report-description">Description:</label>
+          <textarea id="report-description" class="form-input" rows="4" placeholder="Please provide detailed description of the issue..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary-btn">Submit Report</button>
+          <button type="button" id="close-report-btn" class="primary-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- REPORTS MANAGEMENT MODAL -->
+  <div id="reports-modal" class="modal hidden">
+    <div class="modal-content reports-modal-content">
+      <h2>Reports Management</h2>
+      <div id="reports-list" class="reports-list"></div>
+      <button id="close-reports-btn" class="primary-btn">Close</button>
     </div>
   </div>
 

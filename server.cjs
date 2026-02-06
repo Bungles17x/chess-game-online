@@ -1,6 +1,8 @@
 // server.cjs
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
+const reportingSystem = require('./reporting-system');
+const notificationSystem = require('./notification-system');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -97,6 +99,18 @@ function handleMessage(ws, data) {
       break;
     case "unbanUser":
       handleUnbanUser(ws, data);
+      break;
+    case "report":
+      handleReport(ws, data);
+      break;
+    case "getReports":
+      handleGetReports(ws);
+      break;
+    case "getReportDetails":
+      handleGetReportDetails(ws, data);
+      break;
+    case "updateReportStatus":
+      handleUpdateReportStatus(ws, data);
       break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
@@ -624,4 +638,127 @@ function handleUnbanUser(ws, data) {
     type: "userUnbanned",
     username: data.username
   }));
+}
+
+// Report handling functions
+function handleReport(ws, data) {
+  try {
+    console.log("REPORT", "New report received", data);
+    
+    if (!ws.roomId) {
+      ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+      return;
+    }
+
+    const room = rooms.get(ws.roomId);
+    if (!room) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+      return;
+    }
+
+    // Save game replay
+    const replayId = reportingSystem.saveGameReplay(ws.roomId, {
+      pgn: room.game.pgn(),
+      history: room.game.history(),
+      fen: room.game.fen()
+    });
+
+    // Create report
+    const reportData = {
+      type: data.type || "cheating",
+      reportedBy: ws.username || "Anonymous",
+      roomId: ws.roomId,
+      opponent: room.players.find(p => p !== ws)?.username || "Unknown",
+      reason: data.reason || "No reason provided",
+      description: data.description || "",
+      replayId: replayId
+    };
+
+    const reportId = reportingSystem.createReport(reportData);
+
+    // Send notification to admin
+    notificationSystem.sendReportNotification({
+      id: reportId,
+      ...reportData
+    }).catch(err => {
+      console.error("Error sending notification:", err);
+    });
+
+    // Confirm report submission to user
+    ws.send(JSON.stringify({
+      type: "reportSubmitted",
+      reportId: reportId,
+      message: "Report submitted successfully. Thank you for helping us improve the game!"
+    }));
+
+  } catch (error) {
+    console.error("Error handling report:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to submit report" }));
+  }
+}
+
+function handleGetReports(ws) {
+  try {
+    const reports = reportingSystem.getAllReports();
+    ws.send(JSON.stringify({
+      type: "reportsList",
+      reports: reports
+    }));
+  } catch (error) {
+    console.error("Error getting reports:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get reports" }));
+  }
+}
+
+function handleGetReportDetails(ws, data) {
+  try {
+    if (!data.reportId) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Report ID required" }));
+      return;
+    }
+
+    const report = reportingSystem.getReportById(data.reportId);
+    if (!report) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
+      return;
+    }
+
+    // Get game replay if available
+    let replay = null;
+    if (report.replayId) {
+      replay = reportingSystem.getGameReplay(report.replayId);
+    }
+
+    ws.send(JSON.stringify({
+      type: "reportDetails",
+      report: report,
+      replay: replay
+    }));
+  } catch (error) {
+    console.error("Error getting report details:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get report details" }));
+  }
+}
+
+function handleUpdateReportStatus(ws, data) {
+  try {
+    if (!data.reportId || !data.status) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Report ID and status required" }));
+      return;
+    }
+
+    const success = reportingSystem.updateReportStatus(data.reportId, data.status);
+    if (success) {
+      ws.send(JSON.stringify({
+        type: "reportStatusUpdated",
+        reportId: data.reportId,
+        status: data.status
+      }));
+    } else {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
+    }
+  } catch (error) {
+    console.error("Error updating report status:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to update report status" }));
+  }
 }
