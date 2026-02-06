@@ -440,6 +440,11 @@ function displayFriends() {
 }
 
 function addFriend(username) {
+  // Ensure friends array exists
+  if (!playerData.friends) {
+    playerData.friends = [];
+  }
+
   // Check if friend already exists
   if (playerData.friends.some(friend => friend.username === username)) {
     alert('This user is already your friend!');
