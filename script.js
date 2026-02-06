@@ -27,6 +27,7 @@ const themeBtn = document.getElementById("theme-btn");
 const loginBtn = document.getElementById("login-btn");
 const registerBtn = document.getElementById("register-btn");
 const manageBansBtn = document.getElementById("manage-bans-btn");
+const friendsBtn = document.getElementById("friends-btn");
 const themeModal = document.getElementById("theme-modal");
 const menuBtn = document.getElementById("menu-btn");
 const dropdown = document.querySelector(".dropdown");
