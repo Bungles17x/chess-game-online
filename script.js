@@ -1871,6 +1871,62 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Setup report button
+  const reportBtn = document.getElementById('report-btn');
+  if (reportBtn) {
+    reportBtn.addEventListener("click", () => {
+      const reportModal = document.getElementById('report-modal');
+      if (!isOnlineGame) {
+        popup("You can only report players in online games", "red");
+        return;
+      }
+      if (reportModal) {
+        reportModal.classList.remove("hidden");
+      }
+    });
+  }
+
+  // Setup report form submission
+  const reportForm = document.getElementById('report-form');
+  if (reportForm) {
+    reportForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const reportData = {
+        type: document.getElementById('report-type').value,
+        reason: document.getElementById('report-reason').value,
+        description: document.getElementById('report-description').value
+      };
+      
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'report',
+          ...reportData
+        }));
+        
+        reportForm.reset();
+        const reportModal = document.getElementById('report-modal');
+        if (reportModal) {
+          reportModal.classList.add("hidden");
+        }
+        popup("Report submitted successfully. Thank you for helping us improve the game!", "green");
+      } else {
+        popup("Connection error. Please try again.", "red");
+      }
+    });
+  }
+
+  // Setup close report modal button
+  const closeReportBtn = document.getElementById('close-report-btn');
+  if (closeReportBtn) {
+    closeReportBtn.addEventListener("click", () => {
+      const reportModal = document.getElementById('report-modal');
+      if (reportModal) {
+        reportModal.classList.add("hidden");
+      }
+    });
+  }
+
   // Setup theme selection
   setupThemeSelector();
 
