@@ -408,7 +408,7 @@ function handleAuthenticate(ws, data) {
   const username = data.username;
 
   // Check if username is banned
-  if (bannedUsers.has(username.toLowerCase())) {
+  if (isBanActive(username.toLowerCase())) {
     console.log("AUTH", "Banned user attempted to connect", { username });
     ws.send(JSON.stringify({ 
       type: "error", 
@@ -503,6 +503,25 @@ function handleDisconnect(ws) {
   }
 }
 
+function isBanActive(username) {
+  const banInfo = bannedUsers.get(username);
+  if (!banInfo) return false;
+
+  // If no expiration time, it's a permanent ban
+  if (!banInfo.expiresAt) return true;
+
+  // Check if the ban has expired
+  const now = Date.now();
+  if (now > banInfo.expiresAt) {
+    // Ban has expired, remove it
+    console.log("BAN", "Ban expired, removing", { username });
+    bannedUsers.delete(username);
+    return false;
+  }
+
+  return true;
+}
+
 function handleGetBannedUsers(ws) {
   console.log("BAN", "Sending list of banned users", {
     count: bannedUsers.size
@@ -530,7 +549,7 @@ function handleBanUser(ws, data) {
 
   const username = data.username.toLowerCase();
 
-  if (bannedUsers.has(username)) {
+  if (isBanActive(username)) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "User is already banned" }));
     return;
   }
