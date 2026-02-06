@@ -673,6 +673,14 @@ function handleServerMessage(data) {
     debugLog("GAME", "Game over");
     handleGameOver();
   }
+
+  if (data.type === "bannedUsersList") {
+    debugLog("BAN", "Banned users list received", {
+      count: data.users.length,
+      users: data.users
+    });
+    updateBannedUsersList(data.users);
+  }
 }
 
 function handleGameOver() {
