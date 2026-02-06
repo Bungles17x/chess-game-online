@@ -6,7 +6,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 const rooms = new Map();
 const connectedUsers = new Map(); // Track connected users by username
-const bannedUsers = new Set(); // Track banned usernames
+const bannedUsers = new Map(); // Track banned usernames with reasons: {username: reason}
 
 console.log('WebSocket Server is running on ws://localhost:8081');
 
@@ -508,9 +508,14 @@ function handleGetBannedUsers(ws) {
     count: bannedUsers.size
   });
 
+  const bannedUsersList = Array.from(bannedUsers.entries()).map(([username, reason]) => ({
+    username,
+    reason
+  }));
+
   ws.send(JSON.stringify({
     type: "bannedUsersList",
-    users: Array.from(bannedUsers)
+    users: bannedUsersList
   }));
 }
 
@@ -527,8 +532,9 @@ function handleBanUser(ws, data) {
     return;
   }
 
-  bannedUsers.add(username);
-  console.log("BAN", "User banned", { username });
+  const reason = data.reason || 'No reason provided';
+  bannedUsers.set(username, reason);
+  console.log("BAN", "User banned", { username, reason });
 
   // Disconnect the user if they're currently connected
   const userConnection = connectedUsers.get(username);
@@ -536,14 +542,16 @@ function handleBanUser(ws, data) {
     userConnection.send(JSON.stringify({
       type: "error",
       code: 403,
-      message: "Your account has been banned"
+      message: "Your account has been banned",
+      reason: reason
     }));
     userConnection.close();
   }
 
   ws.send(JSON.stringify({
     type: "userBanned",
-    username: data.username
+    username: data.username,
+    reason: reason
   }));
 }
 
