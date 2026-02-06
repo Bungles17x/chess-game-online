@@ -345,7 +345,7 @@ function handleServerMessage(data) {
     console.error("Account conflict:", data.message);
 
     // Show alert message
-    popup('You have been logged out successfully. If this was unexpected, reset your password immediately.');
+    popup('You have been logged out successfully. If this was unexpected, reset your password immediately.', 'red');
 
     // Clear current user session
     localStorage.removeItem('currentUser');
