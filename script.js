@@ -1732,11 +1732,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Setup ban management
+  // Setup ban management - only show for bungles17x
   if (manageBansBtn) {
-    manageBansBtn.addEventListener("click", () => {
-      showBanManagementModal();
-    });
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.username !== 'bungles17x') {
+      manageBansBtn.style.display = 'none';
+    } else {
+      manageBansBtn.addEventListener("click", () => {
+        showBanManagementModal();
+      });
+    }
   }
 
   // Setup theme selection
