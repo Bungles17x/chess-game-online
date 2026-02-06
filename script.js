@@ -793,6 +793,7 @@ function handleServerMessage(data) {
     if (typeof loadGameReplay === "function" && data.replay) {
       loadGameReplay(data.replay);
     }
+    return;
   }
 
   // Call notification
@@ -814,6 +815,7 @@ function handleServerMessage(data) {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "getReports" }));
     }
+    return;
   }
 }
 
