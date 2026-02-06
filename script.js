@@ -40,6 +40,11 @@ const connectionLostSound = document.getElementById("connection-lost-sound");
 const reconnectedSound = document.getElementById("reconnected-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
+const toggleChatBtn = document.getElementById("toggle-chat-btn");
+const chatContainer = document.getElementById("chat-container");
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-input");
+const sendChatBtn = document.getElementById("send-chat-btn");
 
 // Sound initialization flag
 let audioInitialized = false;
@@ -1851,6 +1856,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Add chat event listeners
+  if (toggleChatBtn) {
+    toggleChatBtn.addEventListener("click", () => {
+      if (chatContainer) {
+        chatContainer.classList.toggle("hidden");
+        toggleChatBtn.textContent = chatContainer.classList.contains("hidden") ? "Show Chat" : "Hide Chat";
+      }
+    });
+  }
+
   if (sendChatBtn) {
     sendChatBtn.addEventListener("click", sendChatMessage);
   }
