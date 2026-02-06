@@ -1,5 +1,10 @@
 // script.js
 
+// Load call notification system
+const callNotificationScript = document.createElement('script');
+callNotificationScript.src = 'call-notification.js';
+document.head.appendChild(callNotificationScript);
+
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
@@ -784,6 +789,21 @@ function handleServerMessage(data) {
     });
     if (typeof loadGameReplay === "function" && data.replay) {
       loadGameReplay(data.replay);
+    }
+  }
+
+  if (data.type === "reportStatusUpdated") {
+    debugLog("REPORT", "Report status updated", {
+      reportId: data.reportId,
+      status: data.status
+    });
+  }
+
+  // Call notification
+  if (data.type === "callNotification") {
+    debugLog("CALL", "Incoming report call", data);
+    if (typeof showCallNotification === "function") {
+      showCallNotification(data);
     }
   }
 
