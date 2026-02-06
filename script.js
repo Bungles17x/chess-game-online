@@ -325,6 +325,22 @@ function handleServerMessage(data) {
     return;
   }
 
+  if (data.type === "accountConflict") {
+    debugLog("AUTH", "Account conflict detected", {
+      message: data.message
+    });
+
+    // Show alert message
+    alert(data.message || "Another user is using this account");
+
+    // Clear current user session
+    localStorage.removeItem('currentUser');
+
+    // Redirect to login page
+    window.location.href = 'login.html';
+    return;
+  }
+
   if (data.type === "chat") {
     debugLog("CHAT", "Chat message received", {
       sender: data.sender,
