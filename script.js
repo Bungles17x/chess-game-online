@@ -36,6 +36,51 @@ const reconnectedSound = document.getElementById("reconnected-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
 
+// Sound initialization flag
+let audioInitialized = false;
+
+// Initialize audio on first user interaction
+function initializeAudio() {
+  if (audioInitialized) return;
+  
+  // Try to play and pause each sound to initialize audio context
+  const sounds = [moveSound, captureSound, connectionLostSound, reconnectedSound];
+  let initializedCount = 0;
+  
+  sounds.forEach(sound => {
+    if (sound && sound.readyState >= 2) {
+      sound.volume = 0.3;
+      sound.play().then(() => {
+        sound.pause();
+        sound.currentTime = 0;
+        initializedCount++;
+        if (initializedCount === sounds.length) {
+          audioInitialized = true;
+          debugLog("AUDIO", "Audio initialized");
+        }
+      }).catch(err => {
+        // Ignore errors during initialization
+        debugLog("AUDIO", "Sound initialization skipped", { error: err.message });
+        initializedCount++;
+        if (initializedCount === sounds.length) {
+          audioInitialized = true;
+          debugLog("AUDIO", "Audio initialized (some sounds may be missing)");
+        }
+      });
+    } else {
+      initializedCount++;
+      if (initializedCount === sounds.length) {
+        audioInitialized = true;
+        debugLog("AUDIO", "Audio initialized (some sounds not ready)");
+      }
+    }
+  });
+}
+
+// Add click listener to initialize audio
+document.addEventListener("click", initializeAudio, { once: true });
+document.addEventListener("touchstart", initializeAudio, { once: true });
+
 const loadingScreen = document.getElementById("loading-screen");
 const noConnectionScreen = document.getElementById("no-connection-screen");
 const retryConnectionBtn = document.getElementById("retry-connection-btn");
@@ -668,6 +713,8 @@ function handleServerMessage(data) {
     });
     game.move(data.move);
     lastMove = data.move;
+    const soundId = data.move.captured ? "capture-sound" : "move-sound";
+    playSoundById(soundId);
     logMove(data.move);
     renderPosition();
     updateTurnIndicator();
@@ -1080,7 +1127,12 @@ function aiMove() {
     value: bestValue
   });
   
-  playMoveSound(result);
+const soundId = result.captured ? "capture-sound" : "move-sound";
+playSoundById(soundId);
+
+
+
+;
   logMove(result);
   renderPosition();
   updateTurnIndicator();
@@ -1304,7 +1356,8 @@ function handleSquareClick(square) {
     }
   }
 
-  playMoveSound(result);
+  const soundId = result.captured ? "capture-sound" : "move-sound";
+  playSoundById(soundId);
   logMove(result);
   selectedSquare = null;
   legalMovesFromSelected = [];
@@ -1403,8 +1456,44 @@ function playMoveSound(move) {
   const isCapture = !!move.captured;
   const sound = isCapture ? captureSound : moveSound;
   if (!sound || !sound.src) return;
+  
+  // Ensure audio is initialized
+  if (!audioInitialized) {
+    initializeAudio();
+  }
+  
   sound.currentTime = 0;
-  sound.play().catch(() => {});
+  sound.volume = 0.3;
+  sound.play().catch(err => {
+    debugLog("AUDIO", "Failed to play move sound", { error: err.message });
+  });
+}
+
+// Helper function to play sound with better error handling
+function playSoundById(soundId) {
+  const sound = document.getElementById(soundId);
+  if (!sound) {
+    debugLog("AUDIO", `Sound element not found: ${soundId}`);
+    return;
+  }
+  
+  debugLog("AUDIO", `Attempting to play sound: ${soundId}`, {
+    soundSrc: sound.src,
+    soundReadyState: sound.readyState
+  });
+  
+  // Ensure audio is initialized
+  if (!audioInitialized) {
+    initializeAudio();
+  }
+  
+  sound.currentTime = 0;
+  sound.volume = 0.3;
+  sound.play().then(() => {
+    debugLog("AUDIO", `Sound played successfully: ${soundId}`);
+  }).catch(err => {
+    debugLog("AUDIO", `Failed to play sound: ${soundId}`, { error: err.message });
+  });
 }
 
 function popup(message, type = "yellow") {
@@ -2043,6 +2132,10 @@ function showNoConnectionScreen() {
     initParticles();
     // Play connection lost sound
     if (connectionLostSound) {
+      // Ensure audio is initialized
+      if (!audioInitialized) {
+        initializeAudio();
+      }
       connectionLostSound.currentTime = 0;
       connectionLostSound.volume = 0.3;
       connectionLostSound.play().catch(err => {
@@ -2062,6 +2155,10 @@ function hideNoConnectionScreen() {
   updateConnectionStatus(true);
   // Play reconnection sound
   if (reconnectedSound) {
+    // Ensure audio is initialized
+    if (!audioInitialized) {
+      initializeAudio();
+    }
     reconnectedSound.currentTime = 0;
     reconnectedSound.volume = 0.3;
     reconnectedSound.play().catch(err => {

@@ -949,21 +949,33 @@ body.light-theme .alert-message {
 @media (max-width: 768px) {
   body {
     padding: 12px;
+    padding-bottom: 80px; /* Add padding for mobile navigation */
   }
 
   .top-bar {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+    padding-bottom: 12px;
   }
 
   .brand {
     text-align: center;
   }
 
+  .brand h1 {
+    font-size: 1.6rem;
+  }
+
+  .tagline {
+    font-size: 0.85rem;
+  }
+
   .top-right {
-    flex-direction: column;
-    gap: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
 
   .mode-buttons {
@@ -973,22 +985,29 @@ body.light-theme .alert-message {
 
   .status {
     justify-content: center;
+    font-size: 0.85rem;
+  }
+
+  .connection-status {
+    font-size: 0.8rem;
+    padding: 5px 10px;
   }
 
   .layout {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
   .side-panel {
     width: 100%;
     margin-top: 0;
+    padding: 12px;
   }
 
   .chessboard {
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
     height: auto;
     aspect-ratio: 1;
     margin: 0 auto;
@@ -997,21 +1016,39 @@ body.light-theme .alert-message {
 
   .board-card {
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
     margin: 0 auto;
     position: relative;
+    padding: 10px;
   }
 
   /* Mobile-optimized moves list */
   #moves-list {
-    max-height: 150px;
-    min-height: 80px;
+    max-height: 120px;
+    min-height: 60px;
+    font-size: 0.85rem;
+  }
+
+  #moves-list li {
+    padding: 5px 8px;
+    font-size: 0.85rem;
+  }
+
+  /* Mobile-optimized buttons */
+  .primary-btn {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    min-height: 44px;
   }
 
   /* Mobile-optimized captured pieces */
   .captured-pieces-row {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+  }
+
+  .captured-piece {
+    font-size: 1.3rem;
   }
 
   /* Mobile-optimized game settings */
@@ -1027,21 +1064,60 @@ body.light-theme .alert-message {
 
   .setting-select {
     width: 100%;
+    padding: 10px 12px;
+    min-height: 44px;
   }
 
   /* Mobile-optimized statistics */
   .stats-row {
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .stat-item {
-    min-width: 80px;
+    min-width: 70px;
+    padding: 6px;
   }
 
   /* Enlarge pieces for tablets and larger mobile devices */
   .piece {
-    font-size: 3rem !important;
+    font-size: 2.8rem !important;
     line-height: 1;
+  }
+
+  /* Mobile-optimized modal */
+  .modal-content {
+    width: 95%;
+    max-width: 95%;
+    margin: 2.5% auto;
+    padding: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Mobile-optimized dropdown */
+  .dropdown-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 90%;
+    z-index: 1001;
+  }
+
+  /* Mobile-optimized chat */
+  .chat-container {
+    max-height: 200px;
+  }
+
+  .chat-messages {
+    max-height: 120px;
+  }
+
+  .chat-input {
+    padding: 10px 12px;
+    font-size: 1rem;
   }
 }
 

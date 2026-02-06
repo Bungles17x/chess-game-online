@@ -89,10 +89,21 @@
   </div>
 
   <!-- SOUNDS -->
-  <audio id="move-sound"></audio>
-  <audio id="capture-sound"></audio>
-  <audio id="connection-lost-sound"></audio>
-  <audio id="reconnected-sound"></audio>
+  <!-- Note: Sound files are optional. Add them to sounds/ directory when available -->
+  <audio id="move-sound" preload="auto">
+    <source src="./sounds/move.wav" type="audio/wav">
+  </audio>
+  <audio id="capture-sound" preload="auto">
+    <source src="./sounds/capture.wav" type="audio/wav">
+  </audio>
+  <audio id="connection-lost-sound" preload="auto">
+    <source src="./sounds/connection-lost.wav" type="audio/wav">
+  </audio>
+  <audio id="reconnected-sound" preload="auto">
+    <source src="./sounds/reconnected.wav" type="audio/wav">
+  </audio>
+
+
 
   <div id="alert-box" class="alert hidden">
     <div class="alert-content">
