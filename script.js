@@ -41,10 +41,6 @@ const reconnectedSound = document.getElementById("reconnected-sound");
 const drawBtn = document.getElementById("draw-btn");
 const resignBtn = document.getElementById("resign-btn");
 const toggleChatBtn = document.getElementById("toggle-chat-btn");
-const chatContainer = document.getElementById("chat-container");
-const chatMessages = document.getElementById("chat-messages");
-const chatInput = document.getElementById("chat-input");
-const sendChatBtn = document.getElementById("send-chat-btn");
 
 // Sound initialization flag
 let audioInitialized = false;
