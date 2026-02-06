@@ -382,7 +382,7 @@ function handleServerMessage(data) {
       font-size: 60px;
       margin-bottom: 20px;
     `;
-    icon.textContent = '';
+    icon.textContent = '⚠️';
 
     // Create message
     const message = document.createElement('p');
