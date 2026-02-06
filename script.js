@@ -334,7 +334,14 @@ function handleServerMessage(data) {
       code: data.code,
       message: data.message
     });
-    popup(`error ${data.code}: ${data.message}`, "red");
+
+    // Display ban reason if provided
+    if (data.code === 403 && data.reason) {
+      popup(`error ${data.code}: ${data.message}
+Reason: ${data.reason}`, "red");
+    } else {
+      popup(`error ${data.code}: ${data.message}`, "red");
+    }
     return;
   }
 
@@ -2564,7 +2571,7 @@ function updateBannedUsersList(users) {
     return;
   }
 
-  listContainer.innerHTML = users.map((username, index) => `
+  listContainer.innerHTML = users.map((user, index) => `
     <div style="
       display: flex;
       justify-content: space-between;
