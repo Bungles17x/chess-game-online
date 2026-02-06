@@ -806,6 +806,7 @@ function handleServerMessage(data) {
     if (typeof showCallNotification === "function") {
       showCallNotification(data);
     }
+    return;
   }
 
   if (data.type === "reportStatusUpdated") {
