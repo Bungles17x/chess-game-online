@@ -1,7 +1,11 @@
 // call-notification.js - Simulated phone call notification system
+// This module can be used both on server and client side
 let callNotification = null;
 let ringInterval = null;
 let isRinging = false;
+
+// Check if running in browser
+const isBrowser = typeof window !== 'undefined';
 
 // Create the call notification UI
 function createCallNotificationUI() {
@@ -121,6 +125,13 @@ function playRingtone() {
 
 // Show call notification
 function showCallNotification(reportData) {
+  // If running on server, just log the notification
+  if (!isBrowser) {
+    console.log('[CALL NOTIFICATION]: Incoming report call!');
+    console.log('Report Details:', JSON.stringify(reportData, null, 2));
+    return;
+  }
+
   if (!callNotification) {
     callNotification = createCallNotificationUI();
   }
