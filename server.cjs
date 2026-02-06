@@ -555,12 +555,6 @@ function handleUnbanUser(ws, data) {
 
   const username = data.username.toLowerCase();
 
-  // Prevent unbanning bungles17x
-  if (username === 'bungles17x') {
-    ws.send(JSON.stringify({ type: "error", code: 403, message: "This user cannot be unbanned" }));
-    return;
-  }
-
   if (!bannedUsers.has(username)) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "User is not banned" }));
     return;
