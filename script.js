@@ -817,6 +817,62 @@ function handleServerMessage(data) {
     }
     return;
   }
+
+  // Friend system messages
+  if (data.type === "friendsList") {
+    debugLog("FRIENDS", "Friends list received", {
+      count: data.friends.length,
+      onlineCount: data.onlineFriends.length
+    });
+    if (typeof renderFriendsList === "function") {
+      renderFriendsList(data.friends, data.onlineFriends);
+    }
+    return;
+  }
+
+  if (data.type === "friendRequest") {
+    debugLog("FRIENDS", "Friend request received", {
+      from: data.from
+    });
+    if (typeof showFriendRequestNotification === "function") {
+      showFriendRequestNotification(data.from);
+    }
+    return;
+  }
+
+  if (data.type === "friendRequestSent") {
+    debugLog("FRIENDS", "Friend request sent", data);
+    popup(data.message, "green");
+    return;
+  }
+
+  if (data.type === "friendAccepted") {
+    debugLog("FRIENDS", "Friend request accepted", {
+      friend: data.friend
+    });
+    popup(`You are now friends with ${data.friend}!`, "green");
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "getFriends" }));
+    }
+    return;
+  }
+
+  if (data.type === "friendRequestRejected") {
+    debugLog("FRIENDS", "Friend request rejected", data);
+    popup(data.message || "Friend request rejected", "orange");
+    return;
+  }
+
+  if (data.type === "friendRemoved") {
+    debugLog("FRIENDS", "Friend removed", {
+      friend: data.friend
+    });
+    popup(`${data.friend} removed from friends`, "orange");
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "getFriends" }));
+    }
+    return;
+  }
 }
 
 function handleGameOver() {
