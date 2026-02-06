@@ -2180,3 +2180,63 @@ function filterRooms(searchTerm) {
     roomList.appendChild(roomDiv);
   });
 }
+
+// Friends List Functions
+function loadLobbyFriends() {
+  if (!lobbyFriendsList) return;
+
+  // Get friends from localStorage
+  const playerData = JSON.parse(localStorage.getItem('playerData') || '{}');
+  const friends = playerData.friends || [];
+
+  if (friends.length === 0) {
+    lobbyFriendsList.innerHTML = '<li class="no-friends">No friends yet. Add some in your profile!</li>';
+    return;
+  }
+
+  lobbyFriendsList.innerHTML = friends.map(friend => `
+    <li class="friend-item">
+      <div class="friend-info">
+        <div class="friend-avatar">${friend.avatar || '♟'}</div>
+        <div>
+          <div class="friend-name">${friend.username}</div>
+          <div class="friend-status ${friend.online ? 'online' : 'offline'}">
+            ${friend.online ? '● Online' : '● Offline'}
+          </div>
+        </div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-btn invite-btn" data-username="${friend.username}">Invite</button>
+      </div>
+    </li>
+  `).join('');
+
+  // Add event listeners for invite buttons
+  document.querySelectorAll('.invite-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const username = e.target.dataset.username;
+      inviteFriendToGame(username);
+    });
+  });
+}
+
+function inviteFriendToGame(username) {
+  // Create a room with a unique name
+  const roomName = `game-${Date.now()}`;
+
+  // Join the room
+  joinRoom(roomName);
+
+  // Send invite to the friend
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: "invite",
+      username: username,
+      room: roomName
+    }));
+
+    popup(`Invitation sent to ${username}!`, "green");
+  } else {
+    popup("Not connected to server. Please try again.", "red");
+  }
+}
