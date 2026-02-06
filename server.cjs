@@ -81,6 +81,9 @@ function handleMessage(ws, data) {
     case "chat":
       handleChat(ws, data);
       break;
+    case "invite":
+      handleInvite(ws, data);
+      break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -374,6 +377,42 @@ function handleChat(ws, data) {
       player.send(JSON.stringify(message));
     }
   });
+}
+
+function handleInvite(ws, data) {
+  if (!ws.roomId) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+    return;
+  }
+
+  if (!data.username) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  // Find the invited user's connection
+  const invitedUser = Array.from(clients).find(client => 
+    client.username === data.username && client.readyState === WebSocket.OPEN
+  );
+
+  if (!invitedUser) {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "User not found or offline" }));
+    return;
+  }
+
+  // Send the invitation to the invited user
+  invitedUser.send(JSON.stringify({
+    type: "gameInvite",
+    from: ws.username || "Someone",
+    room: ws.roomId
+  }));
+
+  // Confirm to the sender that the invite was sent
+  ws.send(JSON.stringify({
+    type: "inviteSent",
+    to: data.username,
+    room: ws.roomId
+  }));
 }
 
 function handleDisconnect(ws) {

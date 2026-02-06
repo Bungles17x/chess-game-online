@@ -321,6 +321,31 @@ function handleServerMessage(data) {
     return;
   }
 
+  if (data.type === "gameInvite") {
+    debugLog("INVITE", "Game invite received", {
+      from: data.from,
+      room: data.room
+    });
+
+    // Show a popup with the invitation
+    const acceptInvite = confirm(`${data.from} has invited you to play a game! Do you want to join?`);
+
+    if (acceptInvite) {
+      joinRoom(data.room);
+      popup(`Joined game with ${data.from}!`, "green");
+    }
+
+    return;
+  }
+
+  if (data.type === "inviteSent") {
+    debugLog("INVITE", "Invite sent successfully", {
+      to: data.to,
+      room: data.room
+    });
+    return;
+  }
+
   if (data.type === "pong") {
     // Clear ping timeout
     if (pingTimeout) {
