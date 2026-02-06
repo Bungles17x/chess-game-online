@@ -681,6 +681,22 @@ function handleServerMessage(data) {
     });
     updateBannedUsersList(data.users);
   }
+
+  if (data.type === "userBanned") {
+    debugLog("BAN", "User banned", {
+      username: data.username
+    });
+    // Refresh the ban list when a user is banned
+    socket.send(JSON.stringify({ type: "getBannedUsers" }));
+  }
+
+  if (data.type === "userUnbanned") {
+    debugLog("BAN", "User unbanned", {
+      username: data.username
+    });
+    // Refresh the ban list when a user is unbanned
+    socket.send(JSON.stringify({ type: "getBannedUsers" }));
+  }
 }
 
 function handleGameOver() {
