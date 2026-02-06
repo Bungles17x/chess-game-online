@@ -684,9 +684,7 @@ function handleReport(ws, data) {
       console.error("Error sending notification:", err);
     });
 
-    // Call notifications are now handled by the notification system
     
-    // Call notifications are now handled by the notification system
 
     // Confirm report submission to user
     ws.send(JSON.stringify({
