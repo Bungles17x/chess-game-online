@@ -5,5 +5,5 @@
     "Codegeex.CommitMessage.LanguagePreference": "English",
     "Codegeex.CompletionDelay": 0.5,
     "Codegeex.RepoIndex": true,
-    "CodeGPT.apiKey": "Gemini CLI"
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
