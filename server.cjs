@@ -89,6 +89,15 @@ function handleMessage(ws, data) {
     case "invite":
       handleInvite(ws, data);
       break;
+    case "getBannedUsers":
+      handleGetBannedUsers(ws);
+      break;
+    case "banUser":
+      handleBanUser(ws, data);
+      break;
+    case "unbanUser":
+      handleUnbanUser(ws, data);
+      break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -492,4 +501,70 @@ function handleDisconnect(ws) {
   if (ws.username && connectedUsers.has(ws.username)) {
     connectedUsers.delete(ws.username);
   }
+}
+
+function handleGetBannedUsers(ws) {
+  console.log("BAN", "Sending list of banned users", {
+    count: bannedUsers.size
+  });
+
+  ws.send(JSON.stringify({
+    type: "bannedUsersList",
+    users: Array.from(bannedUsers)
+  }));
+}
+
+function handleBanUser(ws, data) {
+  if (!data.username) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  const username = data.username.toLowerCase();
+
+  if (bannedUsers.has(username)) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "User is already banned" }));
+    return;
+  }
+
+  bannedUsers.add(username);
+  console.log("BAN", "User banned", { username });
+
+  // Disconnect the user if they're currently connected
+  const userConnection = connectedUsers.get(username);
+  if (userConnection && userConnection.readyState === WebSocket.OPEN) {
+    userConnection.send(JSON.stringify({
+      type: "error",
+      code: 403,
+      message: "Your account has been banned"
+    }));
+    userConnection.close();
+  }
+
+  ws.send(JSON.stringify({
+    type: "userBanned",
+    username: data.username
+  }));
+}
+
+function handleUnbanUser(ws, data) {
+  if (!data.username) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  const username = data.username.toLowerCase();
+
+  if (!bannedUsers.has(username)) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "User is not banned" }));
+    return;
+  }
+
+  bannedUsers.delete(username);
+  console.log("BAN", "User unbanned", { username });
+
+  ws.send(JSON.stringify({
+    type: "userUnbanned",
+    username: data.username
+  }));
 }
