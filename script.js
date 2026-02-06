@@ -100,7 +100,7 @@ const WS_CONFIG = {
   // Use localhost for development, Render for production
   PRODUCTION_URL: 'wss://chess-game-online-u34h.onrender.com',
   // Set to true when deploying to production
-  isProduction: false
+  isProduction: true,
 };
 
 function getWebSocketUrl() {
