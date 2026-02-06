@@ -685,18 +685,8 @@ function handleReport(ws, data) {
     });
 
     // Call notifications are now handled by the notification system
-    const callNotificationData = {
-      type: "callNotification",
-      id: reportId,
-      ...reportData
-    };
     
-    // Send only to admin user bungles17x
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x".toLowerCase()) {
-        client.send(JSON.stringify(callNotificationData));
-      }
-    });
+    // Call notifications are now handled by the notification system
 
     // Confirm report submission to user
     ws.send(JSON.stringify({
