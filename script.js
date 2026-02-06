@@ -337,7 +337,13 @@ function handleServerMessage(data) {
 
     // Show custom ban modal for banned users
     if (data.code === 403) {
-      showBanModal(data.message, data.reason || 'No reason provided');
+      showBanModal(
+        data.message,
+        data.reason || 'No reason provided',
+        data.duration,
+        data.unit,
+        data.expiresAt
+      );
     } else {
       popup(`error ${data.code}: ${data.message}`, "red");
     }
@@ -2610,7 +2616,7 @@ function showBanManagementModal() {
   document.body.appendChild(modalOverlay);
 }
 
-function showBanModal(message, reason) {
+function showBanModal(message, reason, duration, unit, expiresAt) {
   // Create modal overlay
   const modalOverlay = document.createElement('div');
   modalOverlay.style.cssText = `
@@ -2714,6 +2720,45 @@ function showBanModal(message, reason) {
   reasonSection.appendChild(reasonLabel);
   reasonSection.appendChild(reasonText);
 
+  // Create duration section
+  const durationSection = document.createElement('div');
+  durationSection.style.cssText = `
+    background: #e3f2fd;
+    border-left: 4px solid #1976d2;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: left;
+    border-radius: 5px;
+  `;
+
+  const durationLabel = document.createElement('div');
+  durationLabel.style.cssText = `
+    font-weight: bold;
+    color: #1976d2;
+    margin-bottom: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  `;
+  durationLabel.textContent = 'Ban Duration:';
+
+  const durationText = document.createElement('div');
+  durationText.style.cssText = `
+    color: #333;
+    font-size: 16px;
+    line-height: 1.4;
+  `;
+
+  if (duration && unit !== 'permanent') {
+    const expiryDate = new Date(expiresAt);
+    durationText.textContent = `${duration} ${unit} (Expires: ${expiryDate.toLocaleString()})`;
+  } else {
+    durationText.textContent = 'Permanent';
+  }
+
+  durationSection.appendChild(durationLabel);
+  durationSection.appendChild(durationText);
+
   // Create OK button
   const okButton = document.createElement('button');
   okButton.textContent = 'OK';
@@ -2749,6 +2794,7 @@ function showBanModal(message, reason) {
   modalContent.appendChild(title);
   modalContent.appendChild(messageEl);
   modalContent.appendChild(reasonSection);
+  modalContent.appendChild(durationSection);
   modalContent.appendChild(okButton);
   modalOverlay.appendChild(modalContent);
 
@@ -2778,6 +2824,7 @@ function updateBannedUsersList(users) {
       <div>
         <div style="font-weight: 500; color: #333;">${user.username}</div>
         <div style="font-size: 12px; color: #666;">Reason: ${user.reason || 'No reason provided'}</div>
+        <div style="font-size: 12px; color: #666;">Duration: ${user.duration ? user.duration + ' ' + user.unit : 'Permanent'}</div>
       </div>
       <button 
         onclick="unbanUser('${user.username}')"

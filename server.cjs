@@ -508,9 +508,12 @@ function handleGetBannedUsers(ws) {
     count: bannedUsers.size
   });
 
-  const bannedUsersList = Array.from(bannedUsers.entries()).map(([username, reason]) => ({
+  const bannedUsersList = Array.from(bannedUsers.entries()).map(([username, banInfo]) => ({
     username,
-    reason
+    reason: banInfo.reason,
+    duration: banInfo.duration,
+    unit: banInfo.unit,
+    expiresAt: banInfo.expiresAt
   }));
 
   ws.send(JSON.stringify({
@@ -533,8 +536,29 @@ function handleBanUser(ws, data) {
   }
 
   const reason = data.reason || 'No reason provided';
-  bannedUsers.set(username, reason);
-  console.log("BAN", "User banned", { username, reason });
+  const duration = data.duration || null;
+  const unit = data.unit || 'permanent';
+
+  // Calculate expiration time
+  let expiresAt = null;
+  if (duration && unit !== 'permanent') {
+    const now = Date.now();
+    const multipliers = {
+      'minutes': 60 * 1000,
+      'hours': 60 * 60 * 1000,
+      'days': 24 * 60 * 60 * 1000
+    };
+    expiresAt = now + (duration * multipliers[unit]);
+  }
+
+  bannedUsers.set(username, {
+    reason,
+    expiresAt,
+    duration,
+    unit
+  });
+
+  console.log("BAN", "User banned", { username, reason, duration, unit, expiresAt });
 
   // Disconnect the user if they're currently connected
   const userConnection = connectedUsers.get(username);
@@ -543,7 +567,10 @@ function handleBanUser(ws, data) {
       type: "error",
       code: 403,
       message: "Your account has been banned",
-      reason: reason
+      reason: reason,
+      duration: duration,
+      unit: unit,
+      expiresAt: expiresAt
     }));
     userConnection.close();
   }
@@ -551,7 +578,10 @@ function handleBanUser(ws, data) {
   ws.send(JSON.stringify({
     type: "userBanned",
     username: data.username,
-    reason: reason
+    reason: reason,
+    duration: duration,
+    unit: unit,
+    expiresAt: expiresAt
   }));
 }
 
