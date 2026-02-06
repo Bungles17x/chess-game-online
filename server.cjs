@@ -2,7 +2,7 @@
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 
-const wss = new WebSocket.Server({ port: 8081 });
+const wss = new WebSocket.Server({ port: 8080 });
 
 const rooms = new Map();
 

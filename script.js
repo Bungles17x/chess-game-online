@@ -12,7 +12,17 @@ const modeButtons = document.querySelectorAll("[data-mode]");
 const lobbyBtn = document.getElementById("lobby-btn");
 const lobbyModal = document.getElementById("lobby-modal");
 const roomList = document.getElementById("room-list");
+const roomSearchInput = document.getElementById("room-search");
 const createRoomBtn = document.getElementById("create-room-btn");
+const profileBtn = document.getElementById("profile-btn");
+const saveGameBtn = document.getElementById("save-game-btn");
+const themeBtn = document.getElementById("theme-btn");
+const loginBtn = document.getElementById("login-btn");
+const registerBtn = document.getElementById("register-btn");
+const themeModal = document.getElementById("theme-modal");
+const menuBtn = document.getElementById("menu-btn");
+const dropdown = document.querySelector(".dropdown");
+const closeThemeBtn = document.getElementById("close-theme-btn");
 const closeLobbyBtn = document.getElementById("close-lobby-btn");
 const botModeBtn = document.getElementById("bot-mode");
 const onlineModeBtn = document.getElementById("online-mode");
@@ -33,6 +43,12 @@ const connectionText = document.getElementById("connection-text");
 const connectionQuality = document.getElementById("connection-quality");
 const latencyGraph = document.getElementById("latency-graph");
 const latencyValue = document.getElementById("latency-value");
+
+// Chat elements
+const chatContainer = document.getElementById("chat-container");
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-input");
+const sendChatBtn = document.getElementById("send-chat-btn");
 
 // Connection quality tracking
 let connectionLatency = 0;
@@ -56,6 +72,15 @@ let lastMove = null; // Track the last move for highlighting
 let playerColor = "w";
 let roomId = null;
 let gameMode = "bot"; // "bot" or "online"
+let isOnlineGame = false; // Track if we're in an online game
+let allRooms = []; // Store all available rooms for searching
+let isInRoom = false; // Track if player is currently in a room
+let currentBoardTheme = "classic"; // Current board theme
+let currentPieceTheme = "classic"; // Current piece theme
+let moveCount = 0; // Track total moves
+let captureCount = 0; // Track total captures
+let moveHistory = []; // Store move history for navigation
+let currentMoveIndex = -1; // Current position in move history
 
 const pieceToUnicode = {
   p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
@@ -74,7 +99,6 @@ let noConnectionTimeout = null; // Store the timeout ID so we can cancel it
 const WS_CONFIG = {
   // Use localhost for development, Render for production
   PRODUCTION_URL: 'wss://chess-game-online-u34h.onrender.com',
-  DEVELOPMENT_URL: 'ws://localhost:8080',
   // Set to true when deploying to production
   isProduction: false
 };
@@ -164,22 +188,10 @@ function ensureSocket() {
     return;
   }
 
-  // Removed the check for MAX_RECONNECT_ATTEMPTS to allow continuous reconnection
-  if (false) { // Always false to allow continuous reconnection
-    debugLog("SOCKET", "Max reconnect attempts reached", {
-      url: 'wss://chess-game-online-u34h.onrender.com/',
-      reconnectAttempts
-    });
-    
-    if (gameMode === "online") {
-        hideLoadingScreen();
-        showNoConnectionScreen();
-    }
-    return;
-  }
 
+  const wsUrl = getWebSocketUrl();
   debugLog("SOCKET", "Attempting to connect", {
-    url: 'wss://chess-game-online-u34h.onrender.com/',
+    url: wsUrl,
     attempt: reconnectAttempts + 1
   });
 
@@ -189,7 +201,7 @@ function ensureSocket() {
   }
 
   try {
-    socket = new WebSocket('wss://chess-game-online-u34h.onrender.com');
+    socket = new WebSocket(wsUrl);
 
     socket.onopen = function(e) {
       debugLog("SOCKET", "Connection established", {
@@ -298,6 +310,15 @@ function handleServerMessage(data) {
     return;
   }
 
+  if (data.type === "chat") {
+    debugLog("CHAT", "Chat message received", {
+      sender: data.sender,
+      message: data.message
+    });
+    displayChatMessage(data.message, data.sender, false);
+    return;
+  }
+
   if (data.type === "pong") {
     // Clear ping timeout
     if (pingTimeout) {
@@ -335,8 +356,11 @@ function handleServerMessage(data) {
       rooms: data.rooms
     });
     
-    // Clear the list completely before adding new items
-    roomList.innerHTML = ""; 
+    // Store all rooms for searching
+    allRooms = data.rooms;
+
+    // Filter rooms based on current search input
+    filterRooms(roomSearchInput.value); 
     
     if (data.rooms.length === 0) {
       const li = document.createElement("li");
@@ -378,7 +402,9 @@ function handleServerMessage(data) {
     playerColor = data.color;
     popup(`Joined room as ${playerColor === 'w' ? 'White' : 'Black'}`, "green");
     // Show the chat container after successful join
-    chatContainer.classList.remove("hidden");
+    if (chatContainer) {
+      chatContainer.classList.remove("hidden");
+    }
     toggleChatBtn.textContent = "Hide";
     // Clear previous chat messages
     chatMessages.innerHTML = "";
@@ -422,6 +448,16 @@ function handleServerMessage(data) {
 
   if (data.type === "reset") {
     debugLog("GAME", "Game reset by opponent");
+
+    // Reset all game state
+    selectedSquare = null;
+    legalMovesFromSelected = [];
+    lastMove = null;
+    moveCount = 0;
+    captureCount = 0;
+    moveHistory = [];
+    currentMoveIndex = -1;
+
     initBoard();
     popup("Game reset by opponent.", "yellow");
   }
@@ -442,6 +478,13 @@ function handleServerMessage(data) {
     debugLog("GAME", "Draw accepted by opponent");
     updateTurnIndicator();
     popup("Game ended in a draw.", "yellow");
+
+    // Hide lobby modal when game ends
+    lobbyModal.classList.add("hidden");
+
+    // Reset game state to prevent duplicates
+    gameMode = "bot";
+    isOnlineGame = false;
   }
 
   if (data.type === "drawDecline") {
@@ -456,6 +499,13 @@ function handleServerMessage(data) {
     const winner = data.winner === "w" ? "White" : "Black";
     turnIndicator.textContent = `${winner} wins by resignation`;
     popup(`${winner} wins by resignation.`, "yellow");
+
+    // Hide lobby modal when game ends by resignation
+    lobbyModal.classList.add("hidden");
+
+    // Reset game state to prevent duplicates
+    gameMode = "bot";
+    isOnlineGame = false;
   }
 
   if (data.type === "move") {
@@ -530,7 +580,12 @@ function leaveRoom() {
   }
   
   // Hide the chat container when leaving a room
-  chatContainer.classList.add("hidden");
+  if (chatContainer) {
+    chatContainer.classList.add("hidden");
+  }
+
+  // Reset room state
+  isInRoom = false;
 }
 
 function joinRoom(room) {
@@ -540,6 +595,7 @@ function joinRoom(room) {
   });
   
   roomId = room;
+  isInRoom = true;
   lobbyModal.classList.add("hidden");
   
   // Show the chat container
@@ -569,7 +625,19 @@ function joinRoom(room) {
     } else {
       debugLog("LOBBY", "Failed to connect to server");
       popup("Failed to connect to server.", "red");
-      lobbyModal.classList.remove("hidden");
+      // If already in a room, leave it first
+  if (isInRoom) {
+    debugLog("LOBBY", "Leaving current room before showing lobby");
+    leaveRoom();
+  }
+
+  // Only show lobby if not already visible to prevent duplicates
+  if (!lobbyModal.classList.contains("hidden")) {
+    debugLog("LOBBY", "Lobby already visible, skipping");
+    return;
+  }
+
+  lobbyModal.classList.remove("hidden");
       // Restart room updates if joining failed
       startRoomUpdates();
       // Hide the chat container if joining failed
@@ -651,9 +719,11 @@ function displayChatMessage(message, sender, isSelf) {
   }
 
   // Ensure chat container is visible
-  if (chatContainer.classList.contains("hidden")) {
+  if (chatContainer && chatContainer.classList.contains("hidden")) {
     debugLog("CHAT", "Chat container is hidden, showing it");
-    chatContainer.classList.remove("hidden");
+    if (chatContainer) {
+      chatContainer.classList.remove("hidden");
+    }
     if (toggleChatBtn) toggleChatBtn.textContent = "Hide";
   }
   
@@ -696,6 +766,9 @@ function sendChatMessage() {
 
   const message = chatInput.value.trim();
   if (!message) return;
+
+  // Clear input field
+  chatInput.value = "";
   
   debugLog("CHAT", "Sending chat message", {
     message,
@@ -1241,7 +1314,19 @@ onlineModeBtn.addEventListener("click", () => {
     gameMode = "online";
     onlineModeBtn.classList.add("active");
     botModeBtn.classList.remove("active");
-    lobbyModal.classList.remove("hidden");
+    // If already in a room, leave it first
+  if (isInRoom) {
+    debugLog("LOBBY", "Leaving current room before showing lobby");
+    leaveRoom();
+  }
+
+  // Only show lobby if not already visible to prevent duplicates
+  if (!lobbyModal.classList.contains("hidden")) {
+    debugLog("LOBBY", "Lobby already visible, skipping");
+    return;
+  }
+
+  lobbyModal.classList.remove("hidden");
     startRoomUpdates();
     sendListRooms();
     return;
@@ -1263,7 +1348,19 @@ const handlePlayerCheck = (event) => {
       gameMode = "online";
       onlineModeBtn.classList.add("active");
       botModeBtn.classList.remove("active");
-      lobbyModal.classList.remove("hidden");
+      // If already in a room, leave it first
+  if (isInRoom) {
+    debugLog("LOBBY", "Leaving current room before showing lobby");
+    leaveRoom();
+  }
+
+  // Only show lobby if not already visible to prevent duplicates
+  if (!lobbyModal.classList.contains("hidden")) {
+    debugLog("LOBBY", "Lobby already visible, skipping");
+    return;
+  }
+
+  lobbyModal.classList.remove("hidden");
       // Start updating the room list when opening the lobby
       startRoomUpdates();
       sendListRooms();
@@ -1307,6 +1404,18 @@ createRoomBtn.addEventListener("click", () => {
 lobbyBtn.addEventListener("click", () => {
   debugLog("LOBBY", "Lobby button clicked");
   
+  // If already in a room, leave it first
+  if (isInRoom) {
+    debugLog("LOBBY", "Leaving current room before showing lobby");
+    leaveRoom();
+  }
+
+  // Only show lobby if not already visible to prevent duplicates
+  if (!lobbyModal.classList.contains("hidden")) {
+    debugLog("LOBBY", "Lobby already visible, skipping");
+    return;
+  }
+
   lobbyModal.classList.remove("hidden");
   ensureSocket();
   
@@ -1355,6 +1464,13 @@ resignBtn.addEventListener("click", () => {
   
   socket.send(JSON.stringify({ type: "resign" }));
   popup("You resigned.", "red");
+
+  // Hide lobby modal when resigning
+  lobbyModal.classList.add("hidden");
+
+  // Reset game state to prevent duplicates
+  gameMode = "bot";
+  isOnlineGame = false;
 });
 
 // -----------------------------------------------------
@@ -1388,6 +1504,62 @@ document.addEventListener("DOMContentLoaded", () => {
     debugLog("APP", "Page unloading, leaving room");
     leaveRoom();
   });
+
+  // Add event listener for search input
+  if (roomSearchInput) {
+    roomSearchInput.addEventListener("input", (e) => {
+      filterRooms(e.target.value);
+    });
+  }
+
+  // Add event listener for profile button
+  if (profileBtn) {
+    profileBtn.addEventListener("click", () => {
+      window.location.href = "profile.html";
+    });
+  }
+
+  // Add chat event listeners
+  if (sendChatBtn) {
+    sendChatBtn.addEventListener("click", sendChatMessage);
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendChatMessage();
+      }
+    });
+  }
+
+  // Add event listener for save game button
+  if (saveGameBtn) {
+    saveGameBtn.addEventListener("click", () => {
+      saveCurrentGame();
+    });
+  }
+
+  // Add event listeners for theme selector
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      themeModal.classList.remove("hidden");
+    });
+  }
+
+  if (closeThemeBtn) {
+    closeThemeBtn.addEventListener("click", () => {
+      themeModal.classList.add("hidden");
+    });
+  }
+
+  // Setup theme selection
+  setupThemeSelector();
+
+  // Setup authentication buttons
+  setupAuthButtons();
+
+  // Setup dropdown menu
+  setupDropdown();
 
   initBoard();
 
@@ -1708,4 +1880,301 @@ function hideNoConnectionScreen() {
   setTimeout(() => {
     noConnectionScreen.classList.add("hidden");
   }, 300);
+}
+
+// -----------------------------------------------------
+// SAVE/LOAD GAME FUNCTIONS
+// -----------------------------------------------------
+function saveCurrentGame() {
+  if (gameMode === "online") {
+    popup("Cannot save games in online mode.", "red");
+    return;
+  }
+
+  const gameState = {
+    fen: game.fen(),
+    pgn: game.pgn(),
+    turn: game.turn(),
+    moveHistory: moveHistory,
+    moveCount: moveCount,
+    captureCount: captureCount,
+    date: new Date().toISOString()
+  };
+
+  // Save to localStorage
+  const savedGames = JSON.parse(localStorage.getItem("chessSavedGames") || "[]");
+  savedGames.push(gameState);
+  localStorage.setItem("chessSavedGames", JSON.stringify(savedGames));
+
+  // Also save to player profile
+  if (typeof saveGame === "function") {
+    saveGame(gameState);
+  }
+
+  popup("Game saved successfully!", "green");
+}
+
+function loadGame(gameState) {
+  game.load(gameState.fen);
+  moveHistory = gameState.moveHistory || [];
+  moveCount = gameState.moveCount || 0;
+  captureCount = gameState.captureCount || 0;
+  currentMoveIndex = moveHistory.length - 1;
+
+  renderPosition();
+  updateTurnIndicator();
+
+  popup("Game loaded successfully!", "green");
+}
+
+// -----------------------------------------------------
+// GAME STATISTICS FUNCTIONS
+// -----------------------------------------------------
+function updateGameStats(result) {
+  // Load player data
+  let playerData = JSON.parse(localStorage.getItem("chessPlayerData") || "{}");
+
+  // Initialize if not exists
+  if (!playerData.stats) {
+    playerData.stats = {
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      currentStreak: 0
+    };
+  }
+
+  // Update stats
+  playerData.stats.gamesPlayed++;
+
+  switch(result) {
+    case "win":
+      playerData.stats.wins++;
+      playerData.stats.currentStreak = Math.max(0, playerData.stats.currentStreak) + 1;
+      break;
+    case "loss":
+      playerData.stats.losses++;
+      playerData.stats.currentStreak = Math.min(0, playerData.stats.currentStreak) - 1;
+      break;
+    case "draw":
+      playerData.stats.draws++;
+      break;
+  }
+
+  // Save back to localStorage
+  localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+}
+
+// -----------------------------------------------------
+// DROPDOWN MENU FUNCTIONS
+// -----------------------------------------------------
+function setupDropdown() {
+  if (!menuBtn || !dropdown) return;
+
+  // Toggle dropdown on menu button click
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('active');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target)) {
+      dropdown.classList.remove('active');
+    }
+  });
+
+  // Close dropdown when clicking a dropdown item
+  const dropdownItems = dropdown.querySelectorAll('.dropdown-item');
+  dropdownItems.forEach(item => {
+    item.addEventListener('click', () => {
+      dropdown.classList.remove('active');
+    });
+  });
+
+  // Close dropdown on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      dropdown.classList.remove('active');
+    }
+  });
+}
+
+// -----------------------------------------------------
+// AUTHENTICATION FUNCTIONS
+// -----------------------------------------------------
+function setupAuthButtons() {
+  if (!loginBtn || !registerBtn) return;
+
+  // Check if user is logged in
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+  if (currentUser) {
+    // User is logged in - change buttons to logout and profile
+    loginBtn.textContent = 'Logout';
+    loginBtn.onclick = handleLogout;
+    registerBtn.style.display = 'none';
+  } else {
+    // User is not logged in
+    loginBtn.onclick = () => window.location.href = 'login.html';
+    registerBtn.onclick = () => window.location.href = 'register.html';
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('currentUser');
+  window.location.href = 'index.html';
+}
+
+// -----------------------------------------------------
+// THEME FUNCTIONS
+// -----------------------------------------------------
+function setupThemeSelector() {
+  // Load saved themes
+  const savedBoardTheme = localStorage.getItem("chessBoardTheme");
+  const savedPieceTheme = localStorage.getItem("chessPieceTheme");
+
+  if (savedBoardTheme) {
+    currentBoardTheme = savedBoardTheme;
+  }
+  if (savedPieceTheme) {
+    currentPieceTheme = savedPieceTheme;
+  }
+
+  // Apply themes
+  applyThemes();
+
+  // Setup board theme selection
+  const boardThemeOptions = document.querySelectorAll('.theme-option[data-theme]');
+  boardThemeOptions.forEach(option => {
+    if (option.dataset.theme === currentBoardTheme) {
+      option.classList.add('selected');
+    }
+
+    option.addEventListener('click', () => {
+      // Remove selected from all
+      boardThemeOptions.forEach(opt => opt.classList.remove('selected'));
+      // Add selected to clicked
+      option.classList.add('selected');
+      // Update theme
+      currentBoardTheme = option.dataset.theme;
+      localStorage.setItem('chessBoardTheme', currentBoardTheme);
+      applyThemes();
+    });
+  });
+
+  // Setup piece theme selection
+  const pieceThemeOptions = document.querySelectorAll('.theme-option[data-piece]');
+  pieceThemeOptions.forEach(option => {
+    if (option.dataset.piece === currentPieceTheme) {
+      option.classList.add('selected');
+    }
+
+    option.addEventListener('click', () => {
+      // Remove selected from all
+      pieceThemeOptions.forEach(opt => opt.classList.remove('selected'));
+      // Add selected to clicked
+      option.classList.add('selected');
+      // Update theme
+      currentPieceTheme = option.dataset.piece;
+      localStorage.setItem('chessPieceTheme', currentPieceTheme);
+      applyThemes();
+    });
+  });
+}
+
+function applyThemes() {
+  // Apply board theme
+  boardElement.className = `chessboard board-${currentBoardTheme}`;
+
+  // Apply piece theme
+  boardElement.classList.add(`piece-${currentPieceTheme}`);
+
+  // Re-render board with new themes
+  renderPosition();
+}
+
+// -----------------------------------------------------
+// SOUND EFFECTS FUNCTIONS
+// -----------------------------------------------------
+function playSound(audioElement) {
+  if (!audioElement) return;
+
+  audioElement.currentTime = 0;
+  audioElement.volume = 0.3;
+  audioElement.play().catch(err => {
+    console.log("Failed to play sound:", err);
+  });
+}
+
+// -----------------------------------------------------
+// PIECE ANIMATION FUNCTIONS
+// -----------------------------------------------------
+function animatePieceMove(fromSquare, toSquare) {
+  const piece = fromSquare.querySelector('.piece');
+  if (!piece) return;
+
+  // Add moving class
+  piece.classList.add('piece-moving');
+
+  // Remove animation class after it completes
+  setTimeout(() => {
+    piece.classList.remove('piece-moving');
+  }, 300);
+}
+
+function animatePieceCapture(capturedPiece) {
+  if (!capturedPiece) return;
+
+  // Add captured animation
+  capturedPiece.classList.add('piece-captured');
+
+  // Remove after animation completes
+  setTimeout(() => {
+    capturedPiece.remove();
+  }, 300);
+}
+
+// -----------------------------------------------------
+// SEARCH FUNCTIONALITY
+// -----------------------------------------------------
+function filterRooms(searchTerm) {
+  const term = searchTerm.toLowerCase().trim();
+  roomList.innerHTML = "";
+
+  const filteredRooms = allRooms.filter(room => 
+    room.toLowerCase().includes(term)
+  );
+
+  if (filteredRooms.length === 0 && term.length > 0) {
+    // Show popup error when user types something and no rooms match
+    popup("No rooms found matching your search. Please check for typos.", "red");
+
+    const li = document.createElement("li");
+    li.className = "room-item";
+    li.style.color = "#ef4444"; // Red color for error
+    li.style.textAlign = "center";
+    li.style.padding = "10px";
+    li.textContent = "No rooms found matching your search. Please check for typos.";
+    roomList.appendChild(li);
+    return;
+  }
+
+  filteredRooms.forEach(room => {
+    const roomDiv = document.createElement("div");
+    roomDiv.className = "room-item";
+
+    const roomName = document.createElement("span");
+    roomName.textContent = room;
+
+    const joinBtn = document.createElement("button");
+    joinBtn.textContent = "Join";
+    joinBtn.className = "join-room-btn";
+    joinBtn.addEventListener("click", () => joinRoom(room));
+
+    roomDiv.appendChild(roomName);
+    roomDiv.appendChild(joinBtn);
+    roomList.appendChild(roomDiv);
+  });
 }
