@@ -2561,6 +2561,152 @@ function showBanManagementModal() {
   document.body.appendChild(modalOverlay);
 }
 
+function showBanModal(message, reason) {
+  // Create modal overlay
+  const modalOverlay = document.createElement('div');
+  modalOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+  `;
+
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.style.cssText = `
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    animation: banModalPop 0.3s ease-out;
+  `;
+
+  // Add animation keyframes
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes banModalPop {
+      0% {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Create icon
+  const icon = document.createElement('div');
+  icon.style.cssText = `
+    font-size: 80px;
+    margin-bottom: 20px;
+  `;
+  icon.textContent = '🚫';
+
+  // Create title
+  const title = document.createElement('h2');
+  title.style.cssText = `
+    margin: 0 0 20px 0;
+    color: #d32f2f;
+    font-size: 28px;
+  `;
+  title.textContent = 'You Have Been Banned';
+
+  // Create message
+  const messageEl = document.createElement('p');
+  messageEl.style.cssText = `
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  `;
+  messageEl.textContent = message;
+
+  // Create reason section
+  const reasonSection = document.createElement('div');
+  reasonSection.style.cssText = `
+    background: #fff3f3;
+    border-left: 4px solid #d32f2f;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: left;
+    border-radius: 5px;
+  `;
+
+  const reasonLabel = document.createElement('div');
+  reasonLabel.style.cssText = `
+    font-weight: bold;
+    color: #d32f2f;
+    margin-bottom: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  `;
+  reasonLabel.textContent = 'Ban Reason:';
+
+  const reasonText = document.createElement('div');
+  reasonText.style.cssText = `
+    color: #333;
+    font-size: 16px;
+    line-height: 1.4;
+  `;
+  reasonText.textContent = reason;
+
+  reasonSection.appendChild(reasonLabel);
+  reasonSection.appendChild(reasonText);
+
+  // Create OK button
+  const okButton = document.createElement('button');
+  okButton.textContent = 'OK';
+  okButton.style.cssText = `
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 12px 40px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  `;
+  okButton.onmouseover = () => {
+    okButton.style.background = '#b71c1c';
+    okButton.style.transform = 'translateY(-2px)';
+    okButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+  };
+  okButton.onmouseout = () => {
+    okButton.style.background = '#d32f2f';
+    okButton.style.transform = 'translateY(0)';
+    okButton.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+  };
+  okButton.onclick = () => {
+    modalOverlay.remove();
+    // Redirect to login page
+    window.location.href = 'login.html';
+  };
+
+  // Assemble modal
+  modalContent.appendChild(icon);
+  modalContent.appendChild(title);
+  modalContent.appendChild(messageEl);
+  modalContent.appendChild(reasonSection);
+  modalContent.appendChild(okButton);
+  modalOverlay.appendChild(modalContent);
+
+  // Show modal
+  document.body.appendChild(modalOverlay);
+}
+
 function updateBannedUsersList(users) {
   const listContainer = document.getElementById('banned-users-list');
   if (!listContainer) return;
