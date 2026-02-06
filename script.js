@@ -756,6 +756,44 @@ function handleServerMessage(data) {
     // Refresh the ban list when a user is unbanned
     socket.send(JSON.stringify({ type: "getBannedUsers" }));
   }
+
+  // Report system messages
+  if (data.type === "reportSubmitted") {
+    debugLog("REPORT", "Report submitted successfully", {
+      reportId: data.reportId
+    });
+    popup(data.message, "green");
+  }
+
+  if (data.type === "reportsList") {
+    debugLog("REPORT", "Reports list received", {
+      count: data.reports.length
+    });
+    if (typeof renderReportsList === "function") {
+      renderReportsList(data.reports);
+    }
+  }
+
+  if (data.type === "reportDetails") {
+    debugLog("REPORT", "Report details received", {
+      reportId: data.report.id
+    });
+    if (typeof loadGameReplay === "function" && data.replay) {
+      loadGameReplay(data.replay);
+    }
+  }
+
+  if (data.type === "reportStatusUpdated") {
+    debugLog("REPORT", "Report status updated", {
+      reportId: data.reportId,
+      status: data.status
+    });
+    popup(`Report status updated to: ${data.status}`, "green");
+    // Refresh the reports list
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "getReports" }));
+    }
+  }
 }
 
 function handleGameOver() {
