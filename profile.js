@@ -461,22 +461,30 @@ function addFriend(username) {
     return;
   }
 
-  // Add friend to list
-  playerData.friends.push({
-    username: username,
-    avatar: '♟',
-    online: false,
-    addedAt: new Date().toISOString()
+  // Validate username exists
+  validateUsername(username, (isValid) => {
+    if (!isValid) {
+      alert(`User "${username}" does not exist!`);
+      return;
+    }
+
+    // Add friend to list
+    playerData.friends.push({
+      username: username,
+      avatar: '♟',
+      online: false,
+      addedAt: new Date().toISOString()
+    });
+
+    // Save to localStorage
+    savePlayerData();
+
+    // Update display
+    displayFriends();
+
+    // Show success message
+    alert(`Successfully added ${username} as a friend!`);
   });
-
-  // Save to localStorage
-  savePlayerData();
-
-  // Update display
-  displayFriends();
-
-  // Show success message
-  alert(`Successfully added ${username} as a friend!`);
 }
 
 function removeFriend(index) {
@@ -521,6 +529,22 @@ function setupFriendsFunctionality() {
       }
     }
   });
+}
+
+function validateUsername(username, callback) {
+  // Check if username is the current user
+  if (username === playerData.username) {
+    callback(false);
+    return;
+  }
+
+  // Get all registered users from localStorage
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+
+  // Check if username exists in the users array
+  const userExists = users.some(user => user.username === username);
+
+  callback(userExists);
 }
 
 // Make functions available globally
