@@ -684,16 +684,16 @@ function handleReport(ws, data) {
       console.error("Error sending notification:", err);
     });
 
-    // Send call notification to admin clients
+    // Send call notification to admin user bungles17x
     const callNotificationData = {
       type: "callNotification",
       id: reportId,
       ...reportData
     };
     
-    // Send to all connected clients (in a real app, you would filter for admins only)
+    // Send only to admin user bungles17x
     wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
+      if (client.readyState === WebSocket.OPEN && client.username === "bungles17x") {
         client.send(JSON.stringify(callNotificationData));
       }
     });
