@@ -829,7 +829,9 @@ function sendChatMessage() {
     type: "chat", 
 
     message: message,
-    sender: playerColor === 'w' ? 'White' : 'Black'
+    sender: (JSON.parse(localStorage.getItem('currentUser') || '{}')).username || 
+          (JSON.parse(localStorage.getItem('chessPlayerData') || '{}')).username || 
+          'Player'
   };
   
   debugLog("CHAT", "Sending chat payload to server", payload);
