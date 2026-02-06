@@ -163,12 +163,16 @@ function joinRoom(ws, roomId) {
   ws.color = color;
   room.players.push(ws);
   // Send join confirmation
-  ws.send(JSON.stringify({ type: "joined", color }));
+  const joinedMessage = JSON.stringify({ type: "joined", color });
+  console.log('Sending joined message:', joinedMessage);
+  ws.send(joinedMessage);
   // If room is now full, start the game
   if (room.players.length === 2) {
     // Notify both players that game is starting
     room.players.forEach(player => {
-      player.send(JSON.stringify({ type: "start" }));
+      const startMessage = JSON.stringify({ type: "start" });
+      console.log('Sending start message:', startMessage);
+      player.send(startMessage);
     });
   }
 }
