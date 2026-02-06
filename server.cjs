@@ -25,12 +25,8 @@ wss.on('connection', (ws) => {
     } catch (error) {
       console.error("Error parsing message:", error);
       const messageString = Buffer.isBuffer(message) ? message.toString() : message;
-      if (typeof messageString === 'string') {
-         console.log('received (text):', messageString);
-         ws.send(`Server echo: ${messageString}`);
-      } else {
-         ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid message format" }));
-      }
+      console.log('Received non-JSON message:', messageString);
+      // Don't send echo response, just log it
     }
   });
 
