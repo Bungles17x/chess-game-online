@@ -42,6 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAvatarSelection();
   setupBackButton();
   displaySavedGames();
+  displayFriends();
+  setupFriendsFunctionality();
   setupAnimations();
 });
 
@@ -392,6 +394,112 @@ function saveGame(gameState) {
 
   playerData.savedGames.push(savedGame);
   savePlayerData();
+}
+
+// Friends Management Functions
+function displayFriends() {
+  if (!friendsList) return;
+
+  if (!playerData.friends || playerData.friends.length === 0) {
+    friendsList.innerHTML = '<p class="no-friends">No friends yet. Add some to play together!</p>';
+    return;
+  }
+
+  friendsList.innerHTML = playerData.friends.map((friend, index) => `
+    <div class="friend-item">
+      <div class="friend-info">
+        <div class="friend-avatar">${friend.avatar || '♟'}</div>
+        <div>
+          <div class="friend-name">${friend.username}</div>
+          <div class="friend-status ${friend.online ? 'online' : 'offline'}">
+            ${friend.online ? '● Online' : '● Offline'}
+          </div>
+        </div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-btn invite-btn" data-username="${friend.username}">Invite</button>
+        <button class="friend-btn remove" data-index="${index}">Remove</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Add event listeners for friend buttons
+  document.querySelectorAll('.invite-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const username = e.target.dataset.username;
+      inviteFriendToGame(username);
+    });
+  });
+
+  document.querySelectorAll('.friend-btn.remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      removeFriend(index);
+    });
+  });
+}
+
+function addFriend(username) {
+  // Check if friend already exists
+  if (playerData.friends.some(friend => friend.username === username)) {
+    alert('This user is already your friend!');
+    return;
+  }
+
+  // Add friend to list
+  playerData.friends.push({
+    username: username,
+    avatar: '♟',
+    online: false,
+    addedAt: new Date().toISOString()
+  });
+
+  // Save to localStorage
+  savePlayerData();
+
+  // Update display
+  displayFriends();
+
+  // Show success message
+  alert(`Successfully added ${username} as a friend!`);
+}
+
+function removeFriend(index) {
+  if (confirm('Are you sure you want to remove this friend?')) {
+    playerData.friends.splice(index, 1);
+    savePlayerData();
+    displayFriends();
+  }
+}
+
+function inviteFriendToGame(username) {
+  // Store the invited friend username in localStorage
+  localStorage.setItem('invitedFriend', username);
+
+  // Navigate to the game page
+  window.location.href = 'index.html';
+}
+
+function setupFriendsFunctionality() {
+  if (!addFriendBtn || !addFriendInput) return;
+
+  addFriendBtn.addEventListener('click', () => {
+    const username = addFriendInput.value.trim();
+    if (username) {
+      addFriend(username);
+      addFriendInput.value = '';
+    }
+  });
+
+  addFriendInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const username = addFriendInput.value.trim();
+      if (username) {
+        addFriend(username);
+        addFriendInput.value = '';
+      }
+    }
+  });
 }
 
 // Make functions available globally
