@@ -614,6 +614,10 @@ function handleServerMessage(data) {
     playerColor,
     roomId
   });
+
+  // Set online game flag
+  isOnlineGame = true;
+  gameMode = "online";
   
   // If you are Black, kill a random white pawn so you don't get interrupted by turn logic
   if (playerColor === 'b') {
