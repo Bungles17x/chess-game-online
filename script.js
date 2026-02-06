@@ -2494,6 +2494,7 @@ function showBanManagementModal() {
   const addUserSection = document.createElement('div');
   addUserSection.style.cssText = `
     display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-top: 20px;
     padding-top: 20px;
@@ -2505,11 +2506,25 @@ function showBanManagementModal() {
   usernameInput.placeholder = 'Enter username to ban';
   usernameInput.id = 'ban-username-input';
   usernameInput.style.cssText = `
-    flex: 1;
+    width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 14px;
+    box-sizing: border-box;
+  `;
+
+  const reasonInput = document.createElement('input');
+  reasonInput.type = 'text';
+  reasonInput.placeholder = 'Enter reason for ban (optional)';
+  reasonInput.id = 'ban-reason-input';
+  reasonInput.style.cssText = `
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
   `;
 
   const banButton = document.createElement('button');
@@ -2522,10 +2537,12 @@ function showBanManagementModal() {
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
+    align-self: flex-start;
   `;
-  banButton.onclick = () => banUser(usernameInput.value);
+  banButton.onclick = () => banUser(usernameInput.value, reasonInput.value);
 
   addUserSection.appendChild(usernameInput);
+  addUserSection.appendChild(reasonInput);
   addUserSection.appendChild(banButton);
 
   // Assemble modal
@@ -2579,7 +2596,7 @@ function updateBannedUsersList(users) {
   `).join('');
 }
 
-function banUser(username) {
+function banUser(username, reason) {
   if (!username || username.trim() === '') {
     popup('Please enter a username', 'red');
     return;
@@ -2588,7 +2605,8 @@ function banUser(username) {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: "banUser",
-      username: username.trim()
+      username: username.trim(),
+      reason: reason ? reason.trim() : ''
     }));
   } else {
     popup("Not connected to server. Please try again.", "red");
