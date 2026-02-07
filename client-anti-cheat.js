@@ -159,8 +159,30 @@ function handleAutoBan() {
     debugLog("ANTI-CHEAT", "Socket not available, ban stored locally only", { username, banData });
   }
 
-  // Show ban popup
-  showBanPopup(banData);
+  // Show ban popup using the modal from script.js
+  // Calculate expiry time based on unit
+  let expiresAt = null;
+  if (banData.duration) {
+    if (banData.unit === 'hours') {
+      expiresAt = banData.timestamp + (banData.duration * 60 * 60 * 1000);
+    } else if (banData.unit === 'days') {
+      expiresAt = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+    }
+  }
+  
+  // Call the showBanModal function from script.js if it exists
+  if (typeof showBanModal === 'function') {
+    showBanModal(
+      "You have been banned",
+      banData.reason || 'No reason provided',
+      banData.duration,
+      banData.unit,
+      expiresAt
+    );
+  } else {
+    // Fallback to showBanPopup if showBanModal is not available
+    showBanPopup(banData);
+  }
 
   // Reset game
   initBoard();
@@ -195,8 +217,30 @@ function checkBanStatus() {
     return false;
   }
 
-  // Show ban popup
-  showBanPopup(ban);
+  // Show ban popup using the modal from script.js
+  // Calculate expiry time based on unit
+  let expiresAt = null;
+  if (ban.duration) {
+    if (ban.unit === 'hours') {
+      expiresAt = ban.timestamp + (ban.duration * 60 * 60 * 1000);
+    } else if (ban.unit === 'days') {
+      expiresAt = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+    }
+  }
+  
+  // Call the showBanModal function from script.js if it exists
+  if (typeof showBanModal === 'function') {
+    showBanModal(
+      "You have been banned",
+      ban.reason || 'No reason provided',
+      ban.duration,
+      ban.unit,
+      expiresAt
+    );
+  } else {
+    // Fallback to showBanPopup if showBanModal is not available
+    showBanPopup(ban);
+  }
   return true;
 }
 
