@@ -59,27 +59,30 @@ function setupLoginForm() {
     if (banData) {
       const ban = JSON.parse(banData);
       
-      // Check if ban is permanent or not expired
-      let isBanned = false;
-      if (!ban.duration) {
-        isBanned = true;
-      } else {
-        let expiryTime;
-        if (ban.unit === 'hours') {
-          expiryTime = ban.timestamp + (ban.duration * 60 * 60 * 1000);
-        } else if (ban.unit === 'days') {
-          expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+      // Only check ban if it belongs to this user
+      if (ban.username && ban.username === user.username) {
+        // Check if ban is permanent or not expired
+        let isBanned = false;
+        if (!ban.duration) {
+          isBanned = true;
         } else {
-          expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+          let expiryTime;
+          if (ban.unit === 'hours') {
+            expiryTime = ban.timestamp + (ban.duration * 60 * 60 * 1000);
+          } else if (ban.unit === 'days') {
+            expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+          } else {
+            expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+          }
+          isBanned = Date.now() <= expiryTime;
         }
-        isBanned = Date.now() <= expiryTime;
-      }
-      
-      if (isBanned) {
-        // Store the username of the banned user
-        localStorage.setItem('bannedUsername', user.username);
-        // Store the ban data to show modal after login
-        localStorage.setItem('showBanAfterLogin', 'true');
+        
+        if (isBanned) {
+          // Store the username of the banned user
+          localStorage.setItem('bannedUsername', user.username);
+          // Store the ban data to show modal after login
+          localStorage.setItem('showBanAfterLogin', 'true');
+        }
       }
     }
 
