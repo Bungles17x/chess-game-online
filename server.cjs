@@ -4,6 +4,78 @@ const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
 
+// Profanity filter system
+const profanityKeywords = [
+  'fuck', 'shit', 'ass', 'bitch', 'damn', 'hell',
+  'bastard', 'crap', 'dick', 'piss', 'whore',
+  'slut', 'cock', 'pussy', 'nigger', 'nigga',
+  'fag', 'faggot', 'retard', 'idiot', 'stupid',
+  'dumbass', 'asshole', 'douche', 'wanker', 'cunt'
+];
+
+// Track chat offenses for each user
+const chatOffenses = new Map();
+
+// Maximum offenses before ban
+const MAX_OFFENSES = 3;
+
+// Function to check for profanity in a message
+function containsProfanity(message) {
+  const lowerMessage = message.toLowerCase();
+  return profanityKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
+// Function to handle profanity offense
+function handleProfanityOffense(ws, username) {
+  const offenses = chatOffenses.get(username) || 0;
+  const newOffenses = offenses + 1;
+  chatOffenses.set(username, newOffenses);
+  
+  console.log("PROFANITY", `User ${username} has ${newOffenses} offense(s)`);
+  
+  if (newOffenses >= MAX_OFFENSES) {
+    // Ban the user
+    const banData = {
+      username: username,
+      reason: "Multiple profanity offenses in chat",
+      duration: 7,
+      unit: "days",
+      bannedBy: "System"
+    };
+    
+    // Add to banned users
+    bannedUsers.set(username.toLowerCase(), {
+      username: username,
+      reason: banData.reason,
+      duration: banData.duration,
+      unit: banData.unit,
+      bannedBy: banData.bannedBy,
+      bannedAt: Date.now()
+    });
+    
+    // Notify the user
+    ws.send(JSON.stringify({
+      type: "userBanned",
+      username: username,
+      reason: banData.reason,
+      duration: banData.duration,
+      unit: banData.unit
+    }));
+    
+    // Reset offenses after ban
+    chatOffenses.delete(username);
+    
+    console.log("PROFANITY", `User ${username} has been banned for profanity`);
+  } else {
+    // Send warning
+    const remaining = MAX_OFFENSES - newOffenses;
+    ws.send(JSON.stringify({
+      type: "profanityWarning",
+      message: `Please watch your language! You have ${newOffenses} offense(s). ${remaining} more offense(s) will result in a ban.`
+    }));
+  }
+}
+
 // Twilio configuration
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -690,6 +762,12 @@ function handleChat(ws, data) {
     return;
   }
   
+  // Check for profanity in the message
+  if (containsProfanity(data.message)) {
+    handleProfanityOffense(ws, data.sender);
+    return;
+  }
+
   // Broadcast the chat message to all players in the room
   const message = {
     type: "chat",
