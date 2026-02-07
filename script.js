@@ -3339,12 +3339,34 @@ function banUser(username, reason, duration, unit) {
 }
 
 function unbanUser(username) {
+  // Clear local ban data for this user
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (currentUser && username.toLowerCase() === currentUser.username.toLowerCase()) {
+    localStorage.removeItem('botModeBan');
+    localStorage.removeItem('bannedUsername');
+    localStorage.removeItem('isUserBanned');
+    localStorage.removeItem('showBanAfterLogin');
+    
+    // Re-enable game interaction
+    if (boardElement) {
+      boardElement.style.pointerEvents = '';
+      boardElement.style.opacity = '';
+    }
+    if (resetBtn) resetBtn.disabled = false;
+    if (saveGameBtn) saveGameBtn.disabled = false;
+    if (onlineModeBtn) onlineModeBtn.disabled = false;
+    if (lobbyBtn) lobbyBtn.disabled = false;
+    
+    popup("You have been unbanned!", "green");
+  }
+  
+  // Also send to server to unban
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: "unbanUser",
       username: username
     }));
   } else {
-    popup("Not connected to server. Please try again.", "red");
+    popup("Not connected to server. Local ban cleared only.", "orange");
   }
 }
