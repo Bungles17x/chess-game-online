@@ -500,6 +500,14 @@ function handleServerMessage(data) {
     return;
   }
 
+  if (data.type === "profanityWarning") {
+    debugLog("CHAT", "Profanity warning received", {
+      message: data.message
+    });
+    popup(data.message, "orange");
+    return;
+  }
+
   if (data.type === "gameInvite") {
     debugLog("INVITE", "Game invite received", {
       from: data.from,
@@ -1187,8 +1195,7 @@ function sendChatMessage() {
   debugLog("CHAT", "Sending chat payload to server", payload);
   socket.send(JSON.stringify(payload));
   
-  // Display message in our own chat
-  displayChatMessage(message, "You", true);
+  // Message will be displayed after server validation
   
   // Clear input field
   chatInput.value = "";
