@@ -3,12 +3,13 @@ const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const nodemailer = require('nodemailer');
 
-// Email configuration
+// Email configuration - will use Yahoo
+// Note: You may need to enable "Less secure apps" in Yahoo or generate an app password
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: 'yahoo',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    user: 'chessygames@yahoo.com',
+    pass: process.env.EMAIL_PASSWORD || 'your_password_here' // Set this in environment variables
   }
 });
 
