@@ -143,8 +143,8 @@ function trackSuspiciousActivity(username, activityType) {
       (currentTime - activity.lastReported > SUSPICIOUS_WINDOW)) {
     activity.lastReported = currentTime;
     
-    // Auto-ban if suspicious activity is severe (20+ occurrences)
-    if (activity.count >= 20) {
+    // Auto-ban if suspicious activity is severe (10+ occurrences)
+    if (activity.count >= 10) {
       handleAutoBanSuspiciousPlayer(username);
     }
     
@@ -1293,13 +1293,21 @@ function handleAutoBanSuspiciousPlayer(username) {
     // Severe cheating - permanent ban
     banDuration = null;
     banUnit = 'permanent';
+  } else if (totalSuspiciousMoves >= 15) {
+    // Very severe cheating - 90 day ban
+    banDuration = 90;
+    banUnit = 'days';
   } else if (totalSuspiciousMoves >= 10) {
-    // Moderate cheating - 7 day ban
-    banDuration = 7;
+    // Severe cheating - 30 day ban
+    banDuration = 30;
+    banUnit = 'days';
+  } else if (totalSuspiciousMoves >= 7) {
+    // Moderate cheating - 14 day ban
+    banDuration = 14;
     banUnit = 'days';
   } else if (totalSuspiciousMoves >= 5) {
-    // Mild cheating - 1 day ban
-    banDuration = 1;
+    // Mild cheating - 7 day ban
+    banDuration = 7;
     banUnit = 'days';
   }
 
