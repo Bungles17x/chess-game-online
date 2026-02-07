@@ -1,35 +1,6 @@
 // server.cjs
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
-const nodemailer = require('nodemailer');
-
-// Email configuration - will use Yahoo
-// Note: You may need to enable "Less secure apps" in Yahoo or generate an app password
-const transporter = nodemailer.createTransport({
-  service: 'yahoo',
-  auth: {
-    user: 'chessygames@yahoo.com',
-    pass: process.env.EMAIL_PASSWORD || 'your_password_here' // Set this in environment variables
-  }
-});
-
-// Function to send report email
-function sendReportEmail(reportData, reportId) {
-  const mailOptions = {
-    from: 'chessygames@yahoo.com',
-    to: 'chessygames@yahoo.com',
-    subject: `New Report: ${reportData.reportType}`,
-    text: `Report ID: ${reportId}\nFrom: ${reportData.reportedBy}\nOpponent: ${reportData.opponent}\nReason: ${reportData.reason}\nDescription: ${reportData.description}`
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending email:", error);
-    } else {
-      console.log("Email sent:", info.response);
-    }
-  });
-}
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -738,7 +709,6 @@ function handleReport(ws, data) {
 
     // Send notification to admin (simplified version)
     console.log("Report created:", reportId, reportData);
-    sendReportEmail(reportData, reportId);
 
     
 
