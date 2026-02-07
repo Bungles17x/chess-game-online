@@ -20,6 +20,209 @@ const AUTO_BAN_THRESHOLD = 10; // Number of suspicious moves before auto-ban (lo
 // Initialize anti-cheat
 function initAntiCheat() {
   debugLog("ANTI-CHEAT", "Client-side anti-cheat initialized");
+
+  // Start cheat extension detection
+  detectCheatExtensions();
+}
+
+// Detect cheat extensions
+function detectCheatExtensions() {
+  const suspiciousExtensions = [
+    'chess-bot',
+    'chess-cheat',
+    'chess-helper',
+    'chess-assistant',
+    'chess-engine',
+    'chess-ai',
+    'chess-auto',
+    'chess-hack',
+    'chess-mod',
+    'chess-plus',
+    'chess-pro',
+    'chess-master',
+    'chess-king',
+    'chess-queen',
+    'chess-knight',
+    'chess-bishop',
+    'chess-rook',
+    'chess-pawn'
+  ];
+
+  // Check for suspicious DOM elements
+  const suspiciousElements = document.querySelectorAll('[id*="chess"], [class*="chess"]');
+  suspiciousElements.forEach(element => {
+    const id = element.id.toLowerCase();
+    const className = element.className.toLowerCase();
+
+    suspiciousExtensions.forEach(extension => {
+      if (id.includes(extension) || className.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious element detected", { id, className, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious global variables
+  Object.keys(window).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    suspiciousExtensions.forEach(extension => {
+      if (lowerKey.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious global variable detected", { key, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious scripts
+  const scripts = document.querySelectorAll('script');
+  scripts.forEach(script => {
+    const src = script.src.toLowerCase();
+    const content = script.textContent.toLowerCase();
+
+    suspiciousExtensions.forEach(extension => {
+      if (src.includes(extension) || content.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious script detected", { src, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious localStorage items
+  Object.keys(localStorage).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    suspiciousExtensions.forEach(extension => {
+      if (lowerKey.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious localStorage item detected", { key, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious sessionStorage items
+  Object.keys(sessionStorage).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    suspiciousExtensions.forEach(extension => {
+      if (lowerKey.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious sessionStorage item detected", { key, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious cookies
+  document.cookie.split(';').forEach(cookie => {
+    const lowerCookie = cookie.toLowerCase();
+    suspiciousExtensions.forEach(extension => {
+      if (lowerCookie.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious cookie detected", { cookie, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  urlParams.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    const lowerValue = value.toLowerCase();
+
+    suspiciousExtensions.forEach(extension => {
+      if (lowerKey.includes(extension) || lowerValue.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious URL parameter detected", { key, value, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  });
+
+  // Check for suspicious user agent
+  const userAgent = navigator.userAgent.toLowerCase();
+  suspiciousExtensions.forEach(extension => {
+    if (userAgent.includes(extension)) {
+      debugLog("ANTI-CHEAT", "Suspicious user agent detected", { userAgent, extension });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+  });
+
+  // Check for suspicious window properties
+  const suspiciousProperties = ['chessBot', 'chessCheat', 'chessHelper', 'chessAssistant', 'chessEngine', 'chessAI', 'chessAuto', 'chessHack', 'chessMod', 'chessPlus', 'chessPro', 'chessMaster', 'chessKing', 'chessQueen', 'chessKnight', 'chessBishop', 'chessRook', 'chessPawn'];
+  suspiciousProperties.forEach(property => {
+    if (window[property]) {
+      debugLog("ANTI-CHEAT", "Suspicious window property detected", { property });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+  });
+
+  // Check for suspicious functions
+  const suspiciousFunctions = ['autoMove', 'bestMove', 'calculateMove', 'engineMove', 'aiMove', 'botMove', 'hackMove', 'cheatMove'];
+  suspiciousFunctions.forEach(func => {
+    if (window[func] && typeof window[func] === 'function') {
+      debugLog("ANTI-CHEAT", "Suspicious function detected", { func });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+  });
+
+  // Check for suspicious event listeners
+  const suspiciousEvents = ['mousemove', 'click', 'keydown', 'keyup'];
+  suspiciousEvents.forEach(event => {
+    const listeners = getEventListeners ? getEventListeners(document)[event] : [];
+    if (listeners && listeners.length > 10) {
+      debugLog("ANTI-CHEAT", "Suspicious number of event listeners detected", { event, count: listeners.length });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+  });
+
+  // Check for suspicious intervals
+  const originalSetInterval = window.setInterval;
+  window.setInterval = function(callback, delay) {
+    if (delay < 100) {
+      debugLog("ANTI-CHEAT", "Suspicious interval detected", { delay });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+    return originalSetInterval.apply(this, arguments);
+  };
+
+  // Check for suspicious timeouts
+  const originalSetTimeout = window.setTimeout;
+  window.setTimeout = function(callback, delay) {
+    if (delay < 50) {
+      debugLog("ANTI-CHEAT", "Suspicious timeout detected", { delay });
+      trackSuspiciousActivity('cheat_extension_detected');
+    }
+    return originalSetTimeout.apply(this, arguments);
+  };
+
+  // Check for suspicious fetch requests
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options) {
+    const lowerUrl = url.toLowerCase();
+    suspiciousExtensions.forEach(extension => {
+      if (lowerUrl.includes(extension)) {
+        debugLog("ANTI-CHEAT", "Suspicious fetch request detected", { url, extension });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+    return originalFetch.apply(this, arguments);
+  };
+
+  // Check for suspicious XMLHttpRequest
+  const originalXHR = window.XMLHttpRequest;
+  window.XMLHttpRequest = function() {
+    const xhr = new originalXHR();
+    const originalOpen = xhr.open;
+    xhr.open = function(method, url) {
+      const lowerUrl = url.toLowerCase();
+      suspiciousExtensions.forEach(extension => {
+        if (lowerUrl.includes(extension)) {
+          debugLog("ANTI-CHEAT", "Suspicious XMLHttpRequest detected", { url, extension });
+          trackSuspiciousActivity('cheat_extension_detected');
+        }
+      });
+      return originalOpen.apply(this, arguments);
+    };
+    return xhr;
+  };
+
+  debugLog("ANTI-CHEAT", "Cheat extension detection initialized");
 }
 
 // Record a move for anti-cheat tracking
