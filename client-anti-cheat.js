@@ -6,7 +6,9 @@ let playerMoveHistory = [];
 let suspiciousActivity = {
   count: 0,
   lastReported: 0,
-  activities: []
+  activities: [],
+  detectionMethods: new Set(), // Track different detection methods
+  confidence: 0 // Confidence score (0-100)
 };
 let lastMoveTime = Date.now();
 
@@ -16,6 +18,11 @@ const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging (
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
 const MAX_INVALID_MOVES = 5; // Maximum invalid moves before disconnect
 const AUTO_BAN_THRESHOLD = 10; // Number of suspicious moves before auto-ban (lowered for testing)
+
+// Ban accuracy settings
+const BAN_CONFIRMATION_REQUIRED = true; // Require multiple detection methods before banning
+const BAN_CONFIRMATION_COUNT = 3; // Number of different detection methods required
+const BAN_APPEAL_URL = 'https://chess-game-online-u34h.onrender.com/appeal'; // URL for ban appeals
 
 // Initialize anti-cheat
 function initAntiCheat() {
@@ -264,7 +271,7 @@ function checkMoveTiming() {
 }
 
 // Track suspicious activity
-function trackSuspiciousActivity(activityType) {
+function trackSuspiciousActivity(activityType, details = {}) {
   const currentTime = Date.now();
 
   // Filter old activities
@@ -272,28 +279,64 @@ function trackSuspiciousActivity(activityType) {
     a => currentTime - a.timestamp < SUSPICIOUS_WINDOW
   );
 
-  // Add new activity
+  // Add new activity with detailed information
   suspiciousActivity.activities.push({
     type: activityType,
-    timestamp: currentTime
+    timestamp: currentTime,
+    details: details
   });
 
   suspiciousActivity.count = suspiciousActivity.activities.length;
+
+  // Track different detection methods
+  suspiciousActivity.detectionMethods.add(activityType);
+
+  // Calculate confidence score based on:
+  // 1. Number of different detection methods (more methods = higher confidence)
+  // 2. Number of suspicious activities (more activities = higher confidence)
+  // 3. Severity of activities (some activities are more severe than others)
+
+  const methodCount = suspiciousActivity.detectionMethods.size;
+  const activityCount = suspiciousActivity.count;
+
+  // Base confidence from activity count (0-50 points)
+  const activityConfidence = Math.min(activityCount * 2, 50);
+
+  // Additional confidence from different detection methods (0-50 points)
+  const methodConfidence = Math.min(methodCount * 10, 50);
+
+  // Calculate total confidence
+  suspiciousActivity.confidence = activityConfidence + methodConfidence;
+
+  debugLog("ANTI-CHEAT", "Suspicious activity tracked", {
+    type: activityType,
+    details: details,
+    totalActivities: activityCount,
+    detectionMethods: Array.from(suspiciousActivity.detectionMethods),
+    confidence: suspiciousActivity.confidence
+  });
 
   // Check if should report
   if (suspiciousActivity.count >= SUSPICIOUS_MOVE_COUNT &&
       (currentTime - suspiciousActivity.lastReported > SUSPICIOUS_WINDOW)) {
     suspiciousActivity.lastReported = currentTime;
 
-    // Auto-ban only if suspicious activity is extremely severe
-    if (suspiciousActivity.count >= AUTO_BAN_THRESHOLD) {
+    // Auto-ban only if:
+    // 1. Confidence is high enough (>= 70)
+    // 2. Multiple detection methods have been triggered (>= 3)
+    // 3. Suspicious activity count is high enough (>= AUTO_BAN_THRESHOLD)
+    if (suspiciousActivity.confidence >= 70 && 
+        suspiciousActivity.detectionMethods.size >= BAN_CONFIRMATION_COUNT &&
+        suspiciousActivity.count >= AUTO_BAN_THRESHOLD) {
       handleAutoBan();
     }
 
     return {
       shouldReport: true,
       count: suspiciousActivity.count,
-      activities: suspiciousActivity.activities
+      activities: suspiciousActivity.activities,
+      detectionMethods: Array.from(suspiciousActivity.detectionMethods),
+      confidence: suspiciousActivity.confidence
     };
   }
 
