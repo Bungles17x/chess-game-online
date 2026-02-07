@@ -2,7 +2,8 @@
   "dependencies": {
     "chess.js": "^1.4.0",
     "ws": "^8.13.0",
-    "twilio": "^4.19.0"
+    "twilio": "^4.19.0",
+    "dotenv": "^16.3.1"
   },
   "scripts": {
     "start": "node server.cjs"

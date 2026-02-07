@@ -1,4 +1,5 @@
 // server.cjs
+require('dotenv').config({ path: './twilio.env' });
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
