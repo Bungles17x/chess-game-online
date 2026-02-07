@@ -764,6 +764,27 @@ function handleServerMessage(data) {
     debugLog("BAN", "User unbanned", {
       username: data.username
     });
+    
+    // Clear local ban data if the unbanned user matches the current user
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (currentUser && data.username.toLowerCase() === currentUser.username.toLowerCase()) {
+      localStorage.removeItem('botModeBan');
+      localStorage.removeItem('bannedUsername');
+      localStorage.removeItem('isUserBanned');
+      
+      // Re-enable game interaction
+      if (boardElement) {
+        boardElement.style.pointerEvents = '';
+        boardElement.style.opacity = '';
+      }
+      if (resetBtn) resetBtn.disabled = false;
+      if (saveGameBtn) saveGameBtn.disabled = false;
+      if (onlineModeBtn) onlineModeBtn.disabled = false;
+      if (lobbyBtn) lobbyBtn.disabled = false;
+      
+      popup("You have been unbanned!", "green");
+    }
+    
     // Refresh the ban list when a user is unbanned
     socket.send(JSON.stringify({ type: "getBannedUsers" }));
   }
@@ -3318,13 +3339,6 @@ function banUser(username, reason, duration, unit) {
 }
 
 function unbanUser(username) {
-  // Check if current user is bungles17x
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  if (currentUser.username !== 'bungles17x') {
-    popup("You don't have permission to unban users.", "red");
-    return;
-  }
-
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: "unbanUser",
