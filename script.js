@@ -3338,6 +3338,14 @@ function banUser(username, reason, duration, unit) {
   }
 }
 
+// Helper function to remove any existing ban modal
+function removeBanModal() {
+  const existingModal = document.querySelector('div[style*="z-index: 99999"]');
+  if (existingModal) {
+    existingModal.remove();
+  }
+}
+
 function unbanUser(username) {
   // Clear local ban data for this user
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -3348,10 +3356,7 @@ function unbanUser(username) {
     localStorage.removeItem('showBanAfterLogin');
     
     // Remove any existing ban modal
-    const existingModal = document.querySelector('div[style*="z-index: 99999"]');
-    if (existingModal) {
-      existingModal.remove();
-    }
+    removeBanModal();
 
     // Re-enable game interaction
     if (boardElement) {
