@@ -10,6 +10,11 @@ const bannedUsers = new Map(); // Track banned usernames with reasons: {username
 const reports = new Map(); // Track reports
 const friends = new Map(); // Track friendships: {username: [friend1, friend2, ...]}
 
+// Generate unique report ID
+function generateReportId() {
+  return `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
 console.log('WebSocket Server is running on ws://localhost:8081');
 
 wss.on('connection', (ws) => {
