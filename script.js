@@ -3365,3 +3365,23 @@ function unbanUser(username) {
     popup("Not connected to server. Local ban cleared only.", "orange");
   }
 }
+
+// Function to manually clear all ban data
+clearAllBanData = function() {
+  localStorage.removeItem('botModeBan');
+  localStorage.removeItem('bannedUsername');
+  localStorage.removeItem('isUserBanned');
+  localStorage.removeItem('showBanAfterLogin');
+  
+  // Re-enable game interaction
+  if (boardElement) {
+    boardElement.style.pointerEvents = '';
+    boardElement.style.opacity = '';
+  }
+  if (resetBtn) resetBtn.disabled = false;
+  if (saveGameBtn) saveGameBtn.disabled = false;
+  if (onlineModeBtn) onlineModeBtn.disabled = false;
+  if (lobbyBtn) lobbyBtn.disabled = false;
+  
+  popup("All ban data cleared!", "green");
+}
