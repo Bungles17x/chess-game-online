@@ -881,6 +881,12 @@ function handleServerMessage(data) {
     handleFriendMessages(data);
     return;
   }
+
+  // Call handleReportMessages if it exists
+  if (typeof handleReportMessages === "function") {
+    handleReportMessages(data);
+    return;
+  }
 }
 
 function handleGameOver() {

@@ -682,7 +682,7 @@ function handleReport(ws, data) {
       reportType: data.reportType || "cheating",
       reportedBy: ws.username || "Anonymous",
       roomId: ws.roomId,
-      opponent: room.players.find(p => p !== ws)?.username || "Unknown",
+      opponent: room.players.find(p => p.username !== ws.username)?.username || "Unknown",
       reason: data.reason || "No reason provided",
       description: data.description || "",
       replayId: replayId,
