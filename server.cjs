@@ -593,6 +593,8 @@ function resetAllLobbies(ws) {
   // Reset all rooms
   rooms.forEach((room, roomId) => {
     room.game.reset();
+    // Update game state tracking
+    updateGameState(roomId, room.game);
     room.players.forEach(player => {
       if (player.readyState === WebSocket.OPEN) {
         player.send(JSON.stringify({ type: "reset" }));
@@ -1192,6 +1194,90 @@ function handleGetAntiCheatStats(ws) {
     console.error("Error getting anti-cheat stats:", error);
     ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get anti-cheat stats" }));
   }
+}
+
+// Function to handle automatic banning of suspicious players
+function handleAutoBanSuspiciousPlayer(username) {
+  const activity = suspiciousActivity.get(username);
+  if (!activity) return;
+
+  // Count different types of suspicious activities
+  const activityTypes = {};
+  activity.activities.forEach(a => {
+    activityTypes[a.type] = (activityTypes[a.type] || 0) + 1;
+  });
+
+  // Determine ban duration based on severity
+  let banDuration = null;
+  let banUnit = 'permanent';
+  
+  const totalSuspiciousMoves = activity.count;
+  
+  if (totalSuspiciousMoves >= 20) {
+    // Severe cheating - permanent ban
+    banDuration = null;
+    banUnit = 'permanent';
+  } else if (totalSuspiciousMoves >= 10) {
+    // Moderate cheating - 7 day ban
+    banDuration = 7;
+    banUnit = 'days';
+  } else if (totalSuspiciousMoves >= 5) {
+    // Mild cheating - 1 day ban
+    banDuration = 1;
+    banUnit = 'days';
+  }
+
+  // Create ban
+  if (banDuration !== null || banUnit === 'permanent') {
+    let expiresAt = null;
+    if (banDuration && banUnit !== 'permanent') {
+      const now = Date.now();
+      const multipliers = {
+        'minutes': 60 * 1000,
+        'hours': 60 * 60 * 1000,
+        'days': 24 * 60 * 60 * 1000
+      };
+      expiresAt = now + (banDuration * multipliers[banUnit]);
+    }
+
+    bannedUsers.set(username, {
+      reason: `Automatic ban due to suspicious activity: ${Object.keys(activityTypes).join(', ')}`,
+      expiresAt,
+      duration: banDuration,
+      unit: banUnit
+    });
+
+    console.log("AUTO-BAN", "Player automatically banned", {
+      username,
+      reason: bannedUsers.get(username).reason,
+      duration: banDuration,
+      unit: banUnit,
+      expiresAt
+    });
+
+    // Disconnect the user if they're currently connected
+    const userConnection = connectedUsers.get(username);
+    if (userConnection && userConnection.readyState === WebSocket.OPEN) {
+      userConnection.send(JSON.stringify({
+        type: "error",
+        code: 403,
+        message: "Your account has been banned for suspicious activity",
+        reason: bannedUsers.get(username).reason,
+        duration: banDuration,
+        unit: banUnit,
+        expiresAt: expiresAt
+      }));
+      userConnection.close();
+    }
+
+    // Clean up anti-cheat data for banned user
+    playerMoveHistory.delete(username);
+    suspiciousActivity.delete(username);
+
+    return true;
+  }
+
+  return false;
 }
 
 function handleGetFriends(ws) {
