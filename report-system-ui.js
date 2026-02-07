@@ -38,8 +38,8 @@ function renderReportsList(reports) {
     reportElement.innerHTML = `
       <div class="report-header">
         <span class="report-id">#${report.id.substring(0, 8)}</span>
-        <span class="report-type">${report.type}</span>
-        <span class="report-status status-${report.status}">${report.status}</span>
+        <span class="report-type">${report.reportType || 'Unknown'}</span>
+        <span class="report-status status-${report.status}">${report.status || 'pending'}</span>
       </div>
       <div class="report-body">
         <p><strong>Reporter:</strong> ${report.reportedBy}</p>

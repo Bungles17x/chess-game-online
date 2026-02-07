@@ -1988,7 +1988,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       
       const reportData = {
-        type: document.getElementById('report-type').value,
+        reportType: document.getElementById('report-type').value,
         reason: document.getElementById('report-reason').value,
         description: document.getElementById('report-description').value
       };
