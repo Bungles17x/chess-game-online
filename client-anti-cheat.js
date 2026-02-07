@@ -10,11 +10,12 @@ let suspiciousActivity = {
 };
 let lastMoveTime = Date.now();
 
-// Anti-cheat constants (TEST MODE - Reduced thresholds for testing)
-const MIN_MOVE_TIME = 3000; // Minimum time between moves in milliseconds (increased for testing)
-const SUSPICIOUS_MOVE_COUNT = 10; // Number of suspicious moves before flagging
+// Anti-cheat constants
+const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
+const SUSPICIOUS_MOVE_COUNT = 20; // Number of suspicious moves before flagging
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
-const MAX_INVALID_MOVES = 3; // Maximum invalid moves before disconnect
+const MAX_INVALID_MOVES = 5; // Maximum invalid moves before disconnect
+const AUTO_BAN_THRESHOLD = 30; // Number of suspicious moves before auto-ban
 
 // Initialize anti-cheat
 function initAntiCheat() {
@@ -81,8 +82,8 @@ function trackSuspiciousActivity(activityType) {
       (currentTime - suspiciousActivity.lastReported > SUSPICIOUS_WINDOW)) {
     suspiciousActivity.lastReported = currentTime;
 
-    // Auto-ban if suspicious activity is severe (10+ occurrences)
-    if (suspiciousActivity.count >= 10) {
+    // Auto-ban only if suspicious activity is extremely severe
+    if (suspiciousActivity.count >= AUTO_BAN_THRESHOLD) {
       handleAutoBan();
     }
 
