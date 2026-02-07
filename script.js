@@ -504,7 +504,7 @@ function handleServerMessage(data) {
     debugLog("CHAT", "Profanity warning received", {
       message: data.message
     });
-    popup(data.message, "orange");
+    showProfanityWarningModal(data.message);
     return;
   }
 
