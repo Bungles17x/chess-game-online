@@ -306,6 +306,9 @@ function handleMessage(ws, data) {
     case "unbanUser":
       handleUnbanUser(ws, data);
       break;
+    case "clearAllBans":
+      handleClearAllBans(ws);
+      break;
     case "report":
       handleReport(ws, data);
       break;
@@ -938,6 +941,17 @@ function handleUnbanUser(ws, data) {
   ws.send(JSON.stringify({
     type: "userUnbanned",
     username: data.username
+  }));
+}
+
+function handleClearAllBans(ws) {
+  const count = bannedUsers.size;
+  bannedUsers.clear();
+  console.log("BAN", "All bans cleared", { count });
+
+  ws.send(JSON.stringify({
+    type: "allBansCleared",
+    count: count
   }));
 }
 
