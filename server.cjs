@@ -40,7 +40,7 @@ async function makeReportCall(reportData, reportId) {
     // Use TwiML to speak the message
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
       <Response>
-        <Say voice="alice" language="en-US">${message}</Say>
+        <Say voice="alice" language="en-US">${message}. Goodbye.</Say>
       </Response>`;
 
     const call = await client.calls.create({
