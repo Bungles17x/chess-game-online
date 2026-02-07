@@ -6,7 +6,22 @@ const twilio = require('twilio');
 // Twilio configuration
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
+
+// Debug: Log environment variables (without sensitive values)
+console.log('Environment check:');
+console.log('TWILIO_ACCOUNT_SID:', accountSid ? 'Set' : 'Not set');
+console.log('TWILIO_AUTH_TOKEN:', authToken ? 'Set' : 'Not set');
+console.log('ADMIN_PHONE_NUMBER:', process.env.ADMIN_PHONE_NUMBER || 'Not set');
+console.log('TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'Not set');
+
+// Only initialize Twilio client if credentials are available
+let client;
+if (accountSid && authToken) {
+  client = twilio(accountSid, authToken);
+} else {
+  console.warn('Twilio credentials not configured. Phone call notifications will be disabled.');
+}
+
 const yourPhoneNumber = process.env.ADMIN_PHONE_NUMBER; // Your personal phone number
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone number
 
