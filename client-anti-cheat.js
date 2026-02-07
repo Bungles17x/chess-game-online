@@ -155,15 +155,7 @@ function detectCheatExtensions() {
 
   // Intercept network requests to detect chessvision.ai - this will be merged with existing fetch interceptor
 
-  // Intercept XMLHttpRequest to detect chessvision.ai
-  const originalOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-    if (url.toLowerCase().includes('chessvision.ai')) {
-      debugLog("ANTI-CHEAT", "ChessVision.ai XHR request detected", { url });
-      trackSuspiciousActivity('chessvision_detected');
-    }
-    return originalOpen.apply(this, [method, url, ...rest]);
-  };
+  // XMLHttpRequest to detect chessvision.ai - merged with existing interceptor
 
   // Check for suspicious localStorage items
   Object.keys(localStorage).forEach(key => {
@@ -300,6 +292,11 @@ function detectCheatExtensions() {
           trackSuspiciousActivity('cheat_extension_detected');
         }
       });
+      // Check for chessvision.ai
+      if (lowerUrl.includes('chessvision.ai') || lowerUrl.includes('app.chessvision.ai')) {
+        debugLog("ANTI-CHEAT", "ChessVision.ai XHR request detected", { url });
+        trackSuspiciousActivity('chessvision_detected');
+      }
       return originalOpen.apply(this, arguments);
     };
     return xhr;
