@@ -49,6 +49,7 @@ function detectCheatExtensions() {
     'chess-master',
     'chess-king',
     'chess-queen',
+    'chessvision.ai',
     'chess-knight',
     'chess-bishop',
     'chess-rook',
