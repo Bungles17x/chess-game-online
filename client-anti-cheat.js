@@ -21,7 +21,7 @@ const AUTO_BAN_THRESHOLD = 10; // Number of suspicious moves before auto-ban (lo
 
 // Ban accuracy settings
 const BAN_CONFIRMATION_REQUIRED = true; // Require multiple detection methods before banning
-const BAN_CONFIRMATION_COUNT = 3; // Number of different detection methods required
+const BAN_CONFIRMATION_COUNT = 1; // Number of different detection methods required
 const BAN_APPEAL_URL = 'https://chess-game-online-u34h.onrender.com/appeal'; // URL for ban appeals
 
 // Initialize anti-cheat
