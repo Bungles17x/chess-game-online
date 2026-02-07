@@ -3347,6 +3347,12 @@ function unbanUser(username) {
     localStorage.removeItem('isUserBanned');
     localStorage.removeItem('showBanAfterLogin');
     
+    // Remove any existing ban modal
+    const existingModal = document.querySelector('div[style*="z-index: 99999"]');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
     // Re-enable game interaction
     if (boardElement) {
       boardElement.style.pointerEvents = '';
