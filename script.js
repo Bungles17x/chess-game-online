@@ -2031,9 +2031,18 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.removeItem('botModeBan');
       localStorage.removeItem('bannedUsername');
       localStorage.removeItem('isUserBanned');
+      // Re-enable game interaction
+      if (boardElement) {
+        boardElement.style.pointerEvents = '';
+        boardElement.style.opacity = '';
+      }
+      if (resetBtn) resetBtn.disabled = false;
+      if (saveGameBtn) saveGameBtn.disabled = false;
+      if (onlineModeBtn) onlineModeBtn.disabled = false;
+      if (lobbyBtn) lobbyBtn.disabled = false;
     }
-  } else if (!banData || !currentUser) {
-    // No ban data or no current user, ensure game is enabled
+  } else {
+    // No ban data or user is not the banned user, ensure game is enabled
     localStorage.removeItem('isUserBanned');
     if (boardElement) {
       boardElement.style.pointerEvents = '';
