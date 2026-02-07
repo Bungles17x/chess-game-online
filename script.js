@@ -3313,13 +3313,6 @@ function updateBannedUsersList(users) {
 }
 
 function banUser(username, reason, duration, unit) {
-  // Check if current user is bungles17x
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  if (currentUser.username !== 'bungles17x') {
-    popup("You don't have permission to ban users.", "red");
-    return;
-  }
-
   if (!username || username.trim() === '') {
     popup('Please enter a username', 'red');
     return;
