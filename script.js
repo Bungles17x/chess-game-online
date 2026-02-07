@@ -1948,6 +1948,11 @@ resignBtn.addEventListener("click", () => {
 // -----------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   debugLog("INIT", "DOM loaded, initializing application");
+  
+  // Initialize anti-cheat system
+  if (typeof initAntiCheat === 'function') {
+    initAntiCheat();
+  }
 
   // Check if user is banned and should see ban modal
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));

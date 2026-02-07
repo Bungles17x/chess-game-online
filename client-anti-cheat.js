@@ -39,7 +39,6 @@ function initAntiCheat() {
 
 // Detect cheat extensions
 function detectCheatExtensions() {
-  debugger; // Pause execution for debugging
   const suspiciousExtensions = [
     'chess-bot',
     'chess-cheat',
