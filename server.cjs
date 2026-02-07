@@ -679,7 +679,7 @@ function handleReport(ws, data) {
 
     // Create report
     const reportData = {
-      type: data.type || "cheating",
+      reportType: data.reportType || "cheating",
       reportedBy: ws.username || "Anonymous",
       roomId: ws.roomId,
       opponent: room.players.find(p => p !== ws)?.username || "Unknown",
