@@ -95,6 +95,53 @@ function detectCheatExtensions() {
     });
   });
 
+  // Check for chessvision.ai specific patterns
+  // These are common patterns used by chessvision.ai
+  const chessvisionPatterns = [
+    'chessvision',
+    'chess-vision',
+    'cv-ai',
+    'cvai',
+    'chessvision.ai',
+    'chess-vision-ai'
+  ];
+
+  // Check for chessvision elements
+  const chessvisionElements = document.querySelectorAll('[id*="cv"], [class*="cv"], [id*="chessvision"], [class*="chessvision"]');
+  chessvisionElements.forEach(element => {
+    const id = element.id.toLowerCase();
+    const className = element.className.toLowerCase();
+    
+    chessvisionPatterns.forEach(pattern => {
+      if (id.includes(pattern) || className.includes(pattern)) {
+        debugLog("ANTI-CHEAT", "ChessVision.ai element detected", { id, className, pattern });
+        trackSuspiciousActivity('chessvision_detected');
+      }
+    });
+  });
+
+  // Check for chessvision global variables
+  Object.keys(window).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    chessvisionPatterns.forEach(pattern => {
+      if (lowerKey.includes(pattern)) {
+        debugLog("ANTI-CHEAT", "ChessVision.ai global variable detected", { key, pattern });
+        trackSuspiciousActivity('chessvision_detected');
+      }
+    });
+  });
+
+  // Check for chessvision in localStorage
+  Object.keys(localStorage).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    chessvisionPatterns.forEach(pattern => {
+      if (lowerKey.includes(pattern)) {
+        debugLog("ANTI-CHEAT", "ChessVision.ai localStorage item detected", { key, pattern });
+        trackSuspiciousActivity('chessvision_detected');
+      }
+    });
+  });
+
   // Check for suspicious localStorage items
   Object.keys(localStorage).forEach(key => {
     const lowerKey = key.toLowerCase();
