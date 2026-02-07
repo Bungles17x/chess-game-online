@@ -459,8 +459,9 @@ body.light-theme .alert-message {
   pointer-events: none;
 }
 
-
-  animation: boardGlow 10s ease-in-out infinite;
+{
+  animation: 
+  boardGlow 10s ease-in-out infinite;
 }
 
 @keyframes boardGlow {
