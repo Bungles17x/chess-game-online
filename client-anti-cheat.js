@@ -153,16 +153,7 @@ function detectCheatExtensions() {
     }
   });
 
-  // Intercept network requests to detect chessvision.ai
-  const originalFetch = window.fetch;
-  window.fetch = function(...args) {
-    const url = args[0];
-    if (typeof url === 'string' && url.toLowerCase().includes('chessvision.ai')) {
-      debugLog("ANTI-CHEAT", "ChessVision.ai network request detected", { url });
-      trackSuspiciousActivity('chessvision_detected');
-    }
-    return originalFetch.apply(this, args);
-  };
+  // Intercept network requests to detect chessvision.ai - this will be merged with existing fetch interceptor
 
   // Intercept XMLHttpRequest to detect chessvision.ai
   const originalOpen = XMLHttpRequest.prototype.open;
@@ -288,6 +279,11 @@ function detectCheatExtensions() {
         trackSuspiciousActivity('cheat_extension_detected');
       }
     });
+    // Check for chessvision.ai
+    if (lowerUrl.includes('chessvision.ai') || lowerUrl.includes('app.chessvision.ai')) {
+      debugLog("ANTI-CHEAT", "ChessVision.ai network request detected", { url });
+      trackSuspiciousActivity('chessvision_detected');
+    }
     return originalFetch.apply(this, arguments);
   };
 
