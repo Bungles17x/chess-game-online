@@ -63,6 +63,18 @@ const bannedUsers = new Map(); // Track banned usernames with reasons: {username
 const reports = new Map(); // Track reports
 const friends = new Map(); // Track friendships: {username: [friend1, friend2, ...]}
 
+// Anti-cheat data structures
+const playerMoveHistory = new Map(); // Track move timestamps: {username: [{timestamp, move}...]}
+const suspiciousActivity = new Map(); // Track suspicious activity: {username: {count, lastReported}}
+const gameStates = new Map(); // Track game states for validation: {roomId: {fen, pgn, lastMove}}
+
+// Anti-cheat constants
+const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
+const MAX_MOVE_TIME = 300000; // Maximum time for a move (5 minutes)
+const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging
+const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
+const MAX_INVALID_MOVES = 3; // Maximum invalid moves before disconnect
+
 // Generate unique report ID
 function generateReportId() {
   return `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
