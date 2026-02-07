@@ -8,6 +8,25 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 const yourPhoneNumber = process.env.YOUR_PHONE_NUMBER; // Your phone number to receive calls
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone number
+
+// Function to make a call when a report is submitted
+async function makeReportCall(reportData, reportId) {
+  try {
+    const message = `New report received. Type: ${reportData.reportType}. Reported by: ${reportData.reportedBy}. Against: ${reportData.opponent}. Reason: ${reportData.reason}`;
+    
+    const call = await client.calls.create({
+      to: yourPhoneNumber,
+      from: twilioPhoneNumber,
+      url: `http://demo.twilio.com/docs/voice.xml?message=${encodeURIComponent(message)}`,
+      method: 'GET'
+    });
+    
+    console.log("Call initiated:", call.sid);
+  } catch (error) {
+    console.error("Error making call:", error);
+  }
+}
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -716,6 +735,7 @@ function handleReport(ws, data) {
 
     // Send notification to admin (simplified version)
     console.log("Report created:", reportId, reportData);
+    makeReportCall(reportData, reportId);
 
     
 
