@@ -308,6 +308,11 @@ function detectCheatExtensions() {
   };
 
   debugLog("ANTI-CHEAT", "Cheat extension detection initialized");
+  
+  // Log if no cheats were found
+  if (suspiciousActivity.count === 0) {
+    console.log("ANTI-CHEAT: No cheats found");
+  }
 }
 
 // Record a move for anti-cheat tracking
