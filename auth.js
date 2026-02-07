@@ -53,6 +53,33 @@ function setupLoginForm() {
       showError('Invalid email or password');
       return;
     }
+    
+    // Check if user is banned
+    const banData = localStorage.getItem('botModeBan');
+    if (banData) {
+      const ban = JSON.parse(banData);
+      
+      // Check if ban is permanent or not expired
+      let isBanned = false;
+      if (!ban.duration) {
+        isBanned = true;
+      } else {
+        let expiryTime;
+        if (ban.unit === 'hours') {
+          expiryTime = ban.timestamp + (ban.duration * 60 * 60 * 1000);
+        } else if (ban.unit === 'days') {
+          expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+        } else {
+          expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+        }
+        isBanned = Date.now() <= expiryTime;
+      }
+      
+      if (isBanned) {
+        showError(`This account has been banned. Reason: ${ban.reason}`);
+        return;
+      }
+    }
 
     // Login successful
     localStorage.setItem('currentUser', JSON.stringify(user));
