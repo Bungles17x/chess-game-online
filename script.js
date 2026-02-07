@@ -1928,6 +1928,23 @@ resignBtn.addEventListener("click", () => {
 document.addEventListener("DOMContentLoaded", () => {
   debugLog("INIT", "DOM loaded, initializing application");
 
+  // Check if user is banned and should see ban modal
+  if (localStorage.getItem('showBanAfterLogin') === 'true') {
+    localStorage.removeItem('showBanAfterLogin');
+    const banData = JSON.parse(localStorage.getItem('botModeBan'));
+    if (banData) {
+      showBanModal(
+        "You have been banned",
+        banData.reason || 'No reason provided',
+        banData.duration,
+        banData.unit,
+        banData.timestamp + (banData.duration ? 
+          (banData.unit === 'hours' ? banData.duration * 60 * 60 * 1000 : banData.duration * 24 * 60 * 60 * 1000) : 
+          null)
+      );
+    }
+  }
+
   // Show no connection screen if user was disconnected
   if (isDisconnected) {
     debugLog("INIT", "User was disconnected, showing no connection screen");

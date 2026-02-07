@@ -76,8 +76,8 @@ function setupLoginForm() {
       }
       
       if (isBanned) {
-        showError(`This account has been banned. Reason: ${ban.reason}`);
-        return;
+        // Store the ban data to show modal after login
+        localStorage.setItem('showBanAfterLogin', 'true');
       }
     }
 
