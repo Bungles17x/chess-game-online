@@ -160,7 +160,14 @@ function checkBanStatus() {
   }
 
   // Check if ban has expired
-  const expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+  let expiryTime;
+  if (ban.unit === 'hours') {
+    expiryTime = ban.timestamp + (ban.duration * 60 * 60 * 1000);
+  } else if (ban.unit === 'days') {
+    expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+  } else {
+    expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000); // default to days
+  }
   if (Date.now() > expiryTime) {
     localStorage.removeItem('botModeBan');
     return false;
