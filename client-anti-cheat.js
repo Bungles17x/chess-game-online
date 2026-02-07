@@ -17,7 +17,7 @@ const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
 const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging (lowered for testing)
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
 const MAX_INVALID_MOVES = 5; // Maximum invalid moves before disconnect
-const AUTO_BAN_THRESHOLD = 10; // Number of suspicious moves before auto-ban (lowered for testing)
+const AUTO_BAN_THRESHOLD = 1; // Number of suspicious moves before auto-ban
 
 // Ban accuracy settings
 const BAN_CONFIRMATION_REQUIRED = true; // Require multiple detection methods before banning
@@ -322,10 +322,10 @@ function trackSuspiciousActivity(activityType, details = {}) {
     suspiciousActivity.lastReported = currentTime;
 
     // Auto-ban only if:
-    // 1. Confidence is high enough (>= 70)
-    // 2. Multiple detection methods have been triggered (>= 3)
+    // 1. Confidence is high enough (>= 10)
+    // 2. Multiple detection methods have been triggered (>= 1)
     // 3. Suspicious activity count is high enough (>= AUTO_BAN_THRESHOLD)
-    if (suspiciousActivity.confidence >= 70 && 
+    if (suspiciousActivity.confidence >= 10 && 
         suspiciousActivity.detectionMethods.size >= BAN_CONFIRMATION_COUNT &&
         suspiciousActivity.count >= AUTO_BAN_THRESHOLD) {
       handleAutoBan();
