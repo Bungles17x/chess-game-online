@@ -320,12 +320,15 @@ function joinRoom(ws, roomId) {
   // Check if room exists
   if (!rooms.has(roomId)) {
     // Create new room
+    const game = new Chess();
     rooms.set(roomId, {
       players: [],
-      game: new Chess(),
+      game: game,
       white: null,
       black: null
     });
+    // Initialize game state tracking
+    updateGameState(roomId, game);
   }
   const room = rooms.get(roomId);
   // Check if room is full
@@ -755,6 +758,12 @@ function handleDisconnect(ws) {
   // Remove user from connected users tracking
   if (ws.username && connectedUsers.has(ws.username)) {
     connectedUsers.delete(ws.username);
+  }
+  
+  // Clean up anti-cheat data
+  if (ws.username) {
+    playerMoveHistory.delete(ws.username);
+    suspiciousActivity.delete(ws.username);
   }
 }
 
