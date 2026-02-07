@@ -1452,6 +1452,38 @@ function handleSquareClick(square) {
     return;
   }
 
+  // Anti-cheat checks for bot mode (BEFORE executing move)
+  if (gameMode === "bot") {
+    // Check move timing
+    if (typeof checkMoveTiming === 'function') {
+      const timingCheck = checkMoveTiming();
+      if (!timingCheck.valid) {
+        console.log('Anti-cheat: Blocking suspicious move', {
+          timeSinceLastMove: timingCheck.timeSinceLastMove
+        });
+        
+        if (typeof trackSuspiciousActivity === 'function') {
+          const suspiciousResult = trackSuspiciousActivity('fast_move');
+          if (suspiciousResult.shouldReport) {
+            console.log('Anti-cheat: Reporting suspicious activity', {
+              count: suspiciousResult.count
+            });
+            // Auto-ban if too many suspicious moves
+            if (suspiciousResult.count >= 10) {
+              if (typeof handleAutoBan === 'function') {
+                handleAutoBan();
+              }
+            }
+          }
+        }
+        
+        // Block the move and show warning
+        popup("Move blocked by anti-cheat system. Please wait before making another move.", "red");
+        return;
+      }
+    }
+  }
+
   // Execute move
   const result = game.move({
     from: move.from,
@@ -1468,31 +1500,9 @@ function handleSquareClick(square) {
   // Track the last move for highlighting
   lastMove = result;
 
-  // Anti-cheat checks for bot mode
-  if (gameMode === "bot") {
-    // Check move timing
-    if (typeof checkMoveTiming === 'function') {
-      const timingCheck = checkMoveTiming();
-      if (!timingCheck.valid) {
-        console.log('Anti-cheat: Suspicious move timing', {
-          timeSinceLastMove: timingCheck.timeSinceLastMove
-        });
-        
-        if (typeof trackSuspiciousActivity === 'function') {
-          const suspiciousResult = trackSuspiciousActivity('fast_move');
-          if (suspiciousResult.shouldReport) {
-            console.log('Anti-cheat: Reporting suspicious activity', {
-              count: suspiciousResult.count
-            });
-          }
-        }
-      }
-    }
-    
-    // Record the move for anti-cheat tracking
-    if (typeof recordMove === 'function') {
-      recordMove(result);
-    }
+  // Record the move for anti-cheat tracking
+  if (gameMode === "bot" && typeof recordMove === 'function') {
+    recordMove(result);
   }
 
   debugLog("BOARD", "Move executed", {
