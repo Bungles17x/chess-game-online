@@ -7,7 +7,7 @@ const twilio = require('twilio');
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
-const yourPhoneNumber = process.env.8143862290; // Your phone number to receive calls
+const yourPhoneNumber = process.env.ADMIN_PHONE_NUMBER; // Your personal phone number
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone number
 
 // Function to make a call when a report is submitted
