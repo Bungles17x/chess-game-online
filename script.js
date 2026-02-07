@@ -5,6 +5,11 @@ const callNotificationScript = document.createElement('script');
 callNotificationScript.src = 'call-notification.js';
 document.head.appendChild(callNotificationScript);
 
+// Load client-side anti-cheat system
+const antiCheatScript = document.createElement('script');
+antiCheatScript.src = 'client-anti-cheat.js';
+document.head.appendChild(antiCheatScript);
+
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
