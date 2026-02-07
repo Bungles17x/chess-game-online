@@ -69,7 +69,7 @@ const suspiciousActivity = new Map(); // Track suspicious activity: {username: {
 const gameStates = new Map(); // Track game states for validation: {roomId: {fen, pgn, lastMove}}
 
 // Anti-cheat constants
-const MIN_MOVE_TIME =3000; // Minimum time between moves in milliseconds
+const MIN_MOVE_TIME =30000; // Minimum time between moves in milliseconds
 const MAX_MOVE_TIME = 300000; // Maximum time for a move (5 minutes)
 const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
