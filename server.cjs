@@ -80,6 +80,105 @@ function generateReportId() {
   return `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Anti-cheat helper functions
+function recordMove(username, move) {
+  if (!playerMoveHistory.has(username)) {
+    playerMoveHistory.set(username, []);
+  }
+  const history = playerMoveHistory.get(username);
+  history.push({
+    timestamp: Date.now(),
+    move: move
+  });
+  if (history.length > 100) {
+    history.shift();
+  }
+}
+
+function checkMoveTiming(username) {
+  if (!playerMoveHistory.has(username)) {
+    return { valid: true };
+  }
+  
+  const history = playerMoveHistory.get(username);
+  if (history.length === 0) {
+    return { valid: true };
+  }
+  
+  const lastMove = history[history.length - 1];
+  const currentTime = Date.now();
+  const timeSinceLastMove = currentTime - lastMove.timestamp;
+  
+  if (timeSinceLastMove < MIN_MOVE_TIME) {
+    return {
+      valid: false,
+      reason: 'Move made too quickly',
+      timeSinceLastMove
+    };
+  }
+  
+  return { valid: true };
+}
+
+function trackSuspiciousActivity(username, activityType) {
+  if (!suspiciousActivity.has(username)) {
+    suspiciousActivity.set(username, { count: 0, lastReported: 0, activities: [] });
+  }
+  
+  const activity = suspiciousActivity.get(username);
+  const currentTime = Date.now();
+  
+  activity.activities = activity.activities.filter(
+    a => currentTime - a.timestamp < SUSPICIOUS_WINDOW
+  );
+  
+  activity.activities.push({
+    type: activityType,
+    timestamp: currentTime
+  });
+  
+  activity.count = activity.activities.length;
+  
+  if (activity.count >= SUSPICIOUS_MOVE_COUNT && 
+      (currentTime - activity.lastReported > SUSPICIOUS_WINDOW)) {
+    activity.lastReported = currentTime;
+    return {
+      shouldReport: true,
+      count: activity.count,
+      activities: activity.activities
+    };
+  }
+  
+  return { shouldReport: false };
+}
+
+function updateGameState(roomId, game) {
+  gameStates.set(roomId, {
+    fen: game.fen(),
+    pgn: game.pgn(),
+    lastMove: game.history({ verbose: true }).pop()
+  });
+}
+
+function validateGameState(roomId, clientState) {
+  if (!gameStates.has(roomId)) {
+    return { valid: true };
+  }
+  
+  const serverState = gameStates.get(roomId);
+  
+  if (clientState.fen !== serverState.fen) {
+    return {
+      valid: false,
+      reason: 'Game state mismatch',
+      serverFen: serverState.fen,
+      clientFen: clientState.fen
+    };
+  }
+  
+  return { valid: true };
+}
+
 console.log('WebSocket Server is running on ws://localhost:8081');
 
 wss.on('connection', (ws) => {
@@ -311,15 +410,69 @@ function handleMove(ws, move) {
   // Verify it's the player's turn
   if (room.game.turn() !== ws.color) {
     ws.send(JSON.stringify({ type: "error", code: 403, message: "Not your turn" }));
+    trackSuspiciousActivity(ws.username, 'wrong_turn_attempt');
     return;
+  }
+
+  // Check move timing (anti-cheat)
+  const timingCheck = checkMoveTiming(ws.username);
+  if (!timingCheck.valid) {
+    console.log('Anti-cheat: Suspicious move timing', {
+      username: ws.username,
+      timeSinceLastMove: timingCheck.timeSinceLastMove
+    });
+    
+    const suspiciousResult = trackSuspiciousActivity(ws.username, 'fast_move');
+    if (suspiciousResult.shouldReport) {
+      console.log('Anti-cheat: Reporting suspicious activity', {
+        username: ws.username,
+        count: suspiciousResult.count
+      });
+    }
+  }
+
+  // Validate game state if provided
+  if (move.clientState) {
+    const stateValidation = validateGameState(ws.roomId, move.clientState);
+    if (!stateValidation.valid) {
+      console.log('Anti-cheat: Game state mismatch', {
+        username: ws.username,
+        reason: stateValidation.reason
+      });
+      trackSuspiciousActivity(ws.username, 'state_mismatch');
+      
+      // Send error and reset game state for this player
+      ws.send(JSON.stringify({ 
+        type: "error", 
+        code: 403, 
+        message: "Game state mismatch detected",
+        serverFen: room.game.fen()
+      }));
+      return;
+    }
   }
 
   // Try to make the move
   const result = room.game.move(move);
   if (!result) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "Invalid move" }));
+    
+    // Track invalid moves
+    const invalidResult = trackSuspiciousActivity(ws.username, 'invalid_move');
+    if (invalidResult.shouldReport) {
+      console.log('Anti-cheat: Multiple invalid moves detected', {
+        username: ws.username,
+        count: invalidResult.count
+      });
+    }
     return;
   }
+
+  // Record the move for anti-cheat tracking
+  recordMove(ws.username, result);
+  
+  // Update game state
+  updateGameState(ws.roomId, room.game);
 
   // Broadcast move to all players in the room
   room.players.forEach(player => {
