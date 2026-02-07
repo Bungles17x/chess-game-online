@@ -76,6 +76,8 @@ function setupLoginForm() {
       }
       
       if (isBanned) {
+        // Store the username of the banned user
+        localStorage.setItem('bannedUsername', user.username);
         // Store the ban data to show modal after login
         localStorage.setItem('showBanAfterLogin', 'true');
       }

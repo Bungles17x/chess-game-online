@@ -100,8 +100,9 @@ function trackSuspiciousActivity(activityType) {
 function handleAutoBan() {
   const totalSuspiciousMoves = suspiciousActivity.count;
   
-  // Get the current username
-  const username = localStorage.getItem('username') || 'Unknown';
+  // Get the current username from currentUser or username
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const username = currentUser ? currentUser.username : (localStorage.getItem('username') || 'Unknown');
 
   // Determine ban duration based on severity
   let banDuration = null;

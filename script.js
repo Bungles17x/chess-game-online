@@ -1929,63 +1929,82 @@ document.addEventListener("DOMContentLoaded", () => {
   debugLog("INIT", "DOM loaded, initializing application");
 
   // Check if user is banned and should see ban modal
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const banData = JSON.parse(localStorage.getItem('botModeBan'));
+  const bannedUsername = localStorage.getItem('bannedUsername');
+  
+  // Function to disable game for banned users
+  function disableGameForBannedUser() {
+    localStorage.setItem('isUserBanned', 'true');
+    // Disable game interaction
+    if (boardElement) {
+      boardElement.style.pointerEvents = 'none';
+      boardElement.style.opacity = '0.5';
+    }
+    // Disable game controls
+    if (resetBtn) resetBtn.disabled = true;
+    if (saveGameBtn) saveGameBtn.disabled = true;
+    // Disable online mode
+    if (onlineModeBtn) onlineModeBtn.disabled = true;
+    // Disable lobby
+    if (lobbyBtn) lobbyBtn.disabled = true;
+  }
+  
+  // Function to check if ban is still active
+  function isBanActive(banData) {
+    if (!banData) return false;
+    
+    // Permanent ban
+    if (!banData.duration) return true;
+    
+    // Check if temporary ban has expired
+    let expiryTime;
+    if (banData.unit === 'hours') {
+      expiryTime = banData.timestamp + (banData.duration * 60 * 60 * 1000);
+    } else if (banData.unit === 'days') {
+      expiryTime = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+    } else {
+      expiryTime = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+    }
+    
+    return Date.now() <= expiryTime;
+  }
+  
+  // Check if user is banned and should see ban modal
   if (localStorage.getItem('showBanAfterLogin') === 'true') {
     localStorage.removeItem('showBanAfterLogin');
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const banData = JSON.parse(localStorage.getItem('botModeBan'));
     
-    // Only show ban modal if the current user is the one who was banned
-    if (banData && currentUser && banData.username === currentUser.username) {
-      let expiresAt = null;
-      if (banData.duration) {
-        if (banData.unit === 'hours') {
-          expiresAt = banData.timestamp + (banData.duration * 60 * 60 * 1000);
-        } else if (banData.unit === 'days') {
-          expiresAt = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+    // Check if the current user is the one who was banned
+    if (banData && currentUser && (banData.username === currentUser.username || bannedUsername === currentUser.username)) {
+      if (isBanActive(banData)) {
+        let expiresAt = null;
+        if (banData.duration) {
+          if (banData.unit === 'hours') {
+            expiresAt = banData.timestamp + (banData.duration * 60 * 60 * 1000);
+          } else if (banData.unit === 'days') {
+            expiresAt = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+          }
         }
+        
+        // Disable game interaction
+        disableGameForBannedUser();
+        
+        // Show ban modal
+        showBanModal(
+          "You have been banned",
+          banData.reason || 'No reason provided',
+          banData.duration,
+          banData.unit,
+          expiresAt
+        );
       }
-      
-      // Set a flag to prevent game interaction
-      localStorage.setItem('isUserBanned', 'true');
-      
-      // Show ban modal
-      showBanModal(
-        "You have been banned",
-        banData.reason || 'No reason provided',
-        banData.duration,
-        banData.unit,
-        expiresAt
-      );
     }
   }
   
-  // Check if user is currently banned
-  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-  const banData = JSON.parse(localStorage.getItem('botModeBan'));
-  if (banData && currentUser && banData.username === currentUser.username) {
-    let isBanned = false;
-    if (!banData.duration) {
-      isBanned = true;
-    } else {
-      let expiryTime;
-      if (banData.unit === 'hours') {
-        expiryTime = banData.timestamp + (banData.duration * 60 * 60 * 1000);
-      } else if (banData.unit === 'days') {
-        expiryTime = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
-      }
-      isBanned = Date.now() <= expiryTime;
-    }
-    
-    if (isBanned) {
-      localStorage.setItem('isUserBanned', 'true');
-      // Disable game interaction
-      if (boardElement) {
-        boardElement.style.pointerEvents = 'none';
-        boardElement.style.opacity = '0.5';
-      }
-      // Disable game controls
-      if (resetBtn) resetBtn.disabled = true;
-      if (saveGameBtn) saveGameBtn.disabled = true;
+  // Check if user is currently banned (on page load)
+  if (banData && currentUser && (banData.username === currentUser.username || bannedUsername === currentUser.username)) {
+    if (isBanActive(banData)) {
+      disableGameForBannedUser();
     }
   }
 
