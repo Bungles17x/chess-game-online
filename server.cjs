@@ -295,6 +295,9 @@ function handleMessage(ws, data) {
     case "sendFriendRequest":
       handleSendFriendRequest(ws, data);
       break;
+    case "getAntiCheatStats":
+      handleGetAntiCheatStats(ws);
+      break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -387,6 +390,8 @@ function leaveRoom(ws) {
   // If room is empty, delete it
   if (room.players.length === 0) {
     rooms.delete(ws.roomId);
+    // Clean up game state tracking
+    gameStates.delete(ws.roomId);
   } else {
     // Notify remaining player that opponent left
     room.players.forEach(player => {
@@ -1152,6 +1157,40 @@ function handleRejectFriendRequest(ws, data) {
   } catch (error) {
     console.error("Error rejecting friend request:", error);
     ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to reject friend request" }));
+  }
+}
+
+function handleGetAntiCheatStats(ws) {
+  try {
+    if (!ws.username) {
+      ws.send(JSON.stringify({ type: "error", code: 401, message: "Not authenticated" }));
+      return;
+    }
+
+    const stats = {
+      totalPlayers: connectedUsers.size,
+      playersWithSuspiciousActivity: suspiciousActivity.size,
+      totalGames: rooms.size,
+      suspiciousPlayers: []
+    };
+
+    // Get details of suspicious players
+    suspiciousActivity.forEach((activity, username) => {
+      stats.suspiciousPlayers.push({
+        username,
+        suspiciousCount: activity.count,
+        lastReported: activity.lastReported,
+        activities: activity.activities
+      });
+    });
+
+    ws.send(JSON.stringify({
+      type: "antiCheatStats",
+      stats
+    }));
+  } catch (error) {
+    console.error("Error getting anti-cheat stats:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get anti-cheat stats" }));
   }
 }
 
