@@ -99,6 +99,9 @@ function trackSuspiciousActivity(activityType) {
 // Handle automatic ban
 function handleAutoBan() {
   const totalSuspiciousMoves = suspiciousActivity.count;
+  
+  // Get the current username
+  const username = localStorage.getItem('username') || 'Unknown';
 
   // Determine ban duration based on severity
   let banDuration = null;
@@ -128,6 +131,7 @@ function handleAutoBan() {
 
   // Store ban in localStorage
   const banData = {
+    username: username,
     timestamp: Date.now(),
     duration: banDuration,
     unit: banUnit,
@@ -136,6 +140,9 @@ function handleAutoBan() {
   };
 
   localStorage.setItem('botModeBan', JSON.stringify(banData));
+  
+  // Add to the main ban list
+  addToBanList(username, banData);
 
   // Show ban popup
   showBanPopup(banData);
