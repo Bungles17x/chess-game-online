@@ -2005,7 +2005,23 @@ document.addEventListener("DOMContentLoaded", () => {
   if (banData && currentUser && (banData.username === currentUser.username || bannedUsername === currentUser.username)) {
     if (isBanActive(banData)) {
       disableGameForBannedUser();
+    } else {
+      // Ban has expired, clear the ban data
+      localStorage.removeItem('botModeBan');
+      localStorage.removeItem('bannedUsername');
+      localStorage.removeItem('isUserBanned');
     }
+  } else if (!banData || !currentUser) {
+    // No ban data or no current user, ensure game is enabled
+    localStorage.removeItem('isUserBanned');
+    if (boardElement) {
+      boardElement.style.pointerEvents = '';
+      boardElement.style.opacity = '';
+    }
+    if (resetBtn) resetBtn.disabled = false;
+    if (saveGameBtn) saveGameBtn.disabled = false;
+    if (onlineModeBtn) onlineModeBtn.disabled = false;
+    if (lobbyBtn) lobbyBtn.disabled = false;
   }
 
   // Show no connection screen if user was disconnected
