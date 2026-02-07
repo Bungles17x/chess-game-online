@@ -1931,16 +1931,26 @@ document.addEventListener("DOMContentLoaded", () => {
   // Check if user is banned and should see ban modal
   if (localStorage.getItem('showBanAfterLogin') === 'true') {
     localStorage.removeItem('showBanAfterLogin');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const banData = JSON.parse(localStorage.getItem('botModeBan'));
-    if (banData) {
+    
+    // Only show ban modal if the current user is the one who was banned
+    if (banData && currentUser && banData.username === currentUser.username) {
+      let expiresAt = null;
+      if (banData.duration) {
+        if (banData.unit === 'hours') {
+          expiresAt = banData.timestamp + (banData.duration * 60 * 60 * 1000);
+        } else if (banData.unit === 'days') {
+          expiresAt = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+        }
+      }
+      
       showBanModal(
         "You have been banned",
         banData.reason || 'No reason provided',
         banData.duration,
         banData.unit,
-        banData.timestamp + (banData.duration ? 
-          (banData.unit === 'hours' ? banData.duration * 60 * 60 * 1000 : banData.duration * 24 * 60 * 60 * 1000) : 
-          null)
+        expiresAt
       );
     }
   }
