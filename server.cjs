@@ -142,6 +142,12 @@ function trackSuspiciousActivity(username, activityType) {
   if (activity.count >= SUSPICIOUS_MOVE_COUNT && 
       (currentTime - activity.lastReported > SUSPICIOUS_WINDOW)) {
     activity.lastReported = currentTime;
+    
+    // Auto-ban if suspicious activity is severe (20+ occurrences)
+    if (activity.count >= 20) {
+      handleAutoBanSuspiciousPlayer(username);
+    }
+    
     return {
       shouldReport: true,
       count: activity.count,
@@ -180,6 +186,41 @@ function validateGameState(roomId, clientState) {
 }
 
 console.log('WebSocket Server is running on ws://localhost:8081');
+
+// Periodic cleanup of expired anti-cheat data
+setInterval(() => {
+  const now = Date.now();
+  
+  // Clean up old move history (older than 1 hour)
+  playerMoveHistory.forEach((history, username) => {
+    const filteredHistory = history.filter(
+      move => now - move.timestamp < 3600000
+    );
+    if (filteredHistory.length === 0) {
+      playerMoveHistory.delete(username);
+    } else {
+      playerMoveHistory.set(username, filteredHistory);
+    }
+  });
+  
+  // Clean up old suspicious activity records (older than 24 hours)
+  suspiciousActivity.forEach((activity, username) => {
+    const filteredActivities = activity.activities.filter(
+      a => now - a.timestamp < 86400000
+    );
+    if (filteredActivities.length === 0) {
+      suspiciousActivity.delete(username);
+    } else {
+      activity.activities = filteredActivities;
+      activity.count = filteredActivities.length;
+    }
+  });
+  
+  console.log("Anti-cheat: Cleanup completed", {
+    moveHistoryCount: playerMoveHistory.size,
+    suspiciousActivityCount: suspiciousActivity.size
+  });
+}, 300000); // Run every 5 minutes
 
 wss.on('connection', (ws) => {
   console.log('A new client connected!');
@@ -297,6 +338,9 @@ function handleMessage(ws, data) {
       break;
     case "getAntiCheatStats":
       handleGetAntiCheatStats(ws);
+      break;
+    case "banSuspiciousPlayer":
+      handleBanSuspiciousPlayer(ws, data);
       break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
