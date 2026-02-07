@@ -1477,8 +1477,8 @@ function handleSquareClick(square) {
           }
         }
         
-        // Block the move and show warning
-        popup("Move blocked by anti-cheat system. Please wait before making another move.", "red");
+        // Block the move and show warning using ban system
+        showBanPopup("Move blocked by anti-cheat system. Please wait before making another move.");
         return;
       }
     }
