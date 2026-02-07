@@ -677,12 +677,21 @@ function handleReport(ws, data) {
     // Save game replay (simplified version)
     const replayId = ws.roomId;
 
+    // Get opponent username
+    let opponent = "Unknown";
+    if (room.players && room.players.length > 0) {
+      const opponentPlayer = room.players.find(p => p !== ws && p.username);
+      if (opponentPlayer && opponentPlayer.username) {
+        opponent = opponentPlayer.username;
+      }
+    }
+
     // Create report
     const reportData = {
       reportType: data.reportType || "cheating",
       reportedBy: ws.username || "Anonymous",
       roomId: ws.roomId,
-      opponent: room.players.find(p => p.username !== ws.username)?.username || "Unknown",
+      opponent: opponent,
       reason: data.reason || "No reason provided",
       description: data.description || "",
       replayId: replayId,
