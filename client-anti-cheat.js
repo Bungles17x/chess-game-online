@@ -141,8 +141,16 @@ function handleAutoBan() {
 
   localStorage.setItem('botModeBan', JSON.stringify(banData));
   
-  // Add to the main ban list
-  addToBanList(username, banData);
+  // Send ban information to server to add to manage ban list
+  if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'banUser',
+      username: username,
+      reason: banData.reason,
+      duration: banData.duration,
+      unit: banData.unit
+    }));
+  }
 
   // Show ban popup
   showBanPopup(banData);
