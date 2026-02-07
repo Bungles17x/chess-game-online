@@ -1,6 +1,13 @@
 // server.cjs
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
+const twilio = require('twilio');
+
+// Twilio configuration
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
+const yourPhoneNumber = process.env.YOUR_PHONE_NUMBER; // Your phone number to receive calls
 
 const wss = new WebSocket.Server({ port: 8080 });
 
