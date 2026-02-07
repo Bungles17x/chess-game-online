@@ -460,9 +460,9 @@ body.light-theme .alert-message {
 }
 
 
-  animation: 
-  boardGlow 10s ease-in-out infinite;
-  
+.glowing-board {
+  animation: boardGlow 10s ease-in-out infinite;
+}
 
 @keyframes boardGlow {
   0%, 100% {

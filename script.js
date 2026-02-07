@@ -1945,6 +1945,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       
+      // Set a flag to prevent game interaction
+      localStorage.setItem('isUserBanned', 'true');
+      
+      // Show ban modal
       showBanModal(
         "You have been banned",
         banData.reason || 'No reason provided',
@@ -1952,6 +1956,36 @@ document.addEventListener("DOMContentLoaded", () => {
         banData.unit,
         expiresAt
       );
+    }
+  }
+  
+  // Check if user is currently banned
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const banData = JSON.parse(localStorage.getItem('botModeBan'));
+  if (banData && currentUser && banData.username === currentUser.username) {
+    let isBanned = false;
+    if (!banData.duration) {
+      isBanned = true;
+    } else {
+      let expiryTime;
+      if (banData.unit === 'hours') {
+        expiryTime = banData.timestamp + (banData.duration * 60 * 60 * 1000);
+      } else if (banData.unit === 'days') {
+        expiryTime = banData.timestamp + (banData.duration * 24 * 60 * 60 * 1000);
+      }
+      isBanned = Date.now() <= expiryTime;
+    }
+    
+    if (isBanned) {
+      localStorage.setItem('isUserBanned', 'true');
+      // Disable game interaction
+      if (boardElement) {
+        boardElement.style.pointerEvents = 'none';
+        boardElement.style.opacity = '0.5';
+      }
+      // Disable game controls
+      if (resetBtn) resetBtn.disabled = true;
+      if (saveGameBtn) saveGameBtn.disabled = true;
     }
   }
 
