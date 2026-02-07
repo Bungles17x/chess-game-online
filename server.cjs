@@ -1,6 +1,16 @@
 // server.cjs
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
+const nodemailer = require('nodemailer');
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  service: 'yahoo',
+  auth: {
+    user: 'chessygames@yahoo.com',
+    pass: process.env.EMAIL_PASSWORD // You'll need to set this environment variable
+  }
+});
 
 const wss = new WebSocket.Server({ port: 8080 });
 
