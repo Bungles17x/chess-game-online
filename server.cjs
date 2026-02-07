@@ -1240,6 +1240,38 @@ function handleGetAntiCheatStats(ws) {
   }
 }
 
+// Function to handle manual banning of suspicious players
+function handleBanSuspiciousPlayer(ws, data) {
+  try {
+    if (!data.username) {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+      return;
+    }
+
+    const username = data.username.toLowerCase();
+
+    if (!suspiciousActivity.has(username)) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "No suspicious activity found for this user" }));
+      return;
+    }
+
+    const banned = handleAutoBanSuspiciousPlayer(username);
+
+    if (banned) {
+      ws.send(JSON.stringify({
+        type: "playerBanned",
+        username: username,
+        message: "Player successfully banned for suspicious activity"
+      }));
+    } else {
+      ws.send(JSON.stringify({ type: "error", code: 400, message: "Failed to ban player" }));
+    }
+  } catch (error) {
+    console.error("Error banning suspicious player:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to ban player" }));
+  }
+}
+
 // Function to handle automatic banning of suspicious players
 function handleAutoBanSuspiciousPlayer(username) {
   const activity = suspiciousActivity.get(username);
