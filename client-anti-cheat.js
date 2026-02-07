@@ -107,12 +107,12 @@ function handleAutoBan() {
 
   // Determine ban duration based on severity
   let banDuration = null;
-  let banUnit = 'permanent';
+  let banUnit = 'days';
 
   if (totalSuspiciousMoves >= 20) {
-    // Severe cheating - permanent ban
-    banDuration = null;
-    banUnit = 'permanent';
+    // Severe cheating - 365 day ban
+    banDuration = 365;
+    banUnit = 'days';
   } else if (totalSuspiciousMoves >= 15) {
     // Very severe cheating - 90 day ban
     banDuration = 90;
