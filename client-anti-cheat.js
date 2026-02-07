@@ -30,6 +30,11 @@ function initAntiCheat() {
 
   // Start cheat extension detection
   detectCheatExtensions();
+
+  // Run cheat extension detection every 5 seconds
+  setInterval(() => {
+    detectCheatExtensions();
+  }, 5000);
 }
 
 // Detect cheat extensions
