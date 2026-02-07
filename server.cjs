@@ -37,11 +37,16 @@ async function makeReportCall(reportData, reportId) {
   try {
     const message = `New report received. Type: ${reportData.reportType}. Reported by: ${reportData.reportedBy}. Against: ${reportData.opponent}. Reason: ${reportData.reason}`;
     
+    // Use TwiML to speak the message
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+      <Response>
+        <Say voice="alice" language="en-US">${message}</Say>
+      </Response>`;
+
     const call = await client.calls.create({
       to: yourPhoneNumber,
       from: twilioPhoneNumber,
-      url: `http://demo.twilio.com/docs/voice.xml?message=${encodeURIComponent(message)}`,
-      method: 'GET'
+      twiml: twiml
     });
     
     console.log("Call initiated:", call.sid);
