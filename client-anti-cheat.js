@@ -10,9 +10,9 @@ let suspiciousActivity = {
 };
 let lastMoveTime = Date.now();
 
-// Anti-cheat constants
-const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
-const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging
+// Anti-cheat constants (TEST MODE - Reduced thresholds for testing)
+const MIN_MOVE_TIME = 3000; // Minimum time between moves in milliseconds (increased for testing)
+const SUSPICIOUS_MOVE_COUNT = 2; // Number of suspicious moves before flagging (reduced for testing)
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
 const MAX_INVALID_MOVES = 3; // Maximum invalid moves before disconnect
 
