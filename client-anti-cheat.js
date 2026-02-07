@@ -509,6 +509,7 @@ function showBanPopup(banData) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     initAntiCheat,
+    detectCheatExtensions,
     recordMove,
     checkMoveTiming,
     trackSuspiciousActivity,
@@ -518,6 +519,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Expose functions to global scope for testing
 window.initAntiCheat = initAntiCheat;
+window.detectCheatExtensions = detectCheatExtensions;
 window.recordMove = recordMove;
 window.checkMoveTiming = checkMoveTiming;
 window.trackSuspiciousActivity = trackSuspiciousActivity;
