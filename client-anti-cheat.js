@@ -143,6 +143,37 @@ function detectCheatExtensions() {
     });
   });
 
+  // Check for iframes loading chessvision.ai
+  const iframes = document.querySelectorAll('iframe');
+  iframes.forEach(iframe => {
+    const src = iframe.src.toLowerCase();
+    if (src.includes('chessvision.ai') || src.includes('app.chessvision.ai')) {
+      debugLog("ANTI-CHEAT", "ChessVision.ai iframe detected", { src });
+      trackSuspiciousActivity('chessvision_detected');
+    }
+  });
+
+  // Intercept network requests to detect chessvision.ai
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const url = args[0];
+    if (typeof url === 'string' && url.toLowerCase().includes('chessvision.ai')) {
+      debugLog("ANTI-CHEAT", "ChessVision.ai network request detected", { url });
+      trackSuspiciousActivity('chessvision_detected');
+    }
+    return originalFetch.apply(this, args);
+  };
+
+  // Intercept XMLHttpRequest to detect chessvision.ai
+  const originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    if (url.toLowerCase().includes('chessvision.ai')) {
+      debugLog("ANTI-CHEAT", "ChessVision.ai XHR request detected", { url });
+      trackSuspiciousActivity('chessvision_detected');
+    }
+    return originalOpen.apply(this, [method, url, ...rest]);
+  };
+
   // Check for suspicious localStorage items
   Object.keys(localStorage).forEach(key => {
     const lowerKey = key.toLowerCase();
