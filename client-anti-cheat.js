@@ -139,7 +139,9 @@ function handleAutoBan() {
     activities: suspiciousActivity.activities.map(a => a.type).join(', ')
   };
 
+  // Store ban in localStorage with username
   localStorage.setItem('botModeBan', JSON.stringify(banData));
+  localStorage.setItem('bannedUsername', username);
   
   // Send ban information to server to add to manage ban list
   if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
@@ -150,6 +152,9 @@ function handleAutoBan() {
       duration: banData.duration,
       unit: banData.unit
     }));
+    debugLog("ANTI-CHEAT", "Ban sent to server", { username, banData });
+  } else {
+    debugLog("ANTI-CHEAT", "Socket not available, ban stored locally only", { username, banData });
   }
 
   // Show ban popup
