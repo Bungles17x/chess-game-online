@@ -27,6 +27,12 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone 
 
 // Function to make a call when a report is submitted
 async function makeReportCall(reportData, reportId) {
+  // Check if Twilio is configured before making call
+  if (!client) {
+    console.warn('Twilio client not initialized. Skipping phone call notification.');
+    return;
+  }
+  
   try {
     const message = `New report received. Type: ${reportData.reportType}. Reported by: ${reportData.reportedBy}. Against: ${reportData.opponent}. Reason: ${reportData.reason}`;
     
