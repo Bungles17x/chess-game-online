@@ -791,8 +791,9 @@ function handleServerMessage(data) {
     debugLog("REPORT", "Report details received", {
       reportId: data.report.id
     });
-    if (typeof loadGameReplay === "function" && data.replay) {
-      loadGameReplay(data.replay);
+    if (typeof loadGameReplay === "function" && data.report) {
+      console.log('Report details:', data.report);
+      // Note: Game replay functionality has been simplified
     }
     return;
   }

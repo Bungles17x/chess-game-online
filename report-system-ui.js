@@ -114,9 +114,11 @@ function handleReportMessages(data) {
       break;
 
     case 'reportDetails':
-      if (data.replay) {
-        // Load and display the game replay
-        loadGameReplay(data.replay);
+      if (data.report) {
+        // Show report details
+        console.log('Report details received:', data.report);
+        showAlert(`Viewing report #${data.report.id.substring(0, 8)}`);
+        // Note: Game replay functionality has been simplified
       }
       break;
 

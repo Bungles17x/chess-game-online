@@ -685,7 +685,9 @@ function handleReport(ws, data) {
       opponent: room.players.find(p => p !== ws)?.username || "Unknown",
       reason: data.reason || "No reason provided",
       description: data.description || "",
-      replayId: replayId
+      replayId: replayId,
+      timestamp: new Date().toISOString(),
+      status: "pending"
     };
 
     const reportId = generateReportId();
