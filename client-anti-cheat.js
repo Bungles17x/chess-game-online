@@ -227,7 +227,8 @@ function detectCheatExtensions() {
   });
 
   // Check for suspicious functions
-  const suspiciousFunctions = ['autoMove', 'bestMove', 'calculateMove', 'engineMove', 'aiMove', 'botMove', 'hackMove', 'cheatMove'];
+  // Note: We exclude legitimate game functions like aiMove
+  const suspiciousFunctions = ['autoMove', 'bestMove', 'calculateMove', 'engineMove', 'botMove', 'hackMove', 'cheatMove'];
   suspiciousFunctions.forEach(func => {
     if (window[func] && typeof window[func] === 'function') {
       debugLog("ANTI-CHEAT", "Suspicious function detected", { func });
@@ -236,14 +237,17 @@ function detectCheatExtensions() {
   });
 
   // Check for suspicious event listeners
-  const suspiciousEvents = ['mousemove', 'click', 'keydown', 'keyup'];
-  suspiciousEvents.forEach(event => {
-    const listeners = getEventListeners ? getEventListeners(document)[event] : [];
-    if (listeners && listeners.length > 10) {
-      debugLog("ANTI-CHEAT", "Suspicious number of event listeners detected", { event, count: listeners.length });
-      trackSuspiciousActivity('cheat_extension_detected');
-    }
-  });
+  // Note: getEventListeners is only available in Chrome DevTools, so we skip this check in production
+  if (typeof getEventListeners === 'function') {
+    const suspiciousEvents = ['mousemove', 'click', 'keydown', 'keyup'];
+    suspiciousEvents.forEach(event => {
+      const listeners = getEventListeners(document)[event] || [];
+      if (listeners.length > 10) {
+        debugLog("ANTI-CHEAT", "Suspicious number of event listeners detected", { event, count: listeners.length });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
+    });
+  }
 
   // Check for suspicious intervals
   const originalSetInterval = window.setInterval;
