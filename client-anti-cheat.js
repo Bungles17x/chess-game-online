@@ -12,10 +12,10 @@ let lastMoveTime = Date.now();
 
 // Anti-cheat constants
 const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
-const SUSPICIOUS_MOVE_COUNT = 20; // Number of suspicious moves before flagging
+const SUSPICIOUS_MOVE_COUNT = 5; // Number of suspicious moves before flagging (lowered for testing)
 const SUSPICIOUS_WINDOW = 60000; // Time window for suspicious activity (1 minute)
 const MAX_INVALID_MOVES = 5; // Maximum invalid moves before disconnect
-const AUTO_BAN_THRESHOLD = 30; // Number of suspicious moves before auto-ban
+const AUTO_BAN_THRESHOLD = 10; // Number of suspicious moves before auto-ban (lowered for testing)
 
 // Initialize anti-cheat
 function initAntiCheat() {
@@ -312,3 +312,11 @@ if (typeof module !== 'undefined' && module.exports) {
     checkBanStatus
   };
 }
+
+// Expose functions to global scope for testing
+window.initAntiCheat = initAntiCheat;
+window.recordMove = recordMove;
+window.checkMoveTiming = checkMoveTiming;
+window.trackSuspiciousActivity = trackSuspiciousActivity;
+window.checkBanStatus = checkBanStatus;
+window.showBanPopup = showBanPopup;
