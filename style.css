@@ -459,71 +459,7 @@ body.light-theme .alert-message {
   pointer-events: none;
 }
 
-/* Player Info & Timer */
 
-.player-info {
-  width: 100%;
-  max-width: 480px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--surface-soft);
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  z-index: 1;
-}
-
-.player-info.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  border-color: var(--accent);
-  color: white;
-  transform: scale(1.02);
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4);
-}
-
-.player-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: 0.5px;
-}
-
-.player-info.active .player-name {
-  color: white;
-}
-
-.timer {
-  font-size: 36px;
-  font-weight: 700;
-  font-family: "Courier New", monospace;
-  color: var(--text-main);
-  min-width: 120px;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.player-info.active .timer {
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.timer.warning {
-  color: #fbbf24;
-}
-
-.timer.danger {
-  color: #ef4444;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
   animation: boardGlow 10s ease-in-out infinite;
 }
 
