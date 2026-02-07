@@ -1477,8 +1477,20 @@ function handleSquareClick(square) {
           }
         }
         
-        // Block the move and show actual ban popup
-        handleAutoBan();
+        // Block the move and show ban modal using the same format as manage ban
+        showBanModal(
+          "You have been banned for suspicious activity",
+          "Multiple fast moves detected by anti-cheat system",
+          24, // duration
+          "hours", // unit
+          new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // expiresAt (24 hours from now)
+        );
+        
+        // Store the ban in localStorage
+        localStorage.setItem("banned", "true");
+        localStorage.setItem("banReason", "Multiple fast moves detected by anti-cheat system");
+        localStorage.setItem("banExpiresAt", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+        
         return;
       }
     }
