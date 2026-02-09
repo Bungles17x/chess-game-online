@@ -15,7 +15,7 @@ window.Debugger = {
     init() {
         // Check if current user is authorized
         if (!this.isAuthorized()) {
-            console.warn('Debugger access denied: User not authorized');
+            console.error('Debugger access denied: User not authorized');
             return;
         }
         

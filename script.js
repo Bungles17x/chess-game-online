@@ -564,7 +564,7 @@ function handleServerMessage(data) {
       return;
     }
     
-    connectionLatency = latency;
+    window.connectionLatency = latency;
     debugLog("NETWORK", "Pong received", { latency, timestamp: data.timestamp });
     updateConnectionQuality(latency);
     return;
