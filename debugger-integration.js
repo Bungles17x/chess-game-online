@@ -20,7 +20,7 @@
 
     // Initialize the debugger when the page loads
     document.addEventListener('DOMContentLoaded', function() {
-        if (window.Debugger) {
+        if (window.Debugger && !window.Debugger.initialized) {
             window.Debugger.init();
             console.log('Debugger initialized successfully');
         }

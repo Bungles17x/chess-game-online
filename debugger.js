@@ -21,6 +21,7 @@ window.Debugger = {
         
         this.createDebuggerUI();
         this.setupEventListeners();
+        this.initialized = true;
         this.log('SYSTEM', 'Debugger initialized');
     },
 
