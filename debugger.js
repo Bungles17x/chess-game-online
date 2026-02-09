@@ -21,8 +21,50 @@ window.Debugger = {
         
         this.createDebuggerUI();
         this.setupEventListeners();
+        this.setupErrorMonitoring();
         this.initialized = true;
         this.log('SYSTEM', 'Debugger initialized');
+    },
+
+    // Setup error monitoring to auto-show debugger on errors
+    setupErrorMonitoring() {
+        // Override console.error to catch errors
+        const originalError = console.error;
+        const self = this;
+        
+        console.error = function(...args) {
+            // Call original error
+            originalError.apply(console, args);
+            
+            // Auto-show debugger if authorized user encounters error
+            if (self.isAuthorized() && !self.enabled) {
+                self.toggle();
+                self.log('ERROR', 'Auto-opened due to console error');
+            }
+            
+            // Log to debugger if it's enabled
+            if (self.enabled) {
+                const errorMessage = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                ).join(' ');
+                self.log('ERROR', errorMessage);
+            }
+        };
+        
+        // Override console.warn to catch warnings
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            // Call original warn
+            originalWarn.apply(console, args);
+            
+            // Log to debugger if it's enabled
+            if (self.enabled) {
+                const warnMessage = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                ).join(' ');
+                self.log('WARN', warnMessage);
+            }
+        };
     },
 
     // Check if current user is authorized
