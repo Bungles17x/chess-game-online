@@ -1627,6 +1627,12 @@ function handleSquareClick(square) {
     playerColor
   });
 
+  // Update statistics
+  window.moveCount++;
+  if (result.captured) {
+    window.captureCount++;
+  }
+
   // Send move to opponent
   if (gameMode === "online" && socket && socket.readyState === WebSocket.OPEN) {
     debugLog("BOARD", "Sending move to server");
