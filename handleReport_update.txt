@@ -1,0 +1,78 @@
+// Replace the handleReport function in server.cjs with this updated version
+
+function handleReport(ws, data) {
+  try {
+    console.log("REPORT", "New report received", data);
+
+    if (!ws.roomId) {
+      ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
+      return;
+    }
+
+    const room = rooms.get(ws.roomId);
+    if (!room) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
+      return;
+    }
+
+    // Save game replay (simplified version)
+    const replayId = ws.roomId;
+
+    // Get opponent username
+    let opponent = "Unknown";
+    if (room.players && room.players.length > 0) {
+      const opponentPlayer = room.players.find(p => p !== ws && p.username);
+      if (opponentPlayer && opponentPlayer.username) {
+        opponent = opponentPlayer.username;
+      }
+    }
+
+    // Create report
+    const reportData = {
+      reportType: data.reportType || "cheating",
+      reportedBy: ws.username || "Anonymous",
+      roomId: ws.roomId,
+      opponent: opponent,
+      reason: data.reason || "No reason provided",
+      description: data.description || "",
+      replayId: replayId,
+      timestamp: new Date().toISOString(),
+      status: "pending"
+    };
+
+    const reportId = generateReportId();
+    reports.set(reportId, reportData);
+
+    // Send notification to admin (simplified version)
+    console.log("Report created:", reportId, reportData);
+
+    // Send email notification
+    const mailOptions = {
+      from: 'chessygames@yahoo.com',
+      to: 'chessygames@yahoo.com',
+      subject: `New Report: ${reportData.reportType} - ${reportData.reportedBy} vs ${reportData.opponent}`,
+      text: `Report ID: ${reportId}\nType: ${reportData.reportType}\nReported by: ${reportData.reportedBy}\nOpponent: ${reportData.opponent}\nRoom ID: ${reportData.roomId}\nReason: ${reportData.reason}\nDescription: ${reportData.description}\nTimestamp: ${reportData.timestamp}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+      } else {
+        console.log("Email sent:", info.response);
+      }
+    });
+
+    // Call notifications are now handled by the admin panel
+
+    // Confirm report submission to user
+    ws.send(JSON.stringify({
+      type: "reportSubmitted",
+      reportId: reportId,
+      message: "Report submitted successfully. Thank you for helping us improve the game!"
+    }));
+
+  } catch (error) {
+    console.error("Error handling report:", error);
+    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to submit report" }));
+  }
+}

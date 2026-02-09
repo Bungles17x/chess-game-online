@@ -1,0 +1,290 @@
+// Authentication JavaScript
+
+// DOM Elements
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const loginBtn = document.getElementById('login-btn');
+const registerBtn = document.getElementById('register-btn');
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  setupLoginForm();
+  setupRegisterForm();
+  setupAuthButtons();
+});
+
+// Setup login form
+function setupLoginForm() {
+  if (!loginForm) return;
+
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const rememberMe = document.getElementById('remember-me').checked;
+
+    // Validate inputs
+    if (!email) {
+      showError('Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password) {
+      showError('Please enter your password');
+      return;
+    }
+
+    if (password.length < 6) {
+      showError('Password must be at least 6 characters');
+      return;
+    }
+
+    // Check if user exists in localStorage
+    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (!user) {
+      showError('Invalid email or password');
+      return;
+    }
+    
+    // Check if user is banned
+    // Exempt admin account from ban check
+    if (user.username.toLowerCase() === 'bungles17x') {
+      console.log("AUTH", "Admin account exempted from ban check", { username: user.username });
+      // Clear any existing ban data for admin account
+      localStorage.removeItem('botModeBan');
+      localStorage.removeItem('bannedUsername');
+      localStorage.removeItem('isUserBanned');
+      localStorage.removeItem('showBanAfterLogin');
+    } else {
+      const banData = localStorage.getItem('botModeBan');
+    if (banData) {
+      const ban = JSON.parse(banData);
+      
+      // Only check ban if it belongs to this user
+      if (ban.username && ban.username === user.username) {
+        // Check if ban is permanent or not expired
+        let isBanned = false;
+        if (!ban.duration) {
+          isBanned = true;
+        } else {
+          let expiryTime;
+          if (ban.unit === 'hours') {
+            expiryTime = ban.timestamp + (ban.duration * 60 * 60 * 1000);
+          } else if (ban.unit === 'days') {
+            expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+          } else {
+            expiryTime = ban.timestamp + (ban.duration * 24 * 60 * 60 * 1000);
+          }
+          isBanned = Date.now() <= expiryTime;
+        }
+        
+        if (isBanned) {
+          // Store the username of the banned user
+          localStorage.setItem('bannedUsername', user.username);
+          // Store the ban data to show modal after login
+          localStorage.setItem('showBanAfterLogin', 'true');
+        } else {
+          // Ban has expired, clear all ban-related data
+          localStorage.removeItem('botModeBan');
+          localStorage.removeItem('bannedUsername');
+          localStorage.removeItem('isUserBanned');
+          localStorage.removeItem('showBanAfterLogin');
+          localStorage.removeItem('banExpiresAt');
+          localStorage.removeItem('banReason');
+        }
+      }
+    }
+    }
+
+    // Login successful
+    localStorage.setItem('currentUser', JSON.stringify(user));
+
+    if (rememberMe) {
+      localStorage.setItem('rememberedUser', email);
+    } else {
+      localStorage.removeItem('rememberedUser');
+    }
+
+    // Redirect to game
+    window.location.href = 'index.html';
+  });
+
+  // Load remembered user
+  const rememberedEmail = localStorage.getItem('rememberedUser');
+  if (rememberedEmail) {
+    document.getElementById('email').value = rememberedEmail;
+    document.getElementById('remember-me').checked = true;
+  }
+}
+
+// Setup register form
+function setupRegisterForm() {
+  if (!registerForm) return;
+
+  registerForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    const terms = document.getElementById('terms').checked;
+
+    // Validate inputs
+    if (!username) {
+      showError('Please enter a username');
+      return;
+    }
+
+    if (username.length < 3) {
+      showError('Username must be at least 3 characters');
+      return;
+    }
+
+    if (!email) {
+      showError('Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password) {
+      showError('Please enter a password');
+      return;
+    }
+
+    if (password.length < 6) {
+      showError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!confirmPassword) {
+      showError('Please confirm your password');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showError('Passwords do not match');
+      return;
+    }
+
+    if (!terms) {
+      showError('You must agree to the Terms of Service');
+      return;
+    }
+
+    // Check if user already exists
+    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+
+    if (users.find(u => u.email === email)) {
+      showError('An account with this email already exists');
+      return;
+    }
+
+    if (users.find(u => u.username === username)) {
+      showError('This username is already taken');
+      return;
+    }
+
+    // Create new user
+    const newUser = {
+      id: Date.now(),
+      username,
+      email,
+      password,
+      avatar: '♟',
+      level: 1,
+      xp: 0,
+      stats: {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        currentStreak: 0
+      },
+      savedGames: [],
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    localStorage.setItem('chessUsers', JSON.stringify(users));
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+    // Redirect to game
+    window.location.href = 'index.html';
+  });
+}
+
+// Setup auth buttons in main game
+function setupAuthButtons() {
+  if (!loginBtn || !registerBtn) return;
+
+  // Check if user is logged in
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+  if (currentUser) {
+    // User is logged in - change buttons to logout and profile
+    loginBtn.textContent = 'Logout';
+    loginBtn.onclick = handleLogout;
+    registerBtn.style.display = 'none';
+  } else {
+    // User is not logged in
+    loginBtn.onclick = () => window.location.href = 'login.html';
+    registerBtn.onclick = () => window.location.href = 'register.html';
+  }
+}
+
+// Handle logout
+function handleLogout() {
+  localStorage.removeItem('currentUser');
+  window.location.href = 'index.html';
+}
+
+// Validate email format
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
+
+// Show error message
+function showError(message) {
+  // Create error alert
+  const alertDiv = document.createElement('div');
+  alertDiv.className = 'auth-alert error';
+  alertDiv.textContent = message;
+
+  // Insert after form header
+  const authHeader = document.querySelector('.auth-header');
+  authHeader.insertAdjacentElement('afterend', alertDiv);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    alertDiv.remove();
+  }, 3000);
+}
+
+// Check if user is authenticated
+function isAuthenticated() {
+  return localStorage.getItem('currentUser') !== null;
+}
+
+// Get current user
+function getCurrentUser() {
+  return JSON.parse(localStorage.getItem('currentUser') || 'null');
+}
+
+// Export functions for use in other files
+window.isAuthenticated = isAuthenticated;
+window.getCurrentUser = getCurrentUser;
+window.handleLogout = handleLogout;

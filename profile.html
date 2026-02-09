@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Profile - Modern Chess</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="profile-enhanced.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Modern Chess</h1>
+        <span class="tagline">Play beautifully, think brutally.</span>
+      </div>
+      <div class="top-right">
+        <button id="theme-toggle" class="pill-btn">
+          <span class="pill-dot"></span>
+          <span class="pill-label">Dark mode</span>
+        </button>
+        <button id="back-to-game-btn" class="pill-btn">Back to Game</button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="profile-page">
+      <div class="profile-container">
+        <!-- Username Section -->
+        <div class="username-section">
+          <h2>Your Username</h2>
+          <div class="username-display">
+            <div class="username-info">
+              <h3 id="username-display">Player</h3>
+              <p id="username-label">Your unique identifier</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avatar Section -->
+        <div class="avatar-section">
+          <h2>Your Avatar</h2>
+          <div class="avatar-display">
+            <div id="current-avatar" class="avatar-large">♟</div>
+            <div class="avatar-info">
+              <h3 id="player-name">Player</h3>
+              <p id="player-level">Level 1</p>
+            </div>
+          </div>
+          <div class="avatar-selection">
+            <h3>Choose Your Avatar</h3>
+            <div class="avatar-grid">
+              <div class="avatar-option selected" data-avatar="♟">
+                <span class="avatar-emoji">♟</span>
+                <span class="avatar-name">Pawn</span>
+              </div>
+              <div class="avatar-option" data-avatar="♜">
+                <span class="avatar-emoji">♜</span>
+                <span class="avatar-name">Rook</span>
+              </div>
+              <div class="avatar-option" data-avatar="♞">
+                <span class="avatar-emoji">♞</span>
+                <span class="avatar-name">Knight</span>
+              </div>
+              <div class="avatar-option" data-avatar="♝">
+                <span class="avatar-emoji">♝</span>
+                <span class="avatar-name">Bishop</span>
+              </div>
+              <div class="avatar-option" data-avatar="♛">
+                <span class="avatar-emoji">♛</span>
+                <span class="avatar-name">Queen</span>
+              </div>
+              <div class="avatar-option" data-avatar="♚">
+                <span class="avatar-emoji">♚</span>
+                <span class="avatar-name">King</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-section">
+          <h2>Game Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Games Played</span>
+              <span id="total-games" class="stat-value">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Wins</span>
+              <span id="total-wins" class="stat-value">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Losses</span>
+              <span id="total-losses" class="stat-value">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Draws</span>
+              <span id="total-draws" class="stat-value">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Win Rate</span>
+              <span id="win-rate" class="stat-value">0%</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Current Streak</span>
+              <span id="current-streak" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friends Section -->
+        <div class="friends-section">
+          <h2>Friends</h2>
+          <div class="add-friend-container">
+            <input type="text" id="add-friend-input" class="friend-input" placeholder="Enter username to add friend">
+            <button id="add-friend-btn" class="primary-btn">Add Friend</button>
+          </div>
+          <div id="friends-list" class="friends-list">
+            <p class="no-friends">No friends yet. Add some to play together!</p>
+          </div>
+        </div>
+
+        <!-- Saved Games Section -->
+        <div class="saved-games-section">
+          <h2>Saved Games</h2>
+          <div id="saved-games-list" class="saved-games-list">
+            <p class="no-saved-games">No saved games yet. Start playing and save your games!</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="profile.js"></script>
+</body>
+</html>

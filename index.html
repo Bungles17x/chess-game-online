@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern Chess</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="report-system.css" />
+  <link rel="stylesheet" href="friends.css" />
+  <link rel="stylesheet" href="admin-features.css" />
+  <link rel="stylesheet" href="debugger.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="alert-area"></div>
+
+
+
+  <!-- Game Box - Contains all game elements -->
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Modern Chess</h1>
+        <span class="tagline">Play beautifully, think brutally.</span>
+      </div>
+
+      <div id="popup-container"></div>
+
+      <div class="top-right">
+        <button id="theme-toggle" class="pill-btn">
+          <span class="pill-dot"></span>
+          <span class="pill-label">Dark mode</span>
+        </button>
+
+        <div class="dropdown">
+          <button id="menu-btn" class="pill-btn menu-btn">
+            <span class="menu-icon">☰</span>
+          </button>
+          <div class="dropdown-content">
+            <button id="bot-mode" data-mode="bot" class="dropdown-item">Bot</button>
+            <button id="online-mode" data-mode="online" class="dropdown-item">Online</button>
+            <button id="lobby-btn" class="dropdown-item">Lobby</button>
+            <button id="profile-btn" class="dropdown-item">Profile</button>
+            <button id="theme-btn" class="dropdown-item">🎨 Themes</button>
+            <button id="manage-bans-btn" class="dropdown-item">🔒 Manage Bans</button>
+            <button id="report-btn" class="dropdown-item">📢 Report Player</button>
+            <button id="friends-btn" class="dropdown-item">👥 Friends</button>
+            <button id="login-btn" class="dropdown-item">Login</button>
+            <button id="register-btn" class="dropdown-item">Register</button>
+          </div>
+        </div>
+
+        <div class="status">
+          <span id="turn-indicator">White to move</span>
+          <div class="connection-status">
+            <div id="connection-dot" class="connection-dot"></div>
+            <span id="connection-text">Connected</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="layout">
+      <section class="board-card">
+        <div id="chessboard" class="chessboard"></div>
+      </section>
+
+      <aside class="side-panel">
+        <h2>Moves</h2>
+        <ul id="moves-list"></ul>
+        <button id="save-game-btn" class="primary-btn">Save Game</button>
+        <button id="reset-btn" class="primary-btn">Reset Game</button>
+        <button id="draw-btn" class="primary-btn">Offer Draw</button>
+        <button id="resign-btn" class="primary-btn">Resign</button>
+
+        <!-- Chat Section -->
+        <button id="toggle-chat-btn" class="primary-btn">Show Chat</button>
+        <div id="chat-container" class="chat-container hidden">
+          <h2>Chat</h2>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-container">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="200">
+            <button id="send-chat-btn" class="primary-btn">Send</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- SOUNDS -->
+  <!-- Note: Sound files are optional. Add them to sounds/ directory when available -->
+  <audio id="move-sound" preload="auto">
+    <source src="./sounds/move.wav" type="audio/wav">
+  </audio>
+  <audio id="capture-sound" preload="auto">
+    <source src="./sounds/capture.wav" type="audio/wav">
+  </audio>
+  <audio id="connection-lost-sound" preload="auto">
+    <source src="./sounds/connection-lost.wav" type="audio/wav">
+  </audio>
+  <audio id="reconnected-sound" preload="auto">
+    <source src="./sounds/reconnected.wav" type="audio/wav">
+  </audio>
+
+
+
+  <div id="alert-box" class="alert hidden">
+    <div class="alert-content">
+      <span id="alert-message"></span>
+      <button id="alert-close" class="primary-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- LOBBY MODAL -->
+  <div id="lobby-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Available Rooms</h2>
+      <div class="search-container">
+        <input type="text" id="room-search" class="search-input" placeholder="Search for a room..." />
+        <span class="search-icon">🔍</span>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="rooms">Rooms</button>
+        <button class="tab-btn" data-tab="friends">Friends</button>
+      </div>
+
+      <div id="rooms-tab" class="tab-content active">
+        <ul id="room-list"></ul>
+      </div>
+
+      <div id="friends-tab" class="tab-content">
+        <ul id="lobby-friends-list"></ul>
+      </div>
+      <button id="create-room-btn" class="primary-btn">Create Room</button>
+      <button id="close-lobby-btn" class="primary-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen" class="loading-screen hidden">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <h2>Connecting to server...</h2>
+      <p>Please wait while we establish a connection.</p>
+    </div>
+  </div>
+
+  <!-- NO CONNECTION SCREEN -->
+  <div id="no-connection-screen" class="no-connection-screen hidden">
+    <canvas id="connection-particles" class="connection-particles"></canvas>
+    <div class="no-connection-content">
+      <div class="connection-icon">⚠️</div>
+      <h2>Connection Failed</h2>
+      <p>We're having trouble connecting to our servers. Please check your internet connection and try again.</p>
+      <button id="retry-connection-btn" class="primary-btn">Retry Connection</button>
+      <button id="back-to-bot-btn" class="primary-btn">Back to Bot Mode</button>
+    </div>
+  </div>
+
+  <!-- THEME SELECTOR MODAL -->
+  <div id="theme-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Game Themes</h2>
+
+      <div class="theme-section">
+        <h3>Board Theme</h3>
+        <div class="theme-grid">
+          <div class="theme-option" data-theme="classic">
+            <div class="theme-preview board-classic">
+              <div class="square light"></div>
+              <div class="square dark"></div>
+            </div>
+            <span>Classic</span>
+          </div>
+          <div class="theme-option" data-theme="blue">
+            <div class="theme-preview board-blue">
+              <div class="square light"></div>
+              <div class="square dark"></div>
+            </div>
+            <span>Blue</span>
+          </div>
+          <div class="theme-option" data-theme="green">
+            <div class="theme-preview board-green">
+              <div class="square light"></div>
+              <div class="square dark"></div>
+            </div>
+            <span>Green</span>
+          </div>
+          <div class="theme-option" data-theme="purple">
+            <div class="theme-preview board-purple">
+              <div class="square light"></div>
+              <div class="square dark"></div>
+            </div>
+            <span>Purple</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="theme-section">
+        <h3>Piece Theme</h3>
+        <div class="theme-grid">
+          <div class="theme-option" data-piece="classic">
+            <div class="piece-preview piece-classic">
+              <span class="piece">♟♜♞♝♛♚</span>
+            </div>
+            <span>Classic</span>
+          </div>
+          <div class="theme-option" data-piece="modern">
+            <div class="piece-preview piece-modern">
+              <span class="piece">♟♜♞♝♛♚</span>
+            </div>
+            <span>Modern</span>
+          </div>
+          <div class="theme-option" data-piece="minimal">
+            <div class="piece-preview piece-minimal">
+              <span class="piece">♟♜♞♝♛♚</span>
+            </div>
+            <span>Minimal</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="close-theme-btn" class="primary-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- REPORT MODAL -->
+  <div id="report-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Report Player</h2>
+      <form id="report-form">
+        <div class="form-group">
+          <label for="report-type">Report Type:</label>
+          <select id="report-type" class="form-input" required>
+            <option value="cheating">Cheating</option>
+            <option value="abuse">Abuse or Harassment</option>
+            <option value="bug">Bug Report</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="report-reason">Reason:</label>
+          <input type="text" id="report-reason" class="form-input" placeholder="Brief reason for report" required>
+        </div>
+        <div class="form-group">
+          <label for="report-description">Description:</label>
+          <textarea id="report-description" class="form-input" rows="4" placeholder="Please provide detailed description of the issue..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary-btn">Submit Report</button>
+          <button type="button" id="close-report-btn" class="primary-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- REPORTS MANAGEMENT MODAL -->
+  <div id="reports-modal" class="modal hidden">
+    <div class="modal-content reports-modal-content">
+      <h2>Reports Management</h2>
+      <div id="reports-list" class="reports-list"></div>
+      <button id="close-reports-btn" class="primary-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- FRIENDS MODAL -->
+  <div id="friends-modal" class="friends-modal hidden">
+    <div class="friends-content">
+      <div class="friends-header">
+        <h2>Friends</h2>
+        <button id="close-friends-btn" class="close-friends-btn">&times;</button>
+      </div>
+
+      <div class="friends-section">
+        <h3>Add Friend</h3>
+        <div class="add-friend-form">
+          <input type="text" id="add-friend-input" class="add-friend-input" placeholder="Enter username...">
+          <button id="add-friend-btn" class="add-friend-btn">Add Friend</button>
+        </div>
+      </div>
+
+      <div class="friends-section">
+        <h3>My Friends</h3>
+        <ul id="friends-list" class="friends-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHESS.JS + SCRIPT -->
+  <script src="chess.js"></script>
+  <script src="friends.js"></script>
+  <script src="client-anti-cheat.js"></script>
+  <script src="anti-cheat-report-fix.js"></script>
+  <script src="script.js"></script>
+  <script src="report-system-ui.js"></script>
+  <script src="admin-panel-enhanced.js"></script>
+  <script src="admin-features.js"></script>
+  <script src="debugger.js"></script>
+  <script src="debugger-integration.js"></script>
+
+</body>
+</html>
