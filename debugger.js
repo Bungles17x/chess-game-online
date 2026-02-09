@@ -9,6 +9,7 @@ window.Debugger = {
     currentFile: 'global',
     breakpoints: new Set(),
     authorizedUser: 'bungles17x', // Only this user can access the debugger
+    initialized: false, // Track if debugger has been initialized
 
     // Initialize the debugger
     init() {
@@ -457,13 +458,6 @@ window.Debugger = {
         output.scrollTop = output.scrollHeight;
     }
 };
-
-// Initialize debugger when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window.Debugger.init());
-} else {
-    window.Debugger.init();
-}
 
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {
