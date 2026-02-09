@@ -26,7 +26,7 @@ const BAN_APPEAL_URL = 'https://chess-game-online-u34h.onrender.com/appeal'; // 
 
 // Initialize anti-cheat
 function initAntiCheat() {
-  debugLog("ANTI-CHEAT", "Client-side anti-cheat initialized");
+  AntiCheatLogger.info('INIT', 'Client-side anti-cheat initialized');
 
   // Start cheat extension detection
   detectCheatExtensions();
@@ -75,7 +75,7 @@ function detectCheatExtensions() {
 
     suspiciousExtensions.forEach(extension => {
       if (id.includes(extension) || className.includes(extension)) {
-        debugLog("ANTI-CHEAT", "Suspicious element detected", { id, className, extension });
+        AntiCheatLogger.warn('DETECTION', 'Suspicious element detected', { id, className, extension });
         trackSuspiciousActivity('cheat_extension_detected');
       }
     });
@@ -92,7 +92,7 @@ function detectCheatExtensions() {
     
     suspiciousExtensions.forEach(extension => {
       if (lowerKey.includes(extension)) {
-        debugLog("ANTI-CHEAT", "Suspicious global variable detected", { key, extension });
+        AntiCheatLogger.warn('DETECTION', 'Suspicious global variable detected', { key, extension });
         trackSuspiciousActivity('cheat_extension_detected');
       }
     });
