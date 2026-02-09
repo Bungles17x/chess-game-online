@@ -111,7 +111,7 @@ function detectCheatExtensions() {
 
     suspiciousExtensions.forEach(extension => {
       if (src.includes(extension) || content.includes(extension)) {
-        debugLog("ANTI-CHEAT", "Suspicious script detected", { src, extension });
+        AntiCheatLogger.warn('DETECTION', 'Suspicious script detected', { src, extension });
         trackSuspiciousActivity('cheat_extension_detected');
       }
     });
@@ -136,7 +136,7 @@ function detectCheatExtensions() {
     
     chessvisionPatterns.forEach(pattern => {
       if (id.includes(pattern) || className.includes(pattern)) {
-        debugLog("ANTI-CHEAT", "ChessVision.ai element detected", { id, className, pattern });
+        AntiCheatLogger.warn('CHESSVISION', 'ChessVision.ai element detected', { id, className, pattern });
         trackSuspiciousActivity('chessvision_detected');
       }
     });
@@ -147,7 +147,7 @@ function detectCheatExtensions() {
     const lowerKey = key.toLowerCase();
     chessvisionPatterns.forEach(pattern => {
       if (lowerKey.includes(pattern)) {
-        debugLog("ANTI-CHEAT", "ChessVision.ai global variable detected", { key, pattern });
+        AntiCheatLogger.warn('CHESSVISION', 'ChessVision.ai global variable detected', { key, pattern });
         trackSuspiciousActivity('chessvision_detected');
       }
     });
@@ -158,7 +158,7 @@ function detectCheatExtensions() {
     const lowerKey = key.toLowerCase();
     chessvisionPatterns.forEach(pattern => {
       if (lowerKey.includes(pattern)) {
-        debugLog("ANTI-CHEAT", "ChessVision.ai localStorage item detected", { key, pattern });
+        AntiCheatLogger.warn('CHESSVISION', 'ChessVision.ai localStorage item detected', { key, pattern });
         trackSuspiciousActivity('chessvision_detected');
       }
     });
@@ -169,7 +169,7 @@ function detectCheatExtensions() {
   iframes.forEach(iframe => {
     const src = iframe.src.toLowerCase();
     if (src.includes('chessvision.ai') || src.includes('app.chessvision.ai')) {
-      debugLog("ANTI-CHEAT", "ChessVision.ai iframe detected", { src });
+      AntiCheatLogger.warn('CHESSVISION', 'ChessVision.ai iframe detected', { src });
       trackSuspiciousActivity('chessvision_detected');
     }
   });
