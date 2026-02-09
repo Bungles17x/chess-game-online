@@ -1,6 +1,19 @@
 // client-anti-cheat.js
 // Client-side anti-cheat system for bot mode
 
+// Anti-cheat logger
+const AntiCheatLogger = {
+  info: (category, message) => {
+    console.log(`[ANTI-CHEAT][${category}] ${message}`);
+  },
+  warn: (category, message) => {
+    console.warn(`[ANTI-CHEAT][${category}] ${message}`);
+  },
+  error: (category, message) => {
+    console.error(`[ANTI-CHEAT][${category}] ${message}`);
+  }
+};
+
 // Anti-cheat data structures
 let playerMoveHistory = [];
 let suspiciousActivity = {

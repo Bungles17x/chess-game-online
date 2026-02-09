@@ -515,7 +515,9 @@
       }
     };
 
-    window.socket.addEventListener('message', handleFriends);
+    if (window.socket) {
+      window.socket.addEventListener('message', handleFriends);
+    }
   }
 
   function displayFriendsList(friends) {
@@ -762,7 +764,6 @@
         addReportsManagementButton();
         addPasswordResetManagementButton();
         addAdminCheatMenu();
-        addForgottenPasswordsButton();
         console.log('[ADMIN] Admin features initialized');
       }
     }, 100);
