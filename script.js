@@ -106,7 +106,7 @@ const chatInput = document.getElementById("chat-input");
 const sendChatBtn = document.getElementById("send-chat-btn");
 
 // Connection quality tracking
-let connectionLatency = 0;
+window.connectionLatency = 0;
 let lastPingTime = 0;
 let pingInterval = null;
 let pingTimeout = null;
@@ -135,8 +135,8 @@ let allRooms = []; // Store all available rooms for searching
 let isInRoom = false; // Track if player is currently in a room
 let currentBoardTheme = "classic"; // Current board theme
 let currentPieceTheme = "classic"; // Current piece theme
-let moveCount = 0; // Track total moves
-let captureCount = 0; // Track total captures
+window.moveCount = 0; // Track total moves
+window.captureCount = 0; // Track total captures
 let moveHistory = []; // Store move history for navigation
 let currentMoveIndex = -1; // Current position in move history
 

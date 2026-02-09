@@ -277,6 +277,12 @@ window.Debugger = {
         if (container) {
             container.classList.toggle('hidden');
             this.enabled = !container.classList.contains('hidden');
+            
+            // Start auto-refresh when opened
+            if (this.enabled) {
+                this.startAutoRefresh();
+                this.updateGameState(); // Immediate update
+            }
         }
     },
 
@@ -441,6 +447,19 @@ window.Debugger = {
         if (movesEl) movesEl.textContent = window.moveCount || 0;
         if (capturesEl) capturesEl.textContent = window.captureCount || 0;
         if (latencyEl) latencyEl.textContent = `${window.connectionLatency || 0}ms`;
+    },
+
+    // Start auto-refreshing statistics
+    startAutoRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+        
+        this.refreshInterval = setInterval(() => {
+            if (this.enabled) {
+                this.updateGameState();
+            }
+        }, 1000); // Update every second
     },
 
     // Update network status
