@@ -298,6 +298,47 @@
     color: #fff;
 }
 
+.debugger-console-command {
+    padding: 8px;
+    margin-bottom: 4px;
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+}
+
+.debugger-console-prompt {
+    color: #6366f1;
+    margin-right: 8px;
+    font-weight: 600;
+}
+
+.debugger-console-result {
+    padding: 8px;
+    margin-bottom: 8px;
+    margin-left: 20px;
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 4px;
+    border-left: 2px solid #10b981;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.debugger-console-error {
+    padding: 8px;
+    margin-bottom: 8px;
+    margin-left: 20px;
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 4px;
+    border-left: 2px solid #ef4444;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    color: #fca5a5;
+}
+
 /* Category-specific colors */
 .debugger-log-system { border-left-color: #6366f1; }
 .debugger-log-error { border-left-color: #ef4444; }
