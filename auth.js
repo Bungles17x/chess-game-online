@@ -1,20 +1,20 @@
 // Authentication JavaScript
 
-// DOM Elements
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const loginBtn = document.getElementById('login-btn');
-const registerBtn = document.getElementById('register-btn');
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  setupLoginForm();
-  setupRegisterForm();
-  setupAuthButtons();
+  // Get DOM elements after page loads
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const loginBtn = document.getElementById('login-btn');
+  const registerBtn = document.getElementById('register-btn');
+  
+  setupLoginForm(loginForm);
+  setupRegisterForm(registerForm);
+  setupAuthButtons(loginBtn, registerBtn);
 });
 
 // Setup login form
-function setupLoginForm() {
+function setupLoginForm(loginForm) {
   if (!loginForm) return;
 
   loginForm.addEventListener('submit', (e) => {
@@ -26,11 +26,12 @@ function setupLoginForm() {
 
     // Validate inputs
     if (!email) {
-      showError('Please enter your email address');
+      showError('Please enter your email or username');
       return;
     }
 
-    if (!validateEmail(email)) {
+    // Only validate as email if it contains @ symbol
+    if (email.includes('@') && !validateEmail(email)) {
       showError('Please enter a valid email address');
       return;
     }
@@ -47,10 +48,15 @@ function setupLoginForm() {
 
     // Check if user exists in localStorage
     const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
+    
+    // Allow login with either email or username
+    const user = users.find(u => 
+      (u.email === email || u.username === email) && 
+      u.password === password
+    );
 
     if (!user) {
-      showError('Invalid email or password');
+      showError('Invalid email/username or password');
       return;
     }
     
@@ -92,13 +98,15 @@ function setupLoginForm() {
           // Store the ban data to show modal after login
           localStorage.setItem('showBanAfterLogin', 'true');
         } else {
-          // Ban has expired, clear all ban-related data
-          localStorage.removeItem('botModeBan');
-          localStorage.removeItem('bannedUsername');
-          localStorage.removeItem('isUserBanned');
-          localStorage.removeItem('showBanAfterLogin');
-          localStorage.removeItem('banExpiresAt');
-          localStorage.removeItem('banReason');
+          // Ban has expired, clear all ban-related data only for bungles17x
+          if (user.username === 'bungles17x') {
+            localStorage.removeItem('botModeBan');
+            localStorage.removeItem('bannedUsername');
+            localStorage.removeItem('isUserBanned');
+            localStorage.removeItem('showBanAfterLogin');
+            localStorage.removeItem('banExpiresAt');
+            localStorage.removeItem('banReason');
+          }
         }
       }
     }
@@ -126,7 +134,7 @@ function setupLoginForm() {
 }
 
 // Setup register form
-function setupRegisterForm() {
+function setupRegisterForm(registerForm) {
   if (!registerForm) return;
 
   registerForm.addEventListener('submit', (e) => {
@@ -227,7 +235,7 @@ function setupRegisterForm() {
 }
 
 // Setup auth buttons in main game
-function setupAuthButtons() {
+function setupAuthButtons(loginBtn, registerBtn) {
   if (!loginBtn || !registerBtn) return;
 
   // Check if user is logged in

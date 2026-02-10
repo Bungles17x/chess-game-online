@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function loadPlayerData() {
   // First try to load from authenticated user
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  console.log("Profile: Loading player data", { currentUser: !!currentUser, username: currentUser?.username });
 
   if (currentUser && currentUser.username) {
     // Load from authenticated user
@@ -70,15 +71,20 @@ function loadPlayerData() {
       savedGames: currentUser.savedGames || [],
       friends: currentUser.friends || []
     };
+    
+    // Ensure friends array is properly initialized
+    if (!playerData.friends || !Array.isArray(playerData.friends)) {
+      playerData.friends = [];
+    }
   } else {
     // Fall back to local storage
     const savedData = localStorage.getItem("chessPlayerData");
     if (savedData) {
       playerData = JSON.parse(savedData);
-      // Ensure friends array exists
-      if (!playerData.friends) {
-        playerData.friends = [];
-      }
+    }
+    // Ensure friends array exists
+    if (!playerData.friends || !Array.isArray(playerData.friends)) {
+      playerData.friends = [];
     }
   }
 
@@ -104,7 +110,8 @@ function savePlayerData() {
         xp: playerData.xp,
         avatar: playerData.avatar,
         stats: playerData.stats,
-        savedGames: playerData.savedGames
+        savedGames: playerData.savedGames,
+        friends: playerData.friends
       };
 
       // Save updated users array
@@ -258,6 +265,7 @@ function setupBackButton() {
 function displaySavedGames() {
   if (!savedGamesList) return;
 
+  console.log("Profile: Displaying saved games", { count: playerData.savedGames?.length || 0 });
   savedGamesList.innerHTML = "";
 
   if (!playerData.savedGames || playerData.savedGames.length === 0) {
@@ -278,6 +286,7 @@ function displaySavedGames() {
         <div class="saved-game-date">${formatDate(game.date)}</div>
       </div>
       <div class="saved-game-actions">
+        <button class="saved-game-btn rename-game-btn" data-index="${index}">Rename</button>
         <button class="saved-game-btn load-btn" data-index="${index}">Load</button>
         <button class="saved-game-btn delete-btn" data-index="${index}">Delete</button>
       </div>
@@ -292,6 +301,21 @@ function displaySavedGames() {
   });
 
   // Add event listeners to buttons
+  document.querySelectorAll(".rename-game-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.dataset.index);
+      renameGame(index);
+    });
+
+    btn.addEventListener('mouseenter', () => {
+      btn.style.transform = 'scale(1.05)';
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = 'scale(1)';
+    });
+  });
+
   document.querySelectorAll(".load-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const index = parseInt(e.target.dataset.index);
@@ -349,6 +373,41 @@ function deleteGame(index) {
     savePlayerData();
     displaySavedGames();
   }
+}
+
+// Rename a saved game
+function renameGame(index) {
+  const game = playerData.savedGames[index];
+  const newName = prompt("Enter new name for this saved game:", game.name);
+  
+  if (newName === null) {
+    // User cancelled
+    return;
+  }
+  
+  const trimmedName = newName.trim();
+  
+  if (!trimmedName) {
+    alert("Game name cannot be empty!");
+    return;
+  }
+  
+  if (trimmedName === game.name) {
+    alert("New name must be different from the current name!");
+    return;
+  }
+  
+  // Update game name
+  const oldName = game.name;
+  game.name = trimmedName;
+  
+  // Save player data
+  savePlayerData();
+  
+  // Update display
+  displaySavedGames();
+  
+  alert(`Game successfully renamed from "${oldName}" to "${trimmedName}"!`);
 }
 
 // Update player statistics (called from main game)
@@ -464,14 +523,19 @@ function addFriend(username) {
   // Validate username exists
   validateUsername(username, (isValid) => {
     if (!isValid) {
-      alert(`User "${username}" does not exist!`);
+      alert(`User "${username}" does not exist or is not registered! Please check the username and try again.`);
       return;
     }
+
+    // Get friend's avatar from registered users
+    const allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+    const friendUser = allUsers.find(user => user.username === username);
+    const friendAvatar = friendUser ? friendUser.avatar : '♟';
 
     // Add friend to list
     playerData.friends.push({
       username: username,
-      avatar: '♟',
+      avatar: friendAvatar,
       online: false,
       addedAt: new Date().toISOString()
     });
@@ -544,9 +608,15 @@ function validateUsername(username, callback) {
     return;
   }
 
-  // For now, accept any username that's not the current user
-  // In a real application, this would check against a server or database
-  callback(true);
+  // Check against all registered users in localStorage
+  const allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+  const userExists = allUsers.some(user => user.username === username);
+  
+  if (userExists) {
+    callback(true);
+  } else {
+    callback(false);
+  }
 }
 
 // Make functions available globally

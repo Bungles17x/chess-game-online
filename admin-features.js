@@ -453,6 +453,39 @@
     });
   }
 
+  // Dismiss report function
+  window.dismissReport = function(reportId) {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      window.socket.send(JSON.stringify({
+        type: 'updateReportStatus',
+        reportId: reportId,
+        status: 'dismissed'
+      }));
+      console.log('[Admin Features] Dismissing report:', reportId);
+    } else {
+      alert('Connection error. Please try again.');
+    }
+  };
+
+  // Update report status function
+  window.updateReportStatus = function(reportId) {
+    const newStatus = prompt('Enter new status (pending, investigating, resolved, dismissed):');
+    if (newStatus && ['pending', 'investigating', 'resolved', 'dismissed'].includes(newStatus.toLowerCase())) {
+      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        window.socket.send(JSON.stringify({
+          type: 'updateReportStatus',
+          reportId: reportId,
+          status: newStatus.toLowerCase()
+        }));
+        console.log('[Admin Features] Updating report status:', reportId, newStatus);
+      } else {
+        alert('Connection error. Please try again.');
+      }
+    } else {
+      alert('Invalid status. Please use: pending, investigating, resolved, or dismissed');
+    }
+  };
+
   // ==================== ENHANCED FRIENDS SYSTEM ====================
 
   function enhanceFriendsSystem() {

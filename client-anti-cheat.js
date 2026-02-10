@@ -24,6 +24,7 @@ let suspiciousActivity = {
   confidence: 0 // Confidence score (0-100)
 };
 let lastMoveTime = Date.now();
+let cheatDetectionInitialized = false; // Flag to prevent duplicate initialization messages
 
 // Anti-cheat constants
 const MIN_MOVE_TIME = 500; // Minimum time between moves in milliseconds
@@ -340,7 +341,11 @@ function detectCheatExtensions() {
     return xhr;
   };
 
-  debugLog("ANTI-CHEAT", "Cheat extension detection initialized");
+  // Only log initialization message once
+  if (!cheatDetectionInitialized) {
+    debugLog("ANTI-CHEAT", "Cheat extension detection initialized");
+    cheatDetectionInitialized = true;
+  }
   
   // Log if no cheats were found
   if (suspiciousActivity.count === 0) {

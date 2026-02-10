@@ -129,7 +129,7 @@ let touchStartTime = 0; // Track when touch started
 let lastMove = null; // Track the last move for highlighting
 let playerColor = "w";
 let roomId = null;
-let gameMode = "bot"; // "bot" or "online"
+window.gameMode = "bot"; // "bot" or "online"
 let isOnlineGame = false; // Track if we're in an online game
 let allRooms = []; // Store all available rooms for searching
 let isInRoom = false; // Track if player is currently in a room
@@ -277,13 +277,11 @@ function ensureSocket() {
 
       // Send authentication with username
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      const playerData = JSON.parse(localStorage.getItem('chessPlayerData') || '{}');
-      const username = currentUser?.username || playerData?.username || 'Player';
+      const username = currentUser?.username || 'Player';
 
       debugLog("AUTH", "Sending authentication", {
         username,
-        currentUser: !!currentUser.username,
-        playerData: !!playerData.username
+        currentUser: !!currentUser.username
       });
 
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -300,8 +298,11 @@ function ensureSocket() {
       }
 
       // Latency measurement disabled - server doesn't support ping/pong protocol
-      // if (pingInterval) clearInterval(pingInterval);
-      // pingInterval = setInterval(measureLatency, 5000);
+      // Latency is measured from server message timestamps instead
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
       // Cancel the no connection timeout
       if (noConnectionTimeout) {
         clearTimeout(noConnectionTimeout);
@@ -386,6 +387,17 @@ function handleServerMessage(data) {
     type: data.type,
     data: data
   });
+
+  // Measure latency from server messages (if they include timestamps)
+  if (data.timestamp && typeof data.timestamp === 'number') {
+    const currentTime = Date.now();
+    const latency = currentTime - data.timestamp;
+    // Only update if latency is reasonable (0-60 seconds)
+    if (latency >= 0 && latency <= 60000) {
+      window.connectionLatency = latency;
+      updateConnectionQuality(latency);
+    }
+  }
   
   if (data.type === "error") {
     debugLog("SERVER", "Error received from server", {
@@ -1659,6 +1671,11 @@ function handleSquareClick(square) {
   if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
     setTimeout(aiMove, 200);
   }
+
+  // Check for game over and update statistics
+  if (game.game_over()) {
+    updateGameStatistics();
+  }
 }
 
 function highlightSelectionAndMoves() {
@@ -1800,7 +1817,8 @@ function popup(message, type = "yellow") {
   let icon = "⚠️";
   if (type === "green") icon = "✔️";
   if (type === "red") icon = "❌";
-
+  if (type === "yellow") icon = "⚠️";
+  if (type === "blue") icon = "ℹ️";
   div.innerHTML = `<span class="icon">${icon}</span> ${message}`;
 
   container.appendChild(div);
@@ -1819,6 +1837,10 @@ function logMove(move) {
   li.textContent = move.san;
   movesList.appendChild(li);
   movesList.scrollTop = movesList.scrollHeight;
+  
+  // Add move to moveHistory for replay
+  moveHistory.push(move.san);
+  currentMoveIndex = moveHistory.length - 1;
 }
 
 function updateTurnIndicator() {
@@ -2181,6 +2203,16 @@ document.addEventListener("DOMContentLoaded", () => {
     showNoConnectionScreen();
   }
   
+  // Check if there's a loaded game to replay
+  const loadedGame = JSON.parse(localStorage.getItem("loadedGame") || "null");
+  if (loadedGame && loadedGame.state) {
+    debugLog("GAME", "Loaded game found, entering replay mode");
+    // Small delay to ensure everything is initialized
+    setTimeout(() => {
+      loadGame(loadedGame.state);
+    }, 100);
+  }
+  
   themeToggle.addEventListener("click", () => {
     debugLog("UI", "Theme toggle clicked");
     document.body.classList.toggle("light-theme");
@@ -2240,7 +2272,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listener for save game button
   if (saveGameBtn) {
     saveGameBtn.addEventListener("click", () => {
+      debugLog("GAME", "Save game button clicked");
       saveCurrentGame();
+    });
+  } else {
+    debugLog("ERROR", "Save game button not found");
+  }
+  
+  // Add event listener for exit replay button
+  const exitReplayBtn = document.getElementById("exit-replay-btn");
+  if (exitReplayBtn) {
+    exitReplayBtn.addEventListener("click", () => {
+      debugLog("GAME", "Exit replay button clicked");
+      exitReplayMode();
     });
   }
 
@@ -2474,8 +2518,8 @@ function updateConnectionStatus(connected) {
 }
 
 function measureLatency() {
-  // Disabled - server doesn't support ping/pong protocol
-  // Latency measurement will be added when server supports it
+  // Latency is now measured from server message timestamps
+  // This function is kept for compatibility but does nothing
   return;
 }
 
@@ -2732,42 +2776,222 @@ function hideNoConnectionScreen() {
 // SAVE/LOAD GAME FUNCTIONS
 // -----------------------------------------------------
 function saveCurrentGame() {
-  const gameState = {
-    fen: game.fen(),
-    pgn: game.pgn(),
-    turn: game.turn(),
-    moveHistory: moveHistory,
-    moveCount: moveCount,
-    captureCount: captureCount,
-    date: new Date().toISOString(),
-    mode: gameMode,
-    roomId: roomId || null
-  };
+  debugLog("GAME", "saveCurrentGame called");
+  try {
+    debugLog("GAME", "Creating game state");
+    const gameState = {
+      fen: game.fen(),
+      pgn: game.pgn(),
+      turn: game.turn(),
+      moveHistory: moveHistory,
+      moveCount: moveCount,
+      captureCount: captureCount,
+      date: new Date().toISOString(),
+      mode: gameMode,
+      roomId: roomId || null
+    };
+    debugLog("GAME", "Game state created", { gameState });
 
-  // Save to localStorage
-  const savedGames = JSON.parse(localStorage.getItem("chessSavedGames") || "[]");
-  savedGames.push(gameState);
-  localStorage.setItem("chessSavedGames", JSON.stringify(savedGames));
+    // Save to localStorage
+    debugLog("GAME", "Reading from localStorage");
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+    debugLog("GAME", "currentUser check", { exists: !!currentUser, username: currentUser?.username });
+    
+    if (currentUser) {
+      // Save to currentUser.savedGames
+      if (!currentUser.savedGames) {
+        currentUser.savedGames = [];
+      }
+      const savedGame = {
+        name: `Game ${currentUser.savedGames.length + 1}`,
+        date: new Date().toISOString(),
+        state: gameState
+      };
+      currentUser.savedGames.push(savedGame);
+      debugLog("GAME", "Saving to currentUser.savedGames", { totalGames: currentUser.savedGames.length });
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      debugLog("GAME", "Saved to currentUser successfully");
+    } else {
+      // Fallback to chessSavedGames for non-authenticated users
+      const savedGames = JSON.parse(localStorage.getItem("chessSavedGames") || "[]");
+      debugLog("GAME", "Current saved games count", { count: savedGames.length });
+      savedGames.push(gameState);
+      debugLog("GAME", "Saving to localStorage", { totalGames: savedGames.length });
+      localStorage.setItem("chessSavedGames", JSON.stringify(savedGames));
+      debugLog("GAME", "Saved to localStorage successfully");
+    }
 
-  // Also save to player profile
-  if (typeof saveGame === "function") {
-    saveGame(gameState);
+    // Also save to player profile
+    if (typeof saveGame === "function") {
+      saveGame(gameState);
+    }
+
+    popup("Game saved successfully!", "green");
+    debugLog("GAME", "Game saved successfully", { gameState });
+  } catch (error) {
+    const errorMessage = `Failed to save game: ${error.message}`;
+    console.error(errorMessage, error);
+    debugLog("ERROR", errorMessage, { error: error.message, stack: error.stack });
+    popup(errorMessage, "red");
   }
-
-  popup("Game saved successfully!", "green");
 }
 
 function loadGame(gameState) {
-  game.load(gameState.fen);
-  moveHistory = gameState.moveHistory || [];
-  moveCount = gameState.moveCount || 0;
-  captureCount = gameState.captureCount || 0;
-  currentMoveIndex = moveHistory.length - 1;
+  // Check if loading from profile (replay mode)
+  const loadedGame = JSON.parse(localStorage.getItem("loadedGame") || "null");
+  const isReplayMode = loadedGame && loadedGame.state && loadedGame.state.moveHistory;
+  
+  if (isReplayMode) {
+    // Enter replay mode
+    enterReplayMode(loadedGame.state);
+  } else {
+    // Normal load
+    game.load(gameState.fen);
+    moveHistory = gameState.moveHistory || [];
+    moveCount = gameState.moveCount || 0;
+    captureCount = gameState.captureCount || 0;
+    currentMoveIndex = moveHistory.length - 1;
 
+    renderPosition();
+    updateTurnIndicator();
+
+    popup("Game loaded successfully!", "green");
+  }
+}
+
+// Enter replay mode
+function enterReplayMode(gameState) {
+  popup("Entering replay mode...", "blue");
+  
+  // Disable all buttons except exit replay
+  const buttonsToDisable = [
+    "save-game-btn",
+    "reset-btn",
+    "draw-btn",
+    "resign-btn",
+    "toggle-chat-btn",
+    "send-chat-btn",
+    "bot-mode",
+    "online-mode",
+    "lobby-btn",
+    "profile-btn",
+    "theme-btn",
+    "friends-btn",
+    "login-btn",
+    "register-btn"
+  ];
+  
+  buttonsToDisable.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = true;
+  });
+  
+  // Disable piece movement on the board
+  if (boardElement) {
+    boardElement.style.pointerEvents = "none";
+    boardElement.style.opacity = "0.8";
+  }
+
+  // Show exit replay button
+  const exitReplayBtn = document.getElementById("exit-replay-btn");
+  if (exitReplayBtn) {
+    exitReplayBtn.classList.remove("hidden");
+    exitReplayBtn.disabled = false;
+  }
+  
+  // Reset game to starting position
+  game.reset();
+  moveHistory = gameState.moveHistory || [];
+  moveCount = 0;
+  captureCount = 0;
+  currentMoveIndex = -1;
+  
   renderPosition();
   updateTurnIndicator();
+  
+  // Replay each move with a delay
+  replayMoves(gameState.moveHistory);
+}
 
-  popup("Game loaded successfully!", "green");
+// Replay moves with animation
+function replayMoves(moves) {
+  let moveIndex = 0;
+  
+  function playNextMove() {
+    if (moveIndex >= moves.length) {
+      debugLog("GAME", "Replay completed");
+      return;
+    }
+    
+    const move = moves[moveIndex];
+    game.move(move);
+    moveCount++;
+    currentMoveIndex = moveIndex;
+    
+    renderPosition();
+    updateTurnIndicator();
+    
+    moveIndex++;
+    setTimeout(playNextMove, 1000); // 1 second delay between moves
+  }
+  
+  // Start replay after a short delay
+  setTimeout(playNextMove, 500);
+}
+
+// Exit replay mode
+function exitReplayMode() {
+  popup("Exiting replay mode...", "blue");
+  
+  // Enable all buttons
+  const buttonsToEnable = [
+    "save-game-btn",
+    "reset-btn",
+    "draw-btn",
+    "resign-btn",
+    "toggle-chat-btn",
+    "send-chat-btn",
+    "bot-mode",
+    "online-mode",
+    "lobby-btn",
+    "profile-btn",
+    "theme-btn",
+    "manage-bans-btn",
+    "report-btn",
+    "friends-btn",
+    "login-btn",
+    "register-btn"
+  ];
+  
+  buttonsToEnable.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = false;
+  });
+  
+  // Hide exit replay button
+  const exitReplayBtn = document.getElementById("exit-replay-btn");
+  if (exitReplayBtn) {
+    exitReplayBtn.classList.add("hidden");
+  }
+
+  // Re-enable piece movement on the board
+  if (boardElement) {
+    boardElement.style.pointerEvents = "";
+    boardElement.style.opacity = "";
+  }
+  
+  // Reset game
+  game.reset();
+  moveHistory = [];
+  moveCount = 0;
+  captureCount = 0;
+  currentMoveIndex = -1;
+  
+  renderPosition();
+  updateTurnIndicator();
+  
+  // Clear loaded game
+  localStorage.removeItem("loadedGame");
 }
 
 // -----------------------------------------------------
@@ -3847,9 +4071,134 @@ clearAllBanData = function() {
     boardElement.style.opacity = '';
   }
   if (resetBtn) resetBtn.disabled = false;
+}
+
+// Update game statistics after game over
+function updateGameStatistics() {
+  // Determine game result
+  let result = "draw";
+  
+  if (game.in_checkmate()) {
+    // Checkmate - determine winner based on whose turn it is
+    result = game.turn() === "w" ? "loss" : "win";
+  } else if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) {
+    result = "draw";
+  }
+  
+  // Load player data from localStorage
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  
+  if (currentUser && currentUser.username) {
+    // Update authenticated user's statistics
+    const users = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+    const userIndex = users.findIndex(u => u.id === currentUser.id);
+    
+    if (userIndex !== -1) {
+      const user = users[userIndex];
+      
+      // Initialize stats if not present
+      if (!user.stats) {
+        user.stats = {
+          gamesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          currentStreak: 0
+        };
+      }
+      
+      // Update statistics based on result
+      user.stats.gamesPlayed++;
+      
+      switch(result) {
+        case "win":
+          user.stats.wins++;
+          user.stats.currentStreak = Math.max(0, user.stats.currentStreak) + 1;
+          user.xp += 100;
+          break;
+        case "loss":
+          user.stats.losses++;
+          user.stats.currentStreak = Math.min(0, user.stats.currentStreak) - 1;
+          user.xp += 25;
+          break;
+        case "draw":
+          user.stats.draws++;
+          user.xp += 50;
+          break;
+      }
+      
+      // Check for level up
+      const xpNeeded = user.level * 1000;
+      if (user.xp >= xpNeeded) {
+        user.level++;
+        user.xp -= xpNeeded;
+        popup(`Congratulations! You leveled up to Level ${user.level}!`, "green");
+      }
+      
+      // Save updated user data
+      users[userIndex] = user;
+      localStorage.setItem("chessUsers", JSON.stringify(users));
+      localStorage.setItem("currentUser", JSON.stringify(user));
+    }
+  } else {
+    // Update local player data for non-authenticated users
+    const playerData = JSON.parse(localStorage.getItem("chessPlayerData") || "{}");
+    
+    // Initialize stats if not present
+    if (!playerData.stats) {
+      playerData.stats = {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        currentStreak: 0
+      };
+    }
+    
+    // Update statistics based on result
+    playerData.stats.gamesPlayed++;
+    
+    switch(result) {
+      case "win":
+        playerData.stats.wins++;
+        playerData.stats.currentStreak = Math.max(0, playerData.stats.currentStreak) + 1;
+        playerData.xp += 100;
+        break;
+      case "loss":
+        playerData.stats.losses++;
+        playerData.stats.currentStreak = Math.min(0, playerData.stats.currentStreak) - 1;
+        playerData.xp += 25;
+        break;
+      case "draw":
+        playerData.stats.draws++;
+        playerData.xp += 50;
+        break;
+    }
+    
+    // Check for level up
+    const xpNeeded = playerData.level * 1000;
+    if (playerData.xp >= xpNeeded) {
+      playerData.level++;
+      playerData.xp -= xpNeeded;
+      popup(`Congratulations! You leveled up to Level ${playerData.level}!`, "green");
+    }
+    
+    // Save updated player data
+    localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+  }
+  
+  // Show result message
+  if (result === "win") {
+    popup("Congratulations! You won!", "green");
+  } else if (result === "loss") {
+    popup("Game Over! You lost.", "red");
+  } else {
+    popup("Game Drawn!", "orange");
+  }
+}
   if (saveGameBtn) saveGameBtn.disabled = false;
   if (onlineModeBtn) onlineModeBtn.disabled = false;
   if (lobbyBtn) lobbyBtn.disabled = false;
   
   popup("All ban data cleared!", "green");
-}
+
