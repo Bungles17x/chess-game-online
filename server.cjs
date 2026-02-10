@@ -4,6 +4,8 @@ const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
 const { isAdmin, hasAdminPower, getAdminPowers } = require('./chess-game-online-main/admin-system');
+const userManager = require('./user-manager');
+const userSyncHandlers = require('./user-sync-handlers');
 
 // Profanity filter system
 const profanityKeywords = [
@@ -396,6 +398,21 @@ function handleMessage(ws, data) {
       break;
     case "getReports":
       handleGetReports(ws);
+      break;
+    case "syncUserData":
+      userSyncHandlers.handleSyncUserData(ws, data, userManager, wss);
+      break;
+    case "updateUserProfile":
+      userSyncHandlers.handleUpdateUserProfile(ws, data, userManager, wss);
+      break;
+    case "getUserProfile":
+      userSyncHandlers.handleGetUserProfile(ws, data, userManager);
+      break;
+    case "syncFriends":
+      userSyncHandlers.handleSyncFriends(ws, data, userManager);
+      break;
+    case "syncSavedGames":
+      userSyncHandlers.handleSyncSavedGames(ws, data, userManager);
       break;
     case "getReportDetails":
       handleGetReportDetails(ws, data);

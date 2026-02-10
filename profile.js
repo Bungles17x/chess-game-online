@@ -91,12 +91,16 @@ function loadPlayerData() {
   updateDisplay();
 }
 
-// Save player data to localStorage
+// Save player data to localStorage and sync with server
 function savePlayerData() {
   // Save to authenticated user if logged in
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
   if (currentUser) {
+    // Sync with server if user sync manager is available
+    if (window.userSyncManager) {
+      window.userSyncManager.updateProfile(playerData);
+    }
     // Update the user in the users array
     const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
     const userIndex = users.findIndex(u => u.id === currentUser.id);
