@@ -684,24 +684,248 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Container adjustments */
   .settings-container {
-    padding: 16px;
+    padding: 12px;
+    gap: 16px;
   }
 
+  /* Section adjustments */
   .settings-section {
-    padding: 16px;
+    padding: 16px 12px;
+    border-radius: 12px;
   }
 
+  .settings-section h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+  }
+
+  .settings-subsection h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  /* Profile header */
   .profile-header {
     flex-direction: column;
     text-align: center;
+    padding: 16px;
+    gap: 16px;
   }
 
+  .avatar-display {
+    width: 70px;
+    height: 70px;
+    font-size: 40px;
+  }
+
+  .profile-info h3 {
+    font-size: 20px;
+  }
+
+  /* Stats grid */
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
+  .stat-item {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  /* Theme options */
   .theme-options {
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .theme-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* Avatar grid */
+  .avatar-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .avatar-option {
+    width: 50px;
+    height: 50px;
+    font-size: 28px;
+  }
+
+  /* Form adjustments */
+  .form-container {
+    max-width: 100%;
+  }
+
+  .form-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* Saved games */
+  .saved-game-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .saved-game-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Sync status */
+  .sync-status {
+    padding: 12px;
+  }
+
+  .sync-status p {
+    font-size: 13px;
+  }
+
+  /* Theme grid */
+  .theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .theme-option {
+    padding: 10px;
+  }
+
+  .theme-preview {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Smaller container padding */
+  .settings-container {
+    padding: 8px;
+    gap: 12px;
+  }
+
+  .settings-section {
+    padding: 12px 8px;
+  }
+
+  /* Adjust header elements */
+  .settings-section h2 {
+    font-size: 18px;
+  }
+
+  /* Profile header */
+  .profile-header {
+    padding: 12px;
+  }
+
+  .avatar-display {
+    width: 60px;
+    height: 60px;
+    font-size: 36px;
+  }
+
+  .profile-info h3 {
+    font-size: 18px;
+  }
+
+  .username-display {
+    font-size: 13px;
+  }
+
+  /* Stats grid - 2 columns but tighter */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 10px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  /* Avatar grid - 3 columns */
+  .avatar-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .avatar-option {
+    width: 45px;
+    height: 45px;
+    font-size: 24px;
+  }
+
+  /* Form adjustments */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-input {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  /* Theme options */
+  .theme-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Theme grid */
+  .theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .theme-option {
+    padding: 8px;
+  }
+
+  .theme-preview {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* Saved games */
+  .saved-game-item {
+    padding: 10px;
+  }
+
+  .saved-game-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  /* Sync status */
+  .sync-status {
+    padding: 10px;
+  }
+
+  .sync-status p {
+    font-size: 12px;
+  }
+
+  .sync-info {
+    font-size: 11px;
   }
 }
