@@ -1879,6 +1879,17 @@ botModeBtn.addEventListener("click", () => {
 
 onlineModeBtn.addEventListener("click", () => {
   debugLog("MODE", "Online mode button clicked");
+
+  // Check if user is logged in
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (!currentUser) {
+    popup("you must be logged in to play online!", "red");
+    // Redirect to login page after a short delay
+    setTimeout(() => {
+      window.location.href = 'login.html';
+    }, 1500);
+    return;
+  }
   
   if (gameMode === "online" && game.history().length > 0) {
     popup("Cannot change mode during an online game.", "red");
@@ -2059,6 +2070,9 @@ resignBtn.addEventListener("click", () => {
 // -----------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   debugLog("INIT", "DOM loaded, initializing application");
+
+  // Load settings from localStorage or user profile
+  loadGameSettings();
   
   // Initialize anti-cheat system
   if (typeof initAntiCheat === 'function') {
@@ -4201,4 +4215,92 @@ function updateGameStatistics() {
   if (lobbyBtn) lobbyBtn.disabled = false;
   
   popup("All ban data cleared!", "green");
+
+// Load Game Settings
+function loadGameSettings() {
+  // Try to load from user profile first
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  let settings = null;
+
+  if (currentUser && currentUser.settings) {
+    settings = currentUser.settings;
+  } else {
+    // Load from localStorage
+    const savedSettings = localStorage.getItem('chessSettings');
+    if (savedSettings) {
+      settings = JSON.parse(savedSettings);
+    }
+  }
+
+  if (!settings) {
+    // Use default settings
+    settings = {
+      theme: 'dark',
+      boardTheme: 'classic',
+      chessBoardTheme: 'classic',
+      chessPieceTheme: 'classic',
+      soundEnabled: true,
+      moveHints: true,
+      autoPromote: false,
+      showCoordinates: false,
+      showBanAfterLogin: false
+    };
+  }
+
+  // Apply theme
+  if (settings.theme) {
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    localStorage.setItem('theme', settings.theme);
+    document.body.classList.remove('light-theme');
+    if (settings.theme === 'light') {
+      document.body.classList.add('light-theme');
+    }
+  }
+
+  // Apply chess board theme
+  if (settings.chessBoardTheme) {
+    localStorage.setItem('chessBoardTheme', settings.chessBoardTheme);
+    localStorage.setItem('boardTheme', settings.chessBoardTheme);
+    currentBoardTheme = settings.chessBoardTheme;
+    // Apply to board element if it exists
+    if (boardElement) {
+      boardElement.className = `chessboard board-${settings.chessBoardTheme}`;
+    }
+  }
+
+  // Apply chess piece theme
+  if (settings.chessPieceTheme) {
+    localStorage.setItem('chessPieceTheme', settings.chessPieceTheme);
+    currentPieceTheme = settings.chessPieceTheme;
+  }
+
+  // Apply sound setting
+  if (typeof settings.soundEnabled === 'boolean') {
+    localStorage.setItem('soundEnabled', settings.soundEnabled);
+    window.soundEnabled = settings.soundEnabled;
+  }
+
+  // Apply move hints setting
+  if (typeof settings.moveHints === 'boolean') {
+    localStorage.setItem('moveHints', settings.moveHints);
+    window.showMoveHints = settings.moveHints;
+  }
+
+  // Apply auto-promote setting
+  if (typeof settings.autoPromote === 'boolean') {
+    localStorage.setItem('autoPromote', settings.autoPromote);
+    window.autoPromote = settings.autoPromote;
+  }
+
+  // Apply show coordinates setting
+  if (typeof settings.showCoordinates === 'boolean') {
+    localStorage.setItem('showCoordinates', settings.showCoordinates);
+    window.showCoordinates = settings.showCoordinates;
+  }
+
+  // Apply show ban after login setting
+  if (typeof settings.showBanAfterLogin === 'boolean') {
+    localStorage.setItem('showBanAfterLogin', settings.showBanAfterLogin.toString());
+  }
+}
 

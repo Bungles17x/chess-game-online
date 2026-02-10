@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings - Modern Chess</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="settings.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="alert-area"></div>
+
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Settings</h1>
+        <span class="tagline">Manage your account</span>
+      </div>
+
+      <div class="top-right">
+        <button id="back-to-game-btn" class="primary-btn">← Back to Game</button>
+      </div>
+    </header>
+
+    <main class="settings-container">
+      <!-- Account Section -->
+      <section class="settings-section" id="account-section">
+        <h2>Account</h2>
+
+        <!-- Login Form -->
+        <div id="login-form-container" class="form-container">
+          <h3>Login</h3>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="email">Email or Username</label>
+              <input type="text" id="email" class="form-input" placeholder="Enter your email or username" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+            </div>
+            <div class="form-group checkbox-group">
+              <input type="checkbox" id="remember-me">
+              <label for="remember-me">Remember me</label>
+            </div>
+            <button type="submit" class="primary-btn">Login</button>
+            <p class="form-link">
+              Don't have an account? <a href="#" id="show-register">Register</a>
+            </p>
+            <p class="form-link">
+              <a href="#" id="show-forgot-password">Forgot Password?</a>
+            </p>
+          </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form-container" class="form-container hidden">
+          <h3>Register</h3>
+          <form id="register-form">
+            <div class="form-group">
+              <label for="reg-username">Username</label>
+              <input type="text" id="reg-username" class="form-input" placeholder="Choose a username" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Email</label>
+              <input type="email" id="reg-email" class="form-input" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Password</label>
+              <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-confirm-password">Confirm Password</label>
+              <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" required>
+            </div>
+            <button type="submit" class="primary-btn">Register</button>
+            <p class="form-link">
+              Already have an account? <a href="#" id="show-login">Login</a>
+            </p>
+          </form>
+        </div>
+
+        <!-- Profile Display (shown when logged in) -->
+        <div id="profile-display" class="profile-display hidden">
+          <div class="profile-header">
+            <div class="avatar-display" id="current-avatar">♟</div>
+            <div class="profile-info">
+              <h3 id="player-name">Player Name</h3>
+              <p class="username-display" id="username-display">@username</p>
+              <div class="level-badge">Level <span id="player-level">1</span></div>
+            </div>
+          </div>
+
+          <button id="logout-btn" class="primary-btn danger-btn">Logout</button>
+        </div>
+      </section>
+
+      <!-- Profile Section -->
+      <section class="settings-section" id="profile-section">
+        <h2>Profile</h2>
+
+        <div id="profile-settings" class="profile-settings hidden">
+          <!-- Avatar Selection -->
+          <div class="settings-subsection">
+            <h3>Avatar</h3>
+            <div class="avatar-grid" id="avatar-options">
+              <div class="avatar-option" data-avatar="♟">♟</div>
+              <div class="avatar-option" data-avatar="♜">♜</div>
+              <div class="avatar-option" data-avatar="♞">♞</div>
+              <div class="avatar-option" data-avatar="♝">♝</div>
+              <div class="avatar-option" data-avatar="♛">♛</div>
+              <div class="avatar-option" data-avatar="♚">♚</div>
+              <div class="avatar-option" data-avatar="♙">♙</div>
+              <div class="avatar-option" data-avatar="♖">♖</div>
+              <div class="avatar-option" data-avatar="♘">♘</div>
+              <div class="avatar-option" data-avatar="♗">♗</div>
+              <div class="avatar-option" data-avatar="♕">♕</div>
+              <div class="avatar-option" data-avatar="♔">♔</div>
+            </div>
+          </div>
+
+          <!-- Statistics -->
+          <div class="settings-subsection">
+            <h3>Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Total Games</span>
+                <span class="stat-value" id="total-games">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Wins</span>
+                <span class="stat-value" id="total-wins">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Losses</span>
+                <span class="stat-value" id="total-losses">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Draws</span>
+                <span class="stat-value" id="total-draws">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Win Rate</span>
+                <span class="stat-value" id="win-rate">0%</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Current Streak</span>
+                <span class="stat-value" id="current-streak">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Saved Games -->
+          <div class="settings-subsection">
+            <h3>Saved Games</h3>
+            <div id="saved-games-container">
+              <div id="saved-games-list" class="saved-games-list"></div>
+              <div id="no-saved-games" class="no-saved-games hidden">
+                <p>No saved games yet. Play a game and save it to see it here!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sync Settings -->
+          <div class="settings-subsection">
+            <h3>Device Sync</h3>
+            <div class="sync-status">
+              <p><strong>Last Sync:</strong> <span id="last-sync-time">Never</span></p>
+              <p><strong>Status:</strong> <span id="sync-status">Not synced</span></p>
+            </div>
+            <button id="sync-now-btn" class="primary-btn">Sync Now</button>
+            <p class="sync-info">Sync your profile, friends, and saved games across all your devices</p>
+          </div>
+        </div>
+
+        <div id="profile-login-prompt" class="login-prompt">
+          <p>Please log in to access profile settings</p>
+        </div>
+      </section>
+
+      <!-- Theme Section -->
+      <section class="settings-section" id="theme-section">
+        <h2>Appearance</h2>
+
+        <div class="settings-subsection">
+          <h3>Theme</h3>
+          <div class="theme-options">
+            <button class="theme-btn active" data-theme="dark">Dark</button>
+            <button class="theme-btn" data-theme="light">Light</button>
+          </div>
+        </div>
+
+        <div class="settings-subsection">
+          <h3>Board Theme</h3>
+          <div class="theme-grid">
+            <div class="theme-option" data-theme="classic">
+              <div class="theme-preview board-classic">
+                <div class="square light"></div>
+                <div class="square dark"></div>
+              </div>
+              <span>Classic</span>
+            </div>
+            <div class="theme-option" data-theme="blue">
+              <div class="theme-preview board-blue">
+                <div class="square light"></div>
+                <div class="square dark"></div>
+              </div>
+              <span>Blue</span>
+            </div>
+            <div class="theme-option" data-theme="green">
+              <div class="theme-preview board-green">
+                <div class="square light"></div>
+                <div class="square dark"></div>
+              </div>
+              <span>Green</span>
+            </div>
+            <div class="theme-option" data-theme="purple">
+              <div class="theme-preview board-purple">
+                <div class="square light"></div>
+                <div class="square dark"></div>
+              </div>
+              <span>Purple</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Save Settings -->
+      <div class="settings-save-section">
+        <button id="save-settings-btn" class="primary-btn save-btn">💾 Save Settings</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Alert Box -->
+  <div id="alert-box" class="alert hidden">
+    <div class="alert-content">
+      <span id="alert-message"></span>
+      <button id="alert-close" class="primary-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- Rename Popup -->
+  <div id="rename-popup" class="popup-overlay hidden">
+    <div class="popup-container">
+      <div class="popup-header">
+        <h2>Rename Replay</h2>
+        <button id="rename-close" class="popup-close">&times;</button>
+      </div>
+      <div class="popup-body">
+        <p class="popup-message">Enter a new name for this replay:</p>
+        <input type="text" id="rename-input" class="popup-input" placeholder="Enter replay name...">
+        <div class="popup-actions">
+          <button id="rename-cancel" class="popup-btn cancel">Cancel</button>
+          <button id="rename-confirm" class="popup-btn confirm">Rename</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="user-sync-client.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

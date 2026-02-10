@@ -298,8 +298,8 @@ class UserSyncManager {
 window.userSyncManager = new UserSyncManager();
 
 // Add CSS animations for notifications
-const style = document.createElement('style');
-style.textContent = `
+const syncStyle = document.createElement('style');
+syncStyle.textContent = `
   @keyframes slideIn {
     from {
       transform: translateX(100%);
@@ -322,7 +322,7 @@ style.textContent = `
     }
   }
 `;
-document.head.appendChild(style);
+document.head.appendChild(syncStyle);
 
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {

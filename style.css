@@ -248,6 +248,12 @@ body.light-theme .pill-dot {
   box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
 }
 
+.pill-icon {
+  font-size: 18px;
+  display: inline-block;
+  margin-right: 6px;
+}
+
 /* Light theme board card enhancements */
 body.light-theme .board-card {
   background: linear-gradient(

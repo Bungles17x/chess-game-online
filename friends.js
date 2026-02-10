@@ -208,6 +208,11 @@ function handleFriendMessages(data) {
 }
 
 // Event listeners
+const friendsBtnElement = document.getElementById('friends-btn');
+if (friendsBtnElement) {
+  friendsBtnElement.addEventListener('click', openFriendsModal);
+}
+
 closeFriendsBtn.addEventListener('click', closeFriendsModal);
 addFriendBtn.addEventListener('click', addFriend);
 addFriendInput.addEventListener('keypress', (e) => {

@@ -235,22 +235,19 @@ function setupRegisterForm(registerForm) {
 }
 
 // Setup auth buttons in main game
-function setupAuthButtons(loginBtn, registerBtn) {
-  if (!loginBtn || !registerBtn) return;
+function setupAuthButtons(settingsBtn) {
+  if (!settingsBtn) return;
+
+  // Settings button always navigates to settings page
+  settingsBtn.addEventListener('click', () => {
+    window.location.href = 'settings.html';
+  });
 
   // Check if user is logged in
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
-  if (currentUser) {
-    // User is logged in - change buttons to logout and profile
-    loginBtn.textContent = 'Logout';
-    loginBtn.onclick = handleLogout;
-    registerBtn.style.display = 'none';
-  } else {
-    // User is not logged in
-    loginBtn.onclick = () => window.location.href = 'login.html';
-    registerBtn.onclick = () => window.location.href = 'register.html';
-  }
+  // No additional logic needed - Settings button always navigates to settings page
+  // All login/register functionality is now in settings.html
 }
 
 // Handle logout
