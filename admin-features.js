@@ -405,6 +405,9 @@
     `;
     document.body.appendChild(modal);
     console.log('[ADMIN] Reports modal created and added to body');
+    console.log('[ADMIN] Modal element:', modal);
+    console.log('[ADMIN] Modal classes:', modal.className);
+    console.log('[ADMIN] Modal display style:', window.getComputedStyle(modal).display);
 
     document.getElementById('close-reports-enhanced-btn').addEventListener('click', () => {
       console.log('[ADMIN] Closing reports modal');
