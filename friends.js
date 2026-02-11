@@ -15,6 +15,8 @@ function openFriendsModal() {
     socket.send(JSON.stringify({ type: 'getFriends' }));
     friendsModal.classList.remove('hidden');
     friendsModal.classList.add('show');
+    // Start automatic updates
+    startFriendsUpdates();
   } else {
     popup('Please connect to server first.', 'yellow');
   }
@@ -24,6 +26,8 @@ function openFriendsModal() {
 function closeFriendsModal() {
   friendsModal.classList.remove('show');
   friendsModal.classList.add('hidden');
+  // Stop automatic updates
+  stopFriendsUpdates();
 }
 
 // Check for online status changes and show notifications
@@ -43,6 +47,30 @@ function checkOnlineStatusChanges(friends, onlineFriends) {
       popup(`${friend} went offline`, 'yellow');
     }
   });
+}
+
+// Set up automatic friends list updates
+let friendsUpdateInterval = null;
+
+function startFriendsUpdates() {
+  // Clear any existing interval
+  if (friendsUpdateInterval) {
+    clearInterval(friendsUpdateInterval);
+  }
+  
+  // Update friends list every 30 seconds
+  friendsUpdateInterval = setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'getFriends' }));
+    }
+  }, 30000);
+}
+
+function stopFriendsUpdates() {
+  if (friendsUpdateInterval) {
+    clearInterval(friendsUpdateInterval);
+    friendsUpdateInterval = null;
+  }
 }
 
 // Render friends list
