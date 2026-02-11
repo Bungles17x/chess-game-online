@@ -26,12 +26,33 @@ function closeFriendsModal() {
   friendsModal.classList.add('hidden');
 }
 
+// Check for online status changes and show notifications
+function checkOnlineStatusChanges(friends, onlineFriends) {
+  const previousOnlineFriends = JSON.parse(localStorage.getItem('onlineFriends') || '[]');
+  
+  // Check for friends who came online
+  onlineFriends.forEach(friend => {
+    if (!previousOnlineFriends.includes(friend)) {
+      popup(`${friend} is now online!`, 'green');
+    }
+  });
+  
+  // Check for friends who went offline
+  previousOnlineFriends.forEach(friend => {
+    if (!onlineFriends.includes(friend)) {
+      popup(`${friend} went offline`, 'yellow');
+    }
+  });
+}
+
 // Render friends list
 function renderFriendsList(friends, onlineFriends) {
   friendsList.innerHTML = '';
   
   // Store online friends in localStorage for use in other functions
   localStorage.setItem('onlineFriends', JSON.stringify(onlineFriends));
+  // Store all friends for comparison
+  localStorage.setItem('allFriends', JSON.stringify(friends));
 
   if (friends.length === 0) {
     friendsList.innerHTML = '<li class="no-friends">No friends yet. Add some friends to get started!</li>';
@@ -407,6 +428,8 @@ function handleFriendMessages(data) {
       // Load and render blocked users from localStorage
       const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
       renderBlockedUsers(blockedUsers);
+      // Check for online status changes and show notifications
+      checkOnlineStatusChanges(data.friends, data.onlineFriends);
       break;
 
     case 'friendRequest':
