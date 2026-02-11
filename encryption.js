@@ -3,7 +3,7 @@
 // Simple encryption using XOR with a key (for demonstration purposes)
 // In production, use proper encryption libraries like crypto-js
 
-const ENCRYPTION_KEY = 'chess-game-secure-key-2024';
+const ENCRYPTION_KEY = 'chess-game-secure-key-2026';
 
 // Encrypt data
 function encrypt(data) {
