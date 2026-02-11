@@ -1,5 +1,10 @@
 // Enhanced Profile Page JavaScript
 
+// Load encryption utility
+const encryptionScript = document.createElement('script');
+encryptionScript.src = 'encryption.js';
+document.head.appendChild(encryptionScript);
+
 // DOM Elements
 const currentAvatar = document.getElementById("current-avatar");
 const playerName = document.getElementById("player-name");
@@ -102,7 +107,7 @@ function savePlayerData() {
       window.userSyncManager.updateProfile(playerData);
     }
     // Update the user in the users array
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    const users = secureStorage.getItem('chessUsers') || [];
     const userIndex = users.findIndex(u => u.id === currentUser.id);
 
     if (userIndex !== -1) {
@@ -119,7 +124,7 @@ function savePlayerData() {
       };
 
       // Save updated users array
-      localStorage.setItem('chessUsers', JSON.stringify(users));
+      secureStorage.setItem('chessUsers', users);
 
       // Update current user in localStorage
       localStorage.setItem('currentUser', JSON.stringify(users[userIndex]));
