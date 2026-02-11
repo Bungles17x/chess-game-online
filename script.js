@@ -552,6 +552,7 @@ function handleServerMessage(data) {
       to: data.to,
       room: data.room
     });
+    popup(`Game invitation sent to ${data.to}!`, "green");
     return;
   }
 
