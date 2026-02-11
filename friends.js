@@ -263,7 +263,7 @@ function inviteFriend(friendUsername) {
     }
     
     // Check if user is in a room
-    if (!window.roomId) {
+    if (typeof window.roomId === 'undefined' || !window.roomId) {
       popup('You need to be in a room to invite friends. Please create or join a room first.', 'yellow');
       return;
     }
@@ -297,6 +297,30 @@ function joinFriend(friendUsername) {
     popup(`Request sent to ${friendUsername}! Please wait for them to share the room ID.`, 'blue');
   } else {
     popup('Please connect to server first.', 'yellow');
+  }
+}
+
+// Handle game invitation from friend
+function handleGameInvite(data) {
+  const { from, room } = data;
+  
+  // Create a custom confirmation dialog
+  const confirmInvite = confirm(`${from} has invited you to play a game in room ${room}. Would you like to join?`);
+  
+  if (confirmInvite) {
+    // Join the room using the joinRoom function from script.js
+    if (typeof window.joinRoom === 'function') {
+      window.joinRoom(room);
+      popup(`Joined ${from}'s game!`, 'green');
+    } else {
+      popup('Error: Unable to join room. Please try again.', 'red');
+    }
+  } else {
+    // Send a decline message
+    socket.send(JSON.stringify({
+      type: 'chat',
+      message: `🎮 Sorry ${from}, I can't join right now.`
+    }));
   }
 }
 
@@ -463,6 +487,10 @@ function handleFriendMessages(data) {
     case 'friendRequest':
       showFriendRequestNotification(data.from);
       popup(`Friend request from ${data.from}`, 'green');
+      break;
+
+    case 'gameInvite':
+      handleGameInvite(data);
       break;
 
     case 'friendRequestSent':
