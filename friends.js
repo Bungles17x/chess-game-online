@@ -263,7 +263,7 @@ function inviteFriend(friendUsername) {
     }
     
     // Check if user is in a room
-    if (typeof window.roomId === 'undefined' || !window.roomId) {
+    if (!window.roomId) {
       popup('You need to be in a room to invite friends. Please create or join a room first.', 'yellow');
       return;
     }

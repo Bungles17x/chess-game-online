@@ -765,6 +765,7 @@ function handleServerMessage(data) {
     debugLog("GAME", "Room closed by opponent");
     popup("Opponent left the game.", "yellow");
     roomId = null;
+  window.roomId = null;
     switchToBotMode();
     initBoard();
   }
@@ -1019,6 +1020,7 @@ function handleGameOver() {
   
   // Reset game state
   roomId = null;
+  window.roomId = null;
   
   // Switch back to Bot mode automatically
   switchToBotMode();
@@ -1035,6 +1037,7 @@ function switchToBotMode() {
   botModeBtn.classList.add("active");
   onlineModeBtn.classList.remove("active");
   roomId = null;
+  window.roomId = null;
   
   // Hide the chat container when switching to bot mode
   chatContainer.classList.add("hidden");
@@ -1052,6 +1055,7 @@ function leaveRoom() {
       debugLog("LOBBY", "Leave message sent to server");
     }
     roomId = null;
+  window.roomId = null;
   }
   
   // Hide the chat container when leaving a room
@@ -1070,6 +1074,7 @@ function joinRoom(room) {
   });
   
   roomId = room;
+  window.roomId = room;
   isInRoom = true;
   lobbyModal.classList.add("hidden");
   
