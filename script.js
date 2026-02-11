@@ -4117,7 +4117,7 @@ function updateGameStatistics() {
   
   if (currentUser && currentUser.username) {
     // Update authenticated user's statistics
-    const users = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+    const users = secureStorage.getItem("chessUsers") || [];
     const userIndex = users.findIndex(u => u.id === currentUser.id);
     
     if (userIndex !== -1) {
