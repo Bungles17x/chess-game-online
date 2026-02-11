@@ -112,8 +112,18 @@ function setupLoginForm(loginForm) {
     }
     }
 
-    // Login successful
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    // Login successful - create a safe user object without password
+    const safeUser = {
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      level: user.level,
+      xp: user.xp,
+      stats: user.stats,
+      savedGames: user.savedGames,
+      createdAt: user.createdAt
+    };
+    localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
     if (rememberMe) {
       localStorage.setItem('rememberedUser', email);
@@ -227,7 +237,19 @@ function setupRegisterForm(registerForm) {
 
     users.push(newUser);
     localStorage.setItem('chessUsers', JSON.stringify(users));
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    
+    // Create a safe user object without password and email for localStorage
+    const safeUser = {
+      id: newUser.id,
+      username: newUser.username,
+      avatar: newUser.avatar,
+      level: newUser.level,
+      xp: newUser.xp,
+      stats: newUser.stats,
+      savedGames: newUser.savedGames,
+      createdAt: newUser.createdAt
+    };
+    localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
     // Redirect to game
     window.location.href = 'index.html';
