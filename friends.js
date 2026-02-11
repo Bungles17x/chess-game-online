@@ -16,7 +16,7 @@ function openFriendsModal() {
     friendsModal.classList.remove('hidden');
     friendsModal.classList.add('show');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -193,9 +193,9 @@ function unblockUser(username) {
         type: 'unblockUser',
         username: username
       }));
-      showAlert(`${username} unblocked`, 'success');
+      popup(`${username} unblocked`, 'green');
     } else {
-      showAlert('Please connect to server first.', 'warning');
+      popup('Please connect to server first.', 'yellow');
     }
   }
 }
@@ -207,9 +207,9 @@ function inviteFriend(friendUsername) {
       type: 'inviteToGame',
       friendUsername: friendUsername
     }));
-    showAlert(`Game invitation sent to ${friendUsername}!`, 'success');
+    popup(`Game invitation sent to ${friendUsername}!`, 'green');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -220,9 +220,9 @@ function joinFriend(friendUsername) {
       type: 'joinFriendGame',
       friendUsername: friendUsername
     }));
-    showAlert(`Attempting to join ${friendUsername}'s game...`, 'info');
+    popup(`Attempting to join ${friendUsername}'s game...`, 'blue');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -234,11 +234,11 @@ function blockUser(username) {
         type: 'blockUser',
         username: username
       }));
-      showAlert(`${username} blocked`, 'success');
+      popup(`${username} blocked`, 'orange');
       // Refresh friends list to show updated status
       socket.send(JSON.stringify({ type: 'getFriends' }));
     } else {
-      showAlert('Please connect to server first.', 'warning');
+      popup('Please connect to server first.', 'yellow');
     }
   }
 }
@@ -248,7 +248,7 @@ function addFriend() {
   const friendUsername = addFriendInput.value.trim();
 
   if (!friendUsername) {
-    showAlert('Please enter a username', 'warning');
+    popup('Please enter a username', 'yellow');
     return;
   }
 
@@ -258,9 +258,9 @@ function addFriend() {
       friendUsername: friendUsername
     }));
     addFriendInput.value = '';
-    showAlert('Friend request sent!', 'success');
+    popup('Friend request sent!', 'green');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -272,9 +272,9 @@ function removeFriend(friendUsername) {
         type: 'removeFriend',
         friendUsername: friendUsername
       }));
-      showAlert(`${friendUsername} removed from friends`, 'success');
+      popup(`${friendUsername} removed from friends`, 'green');
     } else {
-      showAlert('Please connect to server first.', 'warning');
+      popup('Please connect to server first.', 'yellow');
     }
   }
 }
@@ -286,9 +286,9 @@ function acceptFriendRequest(from) {
       type: 'acceptFriendRequest',
       from: from
     }));
-    showAlert(`You are now friends with ${from}!`, 'success');
+    popup(`You are now friends with ${from}!`, 'green');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -299,9 +299,9 @@ function rejectFriendRequest(from) {
       type: 'rejectFriendRequest',
       from: from
     }));
-    showAlert(`Friend request from ${from} rejected`, 'info');
+    popup(`Friend request from ${from} rejected`, 'orange');
   } else {
-    showAlert('Please connect to server first.', 'warning');
+    popup('Please connect to server first.', 'yellow');
   }
 }
 
@@ -371,26 +371,26 @@ function handleFriendMessages(data) {
 
     case 'friendRequest':
       showFriendRequestNotification(data.from);
-      showAlert(`Friend request from ${data.from}`, 'green');
+      popup(`Friend request from ${data.from}`, 'green');
       break;
 
     case 'friendRequestSent':
-      showAlert(data.message, 'green');
+      popup(data.message, 'green');
       break;
 
     case 'friendAccepted':
-      showAlert(`You are now friends with ${data.friend}!`, 'green');
+      popup(`You are now friends with ${data.friend}!`, 'green');
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'getFriends' }));
       }
       break;
 
     case 'friendRequestRejected':
-      showAlert(data.message || 'Friend request rejected', 'orange');
+      popup(data.message || 'Friend request rejected', 'orange');
       break;
 
     case 'friendRemoved':
-      showAlert(`${data.friend} removed from friends`, 'orange');
+      popup(`${data.friend} removed from friends`, 'orange');
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'getFriends' }));
       }
