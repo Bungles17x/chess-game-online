@@ -462,7 +462,7 @@
 
     if (!reports || reports.length === 0) {
       console.log('[ADMIN] No reports to display');
-      reportsList.innerHTML = '<p class="no-reports">No reports found.</p>';
+      reportsList.innerHTML = '<p class="no-reports" style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 16px;">No reports found.</p>';
       console.log('[ADMIN] Set no reports message');
       return;
     }
