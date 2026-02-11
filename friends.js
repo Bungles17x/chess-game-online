@@ -16,7 +16,7 @@ function openFriendsModal() {
     friendsModal.classList.remove('hidden');
     friendsModal.classList.add('show');
   } else {
-    showAlert('Connection error. Please try again.');
+    showAlert('Please connect to server first.', 'warning');
   }
 }
 
@@ -65,12 +65,123 @@ function renderFriendsList(friends, onlineFriends) {
   });
 }
 
+// Render friend requests
+function renderFriendRequests(requests) {
+  const requestsList = document.getElementById('friend-requests-list');
+  if (!requestsList) return;
+  
+  requestsList.innerHTML = '';
+
+  if (requests.length === 0) {
+    requestsList.innerHTML = `
+      <li class="empty-state">
+        <div class="empty-state-icon">📨</div>
+        <div class="empty-state-text">No pending friend requests</div>
+        <div class="empty-state-subtext">When someone sends you a request, it will appear here</div>
+      </li>
+    `;
+    return;
+  }
+
+  requests.forEach(request => {
+    const requestItem = document.createElement('li');
+    requestItem.className = 'friend-item';
+
+    requestItem.innerHTML = `
+      <div class="friend-info">
+        <span class="friend-name">${request.from}</span>
+        <span class="friend-status">Wants to be friends</span>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-btn accept-btn" data-from="${request.from}">Accept</button>
+        <button class="friend-btn reject-btn" data-from="${request.from}">Reject</button>
+      </div>
+    `;
+
+    requestsList.appendChild(requestItem);
+  });
+
+  // Add event listeners
+  document.querySelectorAll('.accept-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const from = e.target.dataset.from;
+      acceptFriendRequest(from);
+    });
+  });
+
+  document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const from = e.target.dataset.from;
+      rejectFriendRequest(from);
+    });
+  });
+}
+
+// Render blocked users
+function renderBlockedUsers(blocked) {
+  const blockedList = document.getElementById('blocked-list');
+  if (!blockedList) return;
+  
+  blockedList.innerHTML = '';
+
+  if (blocked.length === 0) {
+    blockedList.innerHTML = `
+      <li class="empty-state">
+        <div class="empty-state-icon">🚫</div>
+        <div class="empty-state-text">No blocked users</div>
+        <div class="empty-state-subtext">Users you block will appear here</div>
+      </li>
+    `;
+    return;
+  }
+
+  blocked.forEach(user => {
+    const blockedItem = document.createElement('li');
+    blockedItem.className = 'friend-item';
+
+    blockedItem.innerHTML = `
+      <div class="friend-info">
+        <span class="friend-name">${user}</span>
+        <span class="friend-status">Blocked</span>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-btn unblock-btn" data-user="${user}">Unblock</button>
+      </div>
+    `;
+
+    blockedList.appendChild(blockedItem);
+  });
+
+  // Add event listeners
+  document.querySelectorAll('.unblock-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const user = e.target.dataset.user;
+      unblockUser(user);
+    });
+  });
+}
+
+// Unblock user
+function unblockUser(username) {
+  if (confirm(`Are you sure you want to unblock ${username}?`)) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'unblockUser',
+        username: username
+      }));
+      showAlert(`${username} unblocked`, 'success');
+    } else {
+      showAlert('Please connect to server first.', 'warning');
+    }
+  }
+}
+
 // Add friend
 function addFriend() {
   const friendUsername = addFriendInput.value.trim();
 
   if (!friendUsername) {
-    showAlert('Please enter a username');
+    showAlert('Please enter a username', 'warning');
     return;
   }
 
@@ -80,8 +191,9 @@ function addFriend() {
       friendUsername: friendUsername
     }));
     addFriendInput.value = '';
+    showAlert('Friend request sent!', 'success');
   } else {
-    showAlert('Connection error. Please try again.');
+    showAlert('Please connect to server first.', 'warning');
   }
 }
 
@@ -93,8 +205,9 @@ function removeFriend(friendUsername) {
         type: 'removeFriend',
         friendUsername: friendUsername
       }));
+      showAlert(`${friendUsername} removed from friends`, 'success');
     } else {
-      showAlert('Connection error. Please try again.');
+      showAlert('Please connect to server first.', 'warning');
     }
   }
 }
@@ -106,8 +219,9 @@ function acceptFriendRequest(from) {
       type: 'acceptFriendRequest',
       from: from
     }));
+    showAlert(`You are now friends with ${from}!`, 'success');
   } else {
-    showAlert('Connection error. Please try again.');
+    showAlert('Please connect to server first.', 'warning');
   }
 }
 
@@ -118,8 +232,9 @@ function rejectFriendRequest(from) {
       type: 'rejectFriendRequest',
       from: from
     }));
+    showAlert(`Friend request from ${from} rejected`, 'info');
   } else {
-    showAlert('Connection error. Please try again.');
+    showAlert('Please connect to server first.', 'warning');
   }
 }
 
@@ -213,13 +328,39 @@ if (friendsBtnElement) {
   friendsBtnElement.addEventListener('click', openFriendsModal);
 }
 
+// Friends navigation buttons
+document.querySelectorAll('.friends-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove active class from all buttons
+    document.querySelectorAll('.friends-nav-btn').forEach(b => b.classList.remove('active'));
+    // Add active class to clicked button
+    btn.classList.add('active');
+    
+    // Hide all sections
+    document.querySelectorAll('.friends-section').forEach(section => {
+      section.classList.remove('active');
+    });
+    
+    // Show selected section
+    const sectionId = btn.dataset.section + '-section';
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.classList.add('active');
+    }
+  });
+});
+
+
+
 closeFriendsBtn.addEventListener('click', closeFriendsModal);
 addFriendBtn.addEventListener('click', addFriend);
-addFriendInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    addFriend();
-  }
-});
+if (addFriendInput) {
+  addFriendInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      addFriend();
+    }
+  });
+}
 
 // Close modal on outside click
 friendsModal.addEventListener('click', (e) => {

@@ -54,6 +54,7 @@
             <button id="lobby-btn" class="dropdown-item">Lobby</button>
             <button id="friends-btn" class="dropdown-item">👥 Friends</button>
             <button id="report-btn" class="dropdown-item">📢 Report Player</button>
+            <button id="checkers-mode" class="dropdown-item">♟️ Play Checkers</button>
           </div>
         </div>
 
@@ -281,17 +282,30 @@
         <button id="close-friends-btn" class="close-friends-btn">&times;</button>
       </div>
 
-      <div class="friends-section">
-        <h3>Add Friend</h3>
+      <div class="friends-nav">
+        <button class="friends-nav-btn active" data-section="add-friend">Add Friend</button>
+        <button class="friends-nav-btn" data-section="friends">My Friends</button>
+        <button class="friends-nav-btn" data-section="requests">Pending Requests</button>
+        <button class="friends-nav-btn" data-section="blocked">Blocked Users</button>
+      </div>
+
+      <div class="friends-section active" id="add-friend-section">
         <div class="add-friend-form">
           <input type="text" id="add-friend-input" class="add-friend-input" placeholder="Enter username...">
           <button id="add-friend-btn" class="add-friend-btn">Add Friend</button>
         </div>
       </div>
 
-      <div class="friends-section">
-        <h3>My Friends</h3>
+      <div class="friends-section" id="friends-section">
         <ul id="friends-list" class="friends-list"></ul>
+      </div>
+
+      <div class="friends-section" id="requests-section">
+        <ul id="friend-requests-list" class="friends-list"></ul>
+      </div>
+
+      <div class="friends-section" id="blocked-section">
+        <ul id="blocked-list" class="friends-list"></ul>
       </div>
     </div>
   </div>

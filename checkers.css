@@ -1,0 +1,622 @@
+/* Checkers Game Styles */
+
+/* Menu Styles */
+.menu-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  padding: 40px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.menu-container h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.menu-option {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--surface-soft);
+  border: 2px solid var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.menu-option:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.menu-option.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: white;
+  border-color: var(--accent);
+}
+
+.menu-option.primary:hover {
+  background: var(--accent-strong);
+}
+
+.menu-icon {
+  font-size: 48px;
+}
+
+.menu-content h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.menu-content p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Difficulty Selector */
+.difficulty-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.difficulty-selector h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.difficulty-options {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.difficulty-btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.difficulty-btn:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.difficulty-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* View Management */
+.view {
+  width: 100%;
+}
+
+.view.hidden {
+  display: none;
+}
+
+/* Timer Display */
+.timer-display {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+}
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+  border: 2px solid var(--border-subtle);
+}
+
+.timer.red {
+  border-color: #dc2626;
+}
+
+.timer.black {
+  border-color: #1f2937;
+}
+
+.timer-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.timer-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* Chat Section */
+.chat-section {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 24px;
+}
+
+.chat-container {
+  background: var(--surface-soft);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 8px;
+}
+
+.chat-message {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-main);
+}
+
+.chat-message.self {
+  background: var(--accent-soft);
+}
+
+.chat-message .sender {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.chat-message .timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.chat-input-container {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Settings Styles */
+.settings-section {
+  background: var(--surface-soft);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.settings-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-main);
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.setting-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* Particle Effects */
+.particle {
+  position: absolute;
+  pointer-events: none;
+  animation: particleFade 0.6s ease-out forwards;
+}
+
+@keyframes particleFade {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+/* Checkers Game Styles */
+
+.checkers-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.checkers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 10px;
+}
+
+.checkers-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.checkers-info {
+  display: flex;
+  gap: 20px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.checkers-board-wrapper {
+  position: relative;
+  padding: var(--space-sm);
+  background: linear-gradient(135deg, var(--accent-soft), transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  transition: all var(--transition-normal) ease;
+}
+
+.checkers-board-wrapper:hover {
+  box-shadow: var(--shadow-2xl);
+  transform: translateY(-2px);
+}
+
+.checkers-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 1;
+}
+
+.checkers-square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.checkers-square.light {
+  background: #f0d9b5;
+}
+
+.checkers-square.dark {
+  background: #b58863;
+}
+
+.checkers-square.selected {
+  box-shadow: inset 0 0 0 4px var(--accent);
+}
+
+.checkers-square.valid-move::after {
+  content: '';
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  background: var(--accent);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.checkers-piece {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.checkers-piece.red {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  border: 3px solid #fca5a5;
+}
+
+.checkers-piece.black {
+  background: linear-gradient(135deg, #1f2937, #111827);
+  border: 3px solid #4b5563;
+}
+
+.checkers-piece.king::after {
+  content: '♔';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: gold;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.checkers-piece:hover {
+  transform: scale(1.05);
+}
+
+.checkers-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.checkers-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface-soft);
+  color: var(--text-main);
+  border: 2px solid var(--border-subtle);
+}
+
+.checkers-btn:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.checkers-btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.checkers-btn.primary:hover {
+  background: var(--accent-strong);
+}
+
+.checkers-btn.danger {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+.checkers-status {
+  padding: 16px 24px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-main);
+  margin: 10px 0;
+}
+
+.checkers-status.red-turn {
+  border-left: 4px solid #dc2626;
+}
+
+.checkers-status.black-turn {
+  border-left: 4px solid #1f2937;
+}
+
+.checkers-status.must-jump {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.checkers-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 20px;
+}
+
+.checkers-stat-item {
+  padding: 16px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.checkers-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.checkers-stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.checkers-stat-value.red {
+  color: #dc2626;
+}
+
+.checkers-stat-value.black {
+  color: #1f2937;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .checkers-container {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .checkers-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .checkers-title {
+    font-size: 24px;
+  }
+
+  .checkers-info {
+    font-size: 14px;
+  }
+
+  .checkers-board-wrapper {
+    padding: 8px;
+  }
+
+  .checkers-board {
+    max-width: 100%;
+  }
+
+  .checkers-piece.king::after {
+    font-size: 20px;
+  }
+
+  .checkers-controls {
+    gap: 8px;
+  }
+
+  .checkers-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .checkers-status {
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  .checkers-stats {
+    gap: 12px;
+  }
+
+  .checkers-stat-item {
+    padding: 12px;
+  }
+
+  .checkers-stat-value {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkers-title {
+    font-size: 20px;
+  }
+
+  .checkers-info {
+    font-size: 12px;
+    gap: 12px;
+  }
+
+  .checkers-board-wrapper {
+    padding: 6px;
+  }
+
+  .checkers-piece.king::after {
+    font-size: 16px;
+  }
+
+  .checkers-controls {
+    gap: 6px;
+  }
+
+  .checkers-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .checkers-status {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .checkers-stat-item {
+    padding: 10px;
+  }
+
+  .checkers-stat-value {
+    font-size: 18px;
+  }
+}

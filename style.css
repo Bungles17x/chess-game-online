@@ -37,6 +37,51 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
   --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 24px 96px rgba(0, 0, 0, 0.3);
+  
+  /* Additional colors */
+  --info: #3b82f6;
+  --info-soft: rgba(59, 130, 246, 0.2);
+  --purple: #8b5cf6;
+  --purple-soft: rgba(139, 92, 246, 0.2);
+  --pink: #ec4899;
+  --pink-soft: rgba(236, 72, 153, 0.2);
+  --teal: #14b8a6;
+  --teal-soft: rgba(20, 184, 166, 0.2);
+  --orange: #f97316;
+  --orange-soft: rgba(249, 115, 22, 0.2);
+
+  /* Additional animation speeds */
+  --transition-slower: 0.7s;
+  --transition-slowest: 1s;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  --gradient-gold: linear-gradient(135deg, var(--gold), #fbbf24);
+  --gradient-danger: linear-gradient(135deg, var(--danger), #dc2626);
+  --gradient-success: linear-gradient(135deg, var(--success), #16a34a);
+  --gradient-info: linear-gradient(135deg, var(--info), #2563eb);
+  --gradient-purple: linear-gradient(135deg, var(--purple), #6d28d9);
+  --gradient-pink: linear-gradient(135deg, var(--pink), #db2777);
+  --gradient-teal: linear-gradient(135deg, var(--teal), #0d9488);
+  --gradient-orange: linear-gradient(135deg, var(--orange), #ea580c);
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
 }
 
 body.light-theme {
@@ -1947,6 +1992,12 @@ body.light-theme .alert-message {
   animation: popupEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, redPulse 2s ease-in-out infinite, popupBounceOut 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 4s forwards;
 }
 
+.popup.gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4), 0 2px 8px rgba(0,0,0,0.2);
+  animation: popupEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, goldPulse 2s ease-in-out infinite, popupBounceOut 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 4s forwards;
+}
+
 .popup.blue {
   background: linear-gradient(135deg, #0400ff 0%, #0400ff 100%);
   box-shadow: 0 8px 24px rgba(0, 21, 207, 0.4), 0 2px 8px rgba(0,0,0,0.2);
@@ -1982,6 +2033,15 @@ body.light-theme .alert-message {
   }
   50% {
     box-shadow: 0 12px 32px rgba(239, 68, 68, 0.6), 0 4px 12px rgba(0,0,0,0.3);
+  }
+}
+
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4), 0 2px 8px rgba(0,0,0,0.2);
+  }
+  50% {
+    box-shadow: 0 12px 32px rgba(251, 191, 36, 0.6), 0 4px 12px rgba(0,0,0,0.3);
   }
 }
 

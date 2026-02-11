@@ -35,6 +35,7 @@ const closeThemeBtn = document.getElementById("close-theme-btn");
 const closeLobbyBtn = document.getElementById("close-lobby-btn");
 const botModeBtn = document.getElementById("bot-mode");
 const onlineModeBtn = document.getElementById("online-mode");
+const checkersModeBtn = document.getElementById("checkers-mode");
 const moveSound = document.getElementById("move-sound");
 const captureSound = document.getElementById("capture-sound");
 const connectionLostSound = document.getElementById("connection-lost-sound");
@@ -1890,6 +1891,11 @@ onlineModeBtn.addEventListener("click", () => {
     }, 1500);
     return;
   }
+});
+
+checkersModeBtn.addEventListener("click", () => {
+  debugLog("MODE", "Checkers mode button clicked");
+  popup("Checkers mode is coming soon!", "gold", true);
   
   if (gameMode === "online" && game.history().length > 0) {
     popup("Cannot change mode during an online game.", "red");
