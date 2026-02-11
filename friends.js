@@ -203,6 +203,48 @@ function unblockUser(username) {
   }
 }
 
+// Invite friend to game
+function inviteFriend(friendUsername) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    // Check if friend is online
+    const onlineFriends = JSON.parse(localStorage.getItem('onlineFriends') || '[]');
+    if (!onlineFriends.includes(friendUsername)) {
+      popup(`${friendUsername} is currently offline. Cannot send invitation.`, 'yellow');
+      return;
+    }
+    
+    // Send a chat message as an invitation
+    socket.send(JSON.stringify({
+      type: 'chat',
+      message: `🎮 ${friendUsername}, I'd like to play a game with you!`
+    }));
+    popup(`Game invitation sent to ${friendUsername}!`, 'green');
+  } else {
+    popup('Please connect to server first.', 'yellow');
+  }
+}
+
+// Join friend's game
+function joinFriend(friendUsername) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    // Check if friend is online
+    const onlineFriends = JSON.parse(localStorage.getItem('onlineFriends') || '[]');
+    if (!onlineFriends.includes(friendUsername)) {
+      popup(`${friendUsername} is currently offline. Cannot join game.`, 'yellow');
+      return;
+    }
+    
+    // Send a chat message to request to join
+    socket.send(JSON.stringify({
+      type: 'chat',
+      message: `🎮 ${friendUsername}, can I join your game?`
+    }));
+    popup(`Request sent to ${friendUsername} to join their game!`, 'blue');
+  } else {
+    popup('Please connect to server first.', 'yellow');
+  }
+}
+
 // Block user
 function blockUser(username) {
   if (confirm(`Are you sure you want to block ${username}?`)) {
