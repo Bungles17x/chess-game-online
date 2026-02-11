@@ -29,6 +29,9 @@ function closeFriendsModal() {
 // Render friends list
 function renderFriendsList(friends, onlineFriends) {
   friendsList.innerHTML = '';
+  
+  // Store online friends in localStorage for use in other functions
+  localStorage.setItem('onlineFriends', JSON.stringify(onlineFriends));
 
   if (friends.length === 0) {
     friendsList.innerHTML = '<li class="no-friends">No friends yet. Add some friends to get started!</li>';
@@ -203,9 +206,17 @@ function unblockUser(username) {
 // Invite friend to game
 function inviteFriend(friendUsername) {
   if (socket && socket.readyState === WebSocket.OPEN) {
+    // Check if friend is online
+    const onlineFriends = JSON.parse(localStorage.getItem('onlineFriends') || '[]');
+    if (!onlineFriends.includes(friendUsername)) {
+      popup(`${friendUsername} is currently offline. Cannot send invitation.`, 'yellow');
+      return;
+    }
+    
+    // Send a chat message as an invitation
     socket.send(JSON.stringify({
-      type: 'inviteToGame',
-      friendUsername: friendUsername
+      type: 'chat',
+      message: `🎮 ${friendUsername}, I'd like to play a game with you!`
     }));
     popup(`Game invitation sent to ${friendUsername}!`, 'green');
   } else {
@@ -216,11 +227,19 @@ function inviteFriend(friendUsername) {
 // Join friend's game
 function joinFriend(friendUsername) {
   if (socket && socket.readyState === WebSocket.OPEN) {
+    // Check if friend is online
+    const onlineFriends = JSON.parse(localStorage.getItem('onlineFriends') || '[]');
+    if (!onlineFriends.includes(friendUsername)) {
+      popup(`${friendUsername} is currently offline. Cannot join game.`, 'yellow');
+      return;
+    }
+    
+    // Send a chat message to request to join
     socket.send(JSON.stringify({
-      type: 'joinFriendGame',
-      friendUsername: friendUsername
+      type: 'chat',
+      message: `🎮 ${friendUsername}, can I join your game?`
     }));
-    popup(`Attempting to join ${friendUsername}'s game...`, 'blue');
+    popup(`Request sent to ${friendUsername} to join their game!`, 'blue');
   } else {
     popup('Please connect to server first.', 'yellow');
   }
@@ -229,16 +248,28 @@ function joinFriend(friendUsername) {
 // Block user
 function blockUser(username) {
   if (confirm(`Are you sure you want to block ${username}?`)) {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: 'blockUser',
-        username: username
-      }));
+    // Store blocked users in localStorage
+    let blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+    
+    if (!blockedUsers.includes(username)) {
+      blockedUsers.push(username);
+      localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
       popup(`${username} blocked`, 'orange');
-      // Refresh friends list to show updated status
-      socket.send(JSON.stringify({ type: 'getFriends' }));
+      
+      // Remove from friends if they are a friend
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'removeFriend',
+          friendUsername: username
+        }));
+        // Refresh friends list
+        socket.send(JSON.stringify({ type: 'getFriends' }));
+      }
+      
+      // Update blocked users list display
+      renderBlockedUsers(blockedUsers);
     } else {
-      popup('Please connect to server first.', 'yellow');
+      popup(`${username} is already blocked`, 'yellow');
     }
   }
 }
@@ -367,6 +398,9 @@ function handleFriendMessages(data) {
   switch (data.type) {
     case 'friendsList':
       renderFriendsList(data.friends, data.onlineFriends);
+      // Load and render blocked users from localStorage
+      const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+      renderBlockedUsers(blockedUsers);
       break;
 
     case 'friendRequest':
