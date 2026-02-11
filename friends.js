@@ -273,7 +273,6 @@ function inviteFriend(friendUsername) {
       type: 'invite',
       username: friendUsername
     }));
-    popup(`Game invitation sent to ${friendUsername}!`, 'green');
   } else {
     popup('Please connect to server first.', 'yellow');
   }
@@ -491,6 +490,10 @@ function handleFriendMessages(data) {
 
     case 'gameInvite':
       handleGameInvite(data);
+      break;
+
+    case 'inviteSent':
+      popup(`Game invitation sent to ${data.to}!`, 'green');
       break;
 
     case 'friendRequestSent':
