@@ -395,7 +395,7 @@
     console.log('[ADMIN] Creating reports modal...');
     const modal = document.createElement('div');
     modal.id = 'reports-modal-enhanced';
-    modal.className = 'modal hidden';
+    modal.className = 'modal';
     modal.innerHTML = `
       <div class="modal-content">
         <h2>📊 Reports Management</h2>
