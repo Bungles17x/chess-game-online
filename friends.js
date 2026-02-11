@@ -213,10 +213,16 @@ function inviteFriend(friendUsername) {
       return;
     }
     
-    // Send a chat message as an invitation
+    // Check if user is in a room
+    if (!window.roomId) {
+      popup('You need to be in a room to invite friends. Please create or join a room first.', 'yellow');
+      return;
+    }
+    
+    // Send invitation message to server
     socket.send(JSON.stringify({
-      type: 'chat',
-      message: `🎮 ${friendUsername}, I'd like to play a game with you!`
+      type: 'invite',
+      username: friendUsername
     }));
     popup(`Game invitation sent to ${friendUsername}!`, 'green');
   } else {
@@ -237,9 +243,9 @@ function joinFriend(friendUsername) {
     // Send a chat message to request to join
     socket.send(JSON.stringify({
       type: 'chat',
-      message: `🎮 ${friendUsername}, can I join your game?`
+      message: `🎮 ${friendUsername}, I'd like to join your game! What room are you in?`
     }));
-    popup(`Request sent to ${friendUsername} to join their game!`, 'blue');
+    popup(`Request sent to ${friendUsername}! Please wait for them to share the room ID.`, 'blue');
   } else {
     popup('Please connect to server first.', 'yellow');
   }
