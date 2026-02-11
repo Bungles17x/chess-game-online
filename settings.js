@@ -1,5 +1,10 @@
 // Settings Page JavaScript
 
+// Load encryption utility
+const encryptionScript = document.createElement('script');
+encryptionScript.src = 'encryption.js';
+document.head.appendChild(encryptionScript);
+
 // DOM Elements
 const backToGameBtn = document.getElementById('back-to-game-btn');
 
@@ -154,7 +159,7 @@ function handleLogin(e) {
   }
 
   // Get users from localStorage
-  const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+  const users = secureStorage.getItem('chessUsers') || [];
 
   // Find user by email or username
   const user = users.find(u => u.email === email || u.username === email);
@@ -208,7 +213,7 @@ function handleRegister(e) {
   }
 
   // Get users from localStorage
-  const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+  const users = secureStorage.getItem('chessUsers') || [];
 
   // Check if email or username already exists
   if (users.find(u => u.email === email)) {
@@ -243,7 +248,7 @@ function handleRegister(e) {
 
   // Save user
   users.push(newUser);
-  localStorage.setItem('chessUsers', JSON.stringify(users));
+  secureStorage.setItem('chessUsers', users);
   localStorage.setItem('currentUser', JSON.stringify(newUser));
 
   // Dispatch login event
@@ -491,11 +496,11 @@ function confirmRename() {
   localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
   // Update users array
-  const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+  const users = secureStorage.getItem('chessUsers') || [];
   const userIndex = users.findIndex(u => u.id === currentUser.id);
   if (userIndex !== -1) {
     users[userIndex] = currentUser;
-    localStorage.setItem('chessUsers', JSON.stringify(users));
+    secureStorage.setItem('chessUsers', users);
   }
 
   // Sync with server
@@ -529,11 +534,11 @@ function deleteGame(index) {
   localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
   // Update users array
-  const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+  const users = secureStorage.getItem('chessUsers') || [];
   const userIndex = users.findIndex(u => u.id === currentUser.id);
   if (userIndex !== -1) {
     users[userIndex] = currentUser;
-    localStorage.setItem('chessUsers', JSON.stringify(users));
+    secureStorage.setItem('chessUsers', users);
   }
 
   // Sync with server
@@ -809,11 +814,11 @@ function saveSettings() {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
     // Update users array
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    const users = secureStorage.getItem('chessUsers') || [];
     const userIndex = users.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       users[userIndex] = currentUser;
-      localStorage.setItem('chessUsers', JSON.stringify(users));
+      secureStorage.setItem('chessUsers', users);
     }
 
     // Sync with server
