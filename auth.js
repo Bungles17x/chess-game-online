@@ -1,5 +1,10 @@
 // Authentication JavaScript
 
+// Load encryption utility
+const encryptionScript = document.createElement('script');
+encryptionScript.src = 'encryption.js';
+document.head.appendChild(encryptionScript);
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   // Get DOM elements after page loads
@@ -46,8 +51,8 @@ function setupLoginForm(loginForm) {
       return;
     }
 
-    // Check if user exists in localStorage
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    // Check if user exists in secureStorage
+    const users = secureStorage.getItem('chessUsers') || [];
     
     // Allow login with either email or username
     const user = users.find(u => 
@@ -203,7 +208,7 @@ function setupRegisterForm(registerForm) {
     }
 
     // Check if user already exists
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    const users = secureStorage.getItem('chessUsers') || [];
 
     if (users.find(u => u.email === email)) {
       showError('An account with this email already exists');
