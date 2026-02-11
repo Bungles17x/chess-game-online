@@ -49,6 +49,9 @@ function renderFriendsList(friends, onlineFriends) {
         <span class="friend-status ${statusClass}">${statusText}</span>
       </div>
       <div class="friend-actions">
+        <button class="friend-btn invite-btn" data-friend="${friend}" ${!isOnline ? 'disabled' : ''}>Invite</button>
+        <button class="friend-btn join-btn" data-friend="${friend}" ${!isOnline ? 'disabled' : ''}>Join</button>
+        <button class="friend-btn block-btn" data-friend="${friend}">Block</button>
         <button class="friend-btn remove-friend-btn" data-friend="${friend}">Remove</button>
       </div>
     `;
@@ -56,7 +59,28 @@ function renderFriendsList(friends, onlineFriends) {
     friendsList.appendChild(friendItem);
   });
 
-  // Add event listeners to remove buttons
+  // Add event listeners to all friend action buttons
+  document.querySelectorAll('.invite-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const friendUsername = e.target.dataset.friend;
+      inviteFriend(friendUsername);
+    });
+  });
+
+  document.querySelectorAll('.join-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const friendUsername = e.target.dataset.friend;
+      joinFriend(friendUsername);
+    });
+  });
+
+  document.querySelectorAll('.block-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const friendUsername = e.target.dataset.friend;
+      blockUser(friendUsername);
+    });
+  });
+
   document.querySelectorAll('.remove-friend-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const friendUsername = e.target.dataset.friend;
@@ -176,6 +200,49 @@ function unblockUser(username) {
   }
 }
 
+// Invite friend to game
+function inviteFriend(friendUsername) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'inviteToGame',
+      friendUsername: friendUsername
+    }));
+    showAlert(`Game invitation sent to ${friendUsername}!`, 'success');
+  } else {
+    showAlert('Please connect to server first.', 'warning');
+  }
+}
+
+// Join friend's game
+function joinFriend(friendUsername) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'joinFriendGame',
+      friendUsername: friendUsername
+    }));
+    showAlert(`Attempting to join ${friendUsername}'s game...`, 'info');
+  } else {
+    showAlert('Please connect to server first.', 'warning');
+  }
+}
+
+// Block user
+function blockUser(username) {
+  if (confirm(`Are you sure you want to block ${username}?`)) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'blockUser',
+        username: username
+      }));
+      showAlert(`${username} blocked`, 'success');
+      // Refresh friends list to show updated status
+      socket.send(JSON.stringify({ type: 'getFriends' }));
+    } else {
+      showAlert('Please connect to server first.', 'warning');
+    }
+  }
+}
+
 // Add friend
 function addFriend() {
   const friendUsername = addFriendInput.value.trim();
@@ -267,12 +334,24 @@ function showFriendRequestNotification(from) {
 
   document.getElementById(`accept-${from}`).addEventListener('click', () => {
     acceptFriendRequest(from);
-    notification.remove();
+    // Add fade-out animation
+    notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
   });
 
   document.getElementById(`reject-${from}`).addEventListener('click', () => {
     rejectFriendRequest(from);
-    notification.remove();
+    // Add fade-out animation
+    notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
   });
 
   // Auto-remove after 30 seconds
