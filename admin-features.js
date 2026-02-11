@@ -787,11 +787,19 @@
   // ==================== INITIALIZATION ====================
 
   function initializeAdminFeatures() {
-    if (!isAdmin()) return;
+    console.log('[ADMIN] Initializing admin features...');
+    console.log('[ADMIN] Is admin:', isAdmin());
+    console.log('[ADMIN] Current user:', localStorage.getItem('currentUser'));
+    
+    if (!isAdmin()) {
+      console.log('[ADMIN] User is not admin, skipping initialization');
+      return;
+    }
 
     // Wait for dropdown to be available
     const checkDropdown = setInterval(() => {
       const dropdown = document.querySelector('.dropdown-content');
+      console.log('[ADMIN] Checking for dropdown...', dropdown ? 'Found' : 'Not found');
       if (dropdown) {
         clearInterval(checkDropdown);
         addReportsManagementButton();
