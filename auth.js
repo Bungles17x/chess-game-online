@@ -241,7 +241,7 @@ function setupRegisterForm(registerForm) {
     };
 
     users.push(newUser);
-    localStorage.setItem('chessUsers', JSON.stringify(users));
+    secureStorage.setItem('chessUsers', users);
     
     // Create a safe user object without password and email for localStorage
     const safeUser = {

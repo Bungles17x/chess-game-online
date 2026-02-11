@@ -1,5 +1,9 @@
 // Forgot Password JavaScript
 
+// Load encryption utility
+const encryptionScript = document.createElement('script');
+encryptionScript.src = 'encryption.js';
+document.head.appendChild(encryptionScript);
 
 // State management
 let currentStep = 1;
@@ -44,7 +48,7 @@ function setupEmailForm() {
     }
 
     // Check if user exists
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    const users = secureStorage.getItem('chessUsers') || [];
     const user = users.find(u => u.email === email);
 
     if (!user) {
@@ -157,7 +161,7 @@ function setupResetForm() {
 
     if (userIndex !== -1) {
       users[userIndex].password = newPassword;
-      localStorage.setItem('chessUsers', JSON.stringify(users));
+      secureStorage.setItem('chessUsers', users);
     }
 
     // Clear reset data
