@@ -130,6 +130,7 @@ let touchStartTime = 0; // Track when touch started
 let lastMove = null; // Track the last move for highlighting
 let playerColor = "w";
 let roomId = null;
+window.roomId = roomId; // Expose roomId to window for other modules
 window.gameMode = "bot"; // "bot" or "online"
 let isOnlineGame = false; // Track if we're in an online game
 let allRooms = []; // Store all available rooms for searching
