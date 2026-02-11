@@ -397,7 +397,7 @@
     modal.id = 'reports-modal-enhanced';
     modal.className = 'modal';
     modal.innerHTML = `
-      <div class="modal-content">
+      <div class="modal-content" style="width: 600px; max-width: 90vw;">
         <h2>📊 Reports Management</h2>
         <div id="reports-list-enhanced" class="reports-list"></div>
         <button id="close-reports-enhanced-btn" class="primary-btn">Close</button>
