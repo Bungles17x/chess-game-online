@@ -52,8 +52,6 @@ function renderFriendsList(friends, onlineFriends) {
         <span class="friend-status ${statusClass}">${statusText}</span>
       </div>
       <div class="friend-actions">
-        <button class="friend-btn invite-btn" data-friend="${friend}" ${!isOnline ? 'disabled' : ''}>Invite</button>
-        <button class="friend-btn join-btn" data-friend="${friend}" ${!isOnline ? 'disabled' : ''}>Join</button>
         <button class="friend-btn block-btn" data-friend="${friend}">Block</button>
         <button class="friend-btn remove-friend-btn" data-friend="${friend}">Remove</button>
       </div>
@@ -63,20 +61,6 @@ function renderFriendsList(friends, onlineFriends) {
   });
 
   // Add event listeners to all friend action buttons
-  document.querySelectorAll('.invite-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const friendUsername = e.target.dataset.friend;
-      inviteFriend(friendUsername);
-    });
-  });
-
-  document.querySelectorAll('.join-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const friendUsername = e.target.dataset.friend;
-      joinFriend(friendUsername);
-    });
-  });
-
   document.querySelectorAll('.block-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const friendUsername = e.target.dataset.friend;
