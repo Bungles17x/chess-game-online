@@ -13,12 +13,23 @@
   // ==================== REPORTS MANAGEMENT ====================
 
   function addReportsManagementButton() {
-    if (!isAdmin()) return;
+    console.log('[ADMIN] Adding reports management button...');
+    if (!isAdmin()) {
+      console.log('[ADMIN] User is not admin, cannot add reports button');
+      return;
+    }
 
     const dropdown = document.querySelector('.dropdown-content');
-    if (!dropdown) return;
+    console.log('[ADMIN] Dropdown:', dropdown ? 'Found' : 'Not found');
+    if (!dropdown) {
+      console.log('[ADMIN] Dropdown not found, cannot add reports button');
+      return;
+    }
 
-    if (document.getElementById('reports-manage-btn')) return;
+    if (document.getElementById('reports-manage-btn')) {
+      console.log('[ADMIN] Reports button already exists');
+      return;
+    }
 
     const reportsBtn = document.createElement('button');
     reportsBtn.id = 'reports-manage-btn';
@@ -26,10 +37,12 @@
     reportsBtn.textContent = '📊 Manage Reports';
 
     reportsBtn.addEventListener('click', () => {
+      console.log('[ADMIN] Reports button clicked');
       createReportsModal();
     });
 
     dropdown.appendChild(reportsBtn);
+    console.log('[ADMIN] Reports button added successfully');
   }
 
   // ==================== PASSWORD RESET MANAGEMENT ====================
@@ -379,6 +392,7 @@
   }
 
   function createReportsModal() {
+    console.log('[ADMIN] Creating reports modal...');
     const modal = document.createElement('div');
     modal.id = 'reports-modal-enhanced';
     modal.className = 'modal hidden';
@@ -390,31 +404,45 @@
       </div>
     `;
     document.body.appendChild(modal);
+    console.log('[ADMIN] Reports modal created and added to body');
 
     document.getElementById('close-reports-enhanced-btn').addEventListener('click', () => {
+      console.log('[ADMIN] Closing reports modal');
       modal.classList.add('hidden');
     });
 
+    console.log('[ADMIN] Loading reports...');
     loadReports();
   }
 
   function loadReports() {
+    console.log('[ADMIN] Loading reports...');
     const reportsList = document.getElementById('reports-list-enhanced');
-    if (!reportsList) return;
+    console.log('[ADMIN] Reports list element:', reportsList ? 'Found' : 'Not found');
+    if (!reportsList) {
+      console.log('[ADMIN] Reports list element not found, cannot load reports');
+      return;
+    }
 
     if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      console.log('[ADMIN] Sending getReports request to server');
       window.socket.send(JSON.stringify({ type: 'getReports' }));
+    } else {
+      console.log('[ADMIN] Socket not connected, cannot load reports');
     }
 
     const handleReports = (event) => {
       const data = JSON.parse(event.data);
+      console.log('[ADMIN] Received message from server:', data.type);
       if (data.type === 'reportsList') {
+        console.log('[ADMIN] Reports list received:', data.reports);
         displayReports(data.reports);
         window.socket.removeEventListener('message', handleReports);
       }
     };
 
     window.socket.addEventListener('message', handleReports);
+    console.log('[ADMIN] Reports message handler added');
   }
 
   function displayReports(reports) {
