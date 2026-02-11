@@ -446,13 +446,21 @@
   }
 
   function displayReports(reports) {
+    console.log('[ADMIN] Displaying reports:', reports);
     const reportsList = document.getElementById('reports-list-enhanced');
-    if (!reportsList) return;
+    console.log('[ADMIN] Reports list element:', reportsList ? 'Found' : 'Not found');
+    if (!reportsList) {
+      console.log('[ADMIN] Reports list element not found');
+      return;
+    }
 
+    console.log('[ADMIN] Clearing reports list');
     reportsList.innerHTML = '';
 
     if (!reports || reports.length === 0) {
+      console.log('[ADMIN] No reports to display');
       reportsList.innerHTML = '<p class="no-reports">No reports found.</p>';
+      console.log('[ADMIN] Set no reports message');
       return;
     }
 
