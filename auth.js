@@ -1,10 +1,5 @@
 // Authentication JavaScript
 
-// Load encryption utility
-const encryptionScript = document.createElement('script');
-encryptionScript.src = 'encryption.js';
-document.head.appendChild(encryptionScript);
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   // Get DOM elements after page loads
@@ -320,3 +315,32 @@ function getCurrentUser() {
 window.isAuthenticated = isAuthenticated;
 window.getCurrentUser = getCurrentUser;
 window.handleLogout = handleLogout;
+
+// Clear old encrypted data (for migration to new encryption system)
+window.clearOldEncryptedData = function() {
+  console.log('Starting encrypted data cleanup...');
+  
+  // Clear all encrypted storage
+  const keys = Object.keys(localStorage);
+  let clearedCount = 0;
+  
+  keys.forEach(key => {
+    // Clear chessUsers which contains encrypted user data
+    if (key === 'chessUsers') {
+      localStorage.removeItem(key);
+      clearedCount++;
+      console.log(`Cleared: ${key}`);
+    }
+  });
+  
+  // Don't clear currentUser - keep user logged in
+  
+  console.log(`\nCleared ${clearedCount} item(s)`);
+  console.log('Please re-register your account with the new encryption system.');
+  console.log('After registration, you will be able to log in normally.');
+  
+  return clearedCount;
+};
+
+// Make clearOldEncryptedData available globally
+console.log('To clear old encrypted data, run: clearOldEncryptedData()');

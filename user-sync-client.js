@@ -155,12 +155,12 @@ class UserSyncManager {
       const updatedUser = { ...currentUser, ...updates };
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
-      // Also update in chessUsers array
-      const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+      // Also update in chessUsers array using secureStorage
+      const users = secureStorage.getItem('chessUsers') || [];
       const userIndex = users.findIndex(u => u.username === currentUser.username);
       if (userIndex !== -1) {
         users[userIndex] = updatedUser;
-        localStorage.setItem('chessUsers', JSON.stringify(users));
+        secureStorage.setItem('chessUsers', users);
       }
 
       // Trigger profile updated event

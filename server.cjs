@@ -6,6 +6,8 @@ const twilio = require('twilio');
 const { isAdmin, hasAdminPower, getAdminPowers } = require('./chess-game-online-main/admin-system');
 const userManager = require('./user-manager');
 const userSyncHandlers = require('./user-sync-handlers');
+const reportingSystem = require('./reporting-system');
+const notificationSystem = require('./notification-system');
 
 // Profanity filter system
 const profanityKeywords = [
@@ -138,12 +140,13 @@ const connectedUsers = new Map(); // Track connected users by username
 const bannedUsers = new Map(); // Track banned usernames with reasons: {username: reason}
 
 // TEMPORARY: Unban bungles17x account on server start
-const adminUsername = "bungles17x";
-if (bannedUsers.has(adminUsername.toLowerCase())) {
-  console.log("ADMIN", "Unbanning admin account", { username: adminUsername });
-  bannedUsers.delete(adminUsername.toLowerCase());
-}
-const reports = new Map(); // Track reports
+const adminUsernames = ["bungles17x", "674121bruh"];
+adminUsernames.forEach(username => {
+  if (bannedUsers.has(username.toLowerCase())) {
+    console.log("ADMIN", "Unbanning admin account", { username: username });
+    bannedUsers.delete(username.toLowerCase());
+  }
+});
 const friends = new Map(); // Track friendships: {username: [friend1, friend2, ...]}
 const mutedUsers = new Set(); // Track muted users
 
@@ -1132,8 +1135,13 @@ function handleReport(ws, data) {
       return;
     }
 
-    // Save game replay (simplified version)
-    const replayId = ws.roomId;
+    // Save game replay
+    const gameData = {
+      pgn: room.game.pgn(),
+      fen: room.game.fen(),
+      history: room.game.history({ verbose: true })
+    };
+    const replayId = reportingSystem.saveGameReplay(ws.roomId, gameData);
 
     // Get opponent username
     let opponent = "Unknown";
@@ -1157,12 +1165,21 @@ function handleReport(ws, data) {
       status: "pending"
     };
 
-    const reportId = generateReportId();
-    reports.set(reportId, reportData);
+    const reportId = reportingSystem.createReport(reportData);
 
     // Send notification to admin (simplified version)
     console.log("Report created:", reportId, reportData);
-    makeReportCall(reportData, reportId);
+    notificationSystem.sendReportNotification({
+      id: reportId,
+      type: reportData.reportType,
+      reportedBy: reportData.reportedBy,
+      roomId: reportData.roomId,
+      reason: reportData.reason
+    }).then(result => {
+      console.log("Report notification sent:", result);
+    }).catch(error => {
+      console.error("Error sending report notification:", error);
+    });
 
     
 
@@ -1183,10 +1200,7 @@ function handleReport(ws, data) {
 
 function handleGetReports(ws) {
   try {
-    const reportsList = Array.from(reports.entries()).map(([id, report]) => ({
-      id,
-      ...report
-    }));
+    const reportsList = reportingSystem.getAllReports();
     ws.send(JSON.stringify({
       type: "reportsList",
       reports: reportsList
@@ -1204,7 +1218,7 @@ function handleGetReportDetails(ws, data) {
       return;
     }
 
-    const report = reports.get(data.reportId);
+    const report = reportingSystem.getReportById(data.reportId);
     if (!report) {
       ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
       return;
@@ -1212,10 +1226,7 @@ function handleGetReportDetails(ws, data) {
 
     ws.send(JSON.stringify({
       type: "reportDetails",
-      report: {
-        id: data.reportId,
-        ...report
-      }
+      report: report
     }));
   } catch (error) {
     console.error("Error getting report details:", error);
@@ -1230,13 +1241,12 @@ function handleUpdateReportStatus(ws, data) {
       return;
     }
 
-    const report = reports.get(data.reportId);
-    if (!report) {
-      ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found" }));
+    const success = reportingSystem.updateReportStatus(data.reportId, data.status);
+    if (!success) {
+      ws.send(JSON.stringify({ type: "error", code: 404, message: "Report not found or update failed" }));
       return;
     }
 
-    report.status = data.status;
     ws.send(JSON.stringify({
       type: "reportStatusUpdated",
       reportId: data.reportId,

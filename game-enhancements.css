@@ -1,0 +1,244 @@
+/* Game Enhancements Styles */
+
+/* Pulse animation for highlighted squares */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Shake animation for checkmate */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+/* Game end overlay */
+.game-end-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.5s ease;
+}
+
+.game-end-message {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(14, 165, 233, 0.8);
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Move arrow indicator */
+.move-arrow {
+  position: fixed;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.8), rgba(14, 165, 233, 0.4));
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1000;
+  transform-origin: left center;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+}
+
+.move-arrow::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-left: 12px solid rgba(14, 165, 233, 0.8);
+}
+
+/* Board coordinates */
+.board-coordinate {
+  position: absolute;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.file-label {
+  bottom: 6px;
+  transform: translateX(-50%);
+  letter-spacing: 1px;
+}
+
+.rank-label {
+  left: 6px;
+  transform: translateY(-50%);
+}
+
+/* Enhanced coordinates on hover */
+.chessboard:hover .board-coordinate {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* Theme-specific coordinate colors */
+[data-theme="light"] .board-coordinate {
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .chessboard:hover .board-coordinate {
+  color: #0ea5e9;
+}
+
+/* Enhanced move history */
+.move-number {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+#moves-list li {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+#moves-list li:hover {
+  background-color: rgba(14, 165, 233, 0.2);
+}
+
+/* Enhanced piece selection */
+.square.selected {
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.8) !important;
+  z-index: 10 !important;
+}
+
+/* Enhanced move highlighting */
+.square.highlight {
+  animation: pulse 1.5s ease-in-out infinite !important;
+}
+
+.square.highlight.capture {
+  background-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.square.highlight:not(.capture) {
+  background-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+/* Enhanced check indicator */
+.square.in-check {
+  animation: checkPulse 1s ease-in-out infinite !important;
+}
+
+@keyframes checkPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.9);
+  }
+}
+
+/* Enhanced last move indicators */
+.square.last-move {
+  background-color: rgba(14, 165, 233, 0.3) !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Enhanced piece animations */
+.piece {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Promotion modal enhancements */
+.promotion-piece {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.promotion-piece:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.8);
+}
+
+/* Responsive board adjustments */
+@media (max-width: 768px) {
+  .board-coordinate {
+    font-size: 0.6rem;
+  }
+
+  .game-end-message {
+    font-size: 2.5rem;
+  }
+
+  .move-arrow {
+    height: 3px;
+  }
+
+  .move-arrow::after {
+    right: -8px;
+    border: 6px solid transparent;
+    border-left: 10px solid rgba(14, 165, 233, 0.8);
+  }
+}
+
+/* Light theme adjustments */
+body.light-theme .board-coordinate {
+  color: var(--text-muted);
+}
+
+body.light-theme .move-number {
+  color: var(--accent);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .board-coordinate {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+body.dark-theme .move-number {
+  color: var(--accent);
+}

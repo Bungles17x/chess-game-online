@@ -184,6 +184,34 @@
         </div>
       </section>
 
+      <!-- Game Settings Section -->
+      <section class="settings-section" id="game-section">
+        <h2>Game Settings</h2>
+
+        <div class="settings-subsection">
+          <h3>Board Options</h3>
+          <div class="toggle-option">
+            <label class="toggle-label">
+              <input type="checkbox" id="show-coordinates-toggle" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Show Board Coordinates</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-subsection">
+          <h3>Accessibility</h3>
+          <div class="toggle-option">
+            <label class="toggle-label">
+              <input type="checkbox" id="screen-reader-toggle">
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Screen Reader Mode</span>
+            </label>
+            <p class="setting-description">Enhanced announcements for screen readers including piece positions, moves, and game state</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Theme Section -->
       <section class="settings-section" id="theme-section">
         <h2>Appearance</h2>
@@ -267,5 +295,6 @@
   <!-- Scripts -->
   <script src="user-sync-client.js"></script>
   <script src="settings.js"></script>
+  <script src="screen-reader-simple.js"></script>
 </body>
 </html>

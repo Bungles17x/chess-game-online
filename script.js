@@ -36,6 +36,7 @@ const closeLobbyBtn = document.getElementById("close-lobby-btn");
 const botModeBtn = document.getElementById("bot-mode");
 const onlineModeBtn = document.getElementById("online-mode");
 const checkersModeBtn = document.getElementById("checkers-mode");
+const serverStatusBtn = document.getElementById("server-status-btn");
 const moveSound = document.getElementById("move-sound");
 const captureSound = document.getElementById("capture-sound");
 const connectionLostSound = document.getElementById("connection-lost-sound");
@@ -1403,6 +1404,8 @@ playSoundById(soundId);
 function initBoard() {
   debugLog("BOARD", "Initializing board");
   
+  // Preserve coordinates before clearing board
+  const coordinates = boardElement.querySelectorAll('.board-coordinate');
   boardElement.innerHTML = "";
   selectedSquare = null;
   legalMovesFromSelected = [];
@@ -1412,6 +1415,12 @@ function initBoard() {
   updateTurnIndicator();
   buildSquares();
   renderPosition();
+  
+  // Restore coordinates if they should be shown
+  const showCoordinates = localStorage.getItem('showCoordinates') !== 'false';
+  if (showCoordinates) {
+    coordinates.forEach(coord => boardElement.appendChild(coord));
+  }
 }
 
 function buildSquares() {
@@ -1470,7 +1479,14 @@ function buildSquares() {
 }
 
 function renderPosition() {
-  document.querySelectorAll(".square").forEach(sq => (sq.innerHTML = ""));
+  document.querySelectorAll(".square").forEach(sq => {
+    // Clear square content but preserve coordinates
+    const coordinates = sq.querySelector('.board-coordinate');
+    sq.innerHTML = "";
+    if (coordinates) {
+      sq.appendChild(coordinates);
+    }
+  });
 
   const board = game.board();
 
@@ -1859,8 +1875,28 @@ function updateTurnIndicator() {
       turnIndicator.textContent = `Checkmate — ${winner} wins`;
       debugLog("GAME", "Checkmate", { winner });
     } else if (game.in_draw()) {
-      turnIndicator.textContent = "Draw";
-      debugLog("GAME", "Game ended in draw");
+      // Determine the type of draw
+      let drawReason = "Draw";
+      
+      // Check for stalemate (no legal moves but not in check)
+      if (game.in_stalemate()) {
+        drawReason = "Stalemate";
+      }
+      // Check for threefold repetition
+      else if (game.in_threefold_repetition()) {
+        drawReason = "Threefold repetition";
+      }
+      // Check for insufficient material
+      else if (game.insufficient_material()) {
+        drawReason = "Insufficient material";
+      }
+      // Check for 50-move rule
+      else if (game.history().length >= 100) {
+        drawReason = "50-move rule";
+      }
+      
+      turnIndicator.textContent = drawReason;
+      debugLog("GAME", `Game ended in ${drawReason}`);
     } else {
       turnIndicator.textContent = "Game over";
       debugLog("GAME", "Game over");
@@ -2829,21 +2865,57 @@ function saveCurrentGame() {
       if (!currentUser.savedGames) {
         currentUser.savedGames = [];
       }
-      const savedGame = {
-        name: `Game ${currentUser.savedGames.length + 1}`,
-        date: new Date().toISOString(),
-        state: gameState
-      };
-      currentUser.savedGames.push(savedGame);
-      debugLog("GAME", "Saving to currentUser.savedGames", { totalGames: currentUser.savedGames.length });
+      
+      // Check if this game state already exists to avoid duplicates
+      const existingGameIndex = currentUser.savedGames.findIndex(
+        sg => sg.state.fen === gameState.fen && sg.state.pgn === gameState.pgn
+      );
+      
+      if (existingGameIndex !== -1) {
+        // Update existing game instead of creating duplicate
+        currentUser.savedGames[existingGameIndex] = {
+          ...currentUser.savedGames[existingGameIndex],
+          date: new Date().toISOString(),
+          state: gameState
+        };
+        debugLog("GAME", "Updated existing game", { index: existingGameIndex });
+      } else {
+        // Create new saved game entry
+        const savedGame = {
+          name: `Game ${currentUser.savedGames.length + 1}`,
+          date: new Date().toISOString(),
+          state: gameState
+        };
+        currentUser.savedGames.push(savedGame);
+        debugLog("GAME", "Saving to currentUser.savedGames", { totalGames: currentUser.savedGames.length });
+      }
+      
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
       debugLog("GAME", "Saved to currentUser successfully");
     } else {
       // Fallback to chessSavedGames for non-authenticated users
       const savedGames = JSON.parse(localStorage.getItem("chessSavedGames") || "[]");
       debugLog("GAME", "Current saved games count", { count: savedGames.length });
-      savedGames.push(gameState);
-      debugLog("GAME", "Saving to localStorage", { totalGames: savedGames.length });
+      
+      // Check if this game state already exists to avoid duplicates
+      const existingGameIndex = savedGames.findIndex(
+        sg => sg.fen === gameState.fen && sg.pgn === gameState.pgn
+      );
+      
+      if (existingGameIndex !== -1) {
+        // Update existing game instead of creating duplicate
+        savedGames[existingGameIndex] = {
+          ...savedGames[existingGameIndex],
+          date: new Date().toISOString(),
+          ...gameState
+        };
+        debugLog("GAME", "Updated existing game", { index: existingGameIndex });
+      } else {
+        // Create new saved game entry
+        savedGames.push(gameState);
+        debugLog("GAME", "Saving to localStorage", { totalGames: savedGames.length });
+      }
+      
       localStorage.setItem("chessSavedGames", JSON.stringify(savedGames));
       debugLog("GAME", "Saved to localStorage successfully");
     }
@@ -4309,6 +4381,14 @@ function loadGameSettings() {
   if (typeof settings.showCoordinates === 'boolean') {
     localStorage.setItem('showCoordinates', settings.showCoordinates);
     window.showCoordinates = settings.showCoordinates;
+    
+    // Update board coordinates
+    if (typeof window.removeBoardCoordinates === 'function' && typeof window.enhanceBoardCoordinates === 'function') {
+      window.removeBoardCoordinates();
+      if (settings.showCoordinates) {
+        window.enhanceBoardCoordinates();
+      }
+    }
   }
 
   // Apply show ban after login setting
@@ -4316,4 +4396,36 @@ function loadGameSettings() {
     localStorage.setItem('showBanAfterLogin', settings.showBanAfterLogin.toString());
   }
 }
+
+// Server status button event listener
+serverStatusBtn.addEventListener("click", () => {
+  debugLog("ADMIN", "Server status button clicked");
+  
+  // Check if user is logged in by reading directly from localStorage
+  const currentUserData = localStorage.getItem('currentUser');
+  if (!currentUserData) {
+    popup("Please login first", "red");
+    return;
+  }
+  
+  // Parse the user data
+  let currentUser;
+  try {
+    currentUser = JSON.parse(currentUserData);
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    popup("Error: Invalid user data", "red");
+    return;
+  }
+  
+  // Check if user is admin
+  const adminUsers = ['bungles17x'];
+  if (!adminUsers.includes(currentUser.username.toLowerCase())) {
+    popup("Access denied: Admin privileges required", "red");
+    return;
+  }
+  
+  // Navigate to server status page
+  window.location.href = 'server-status.html';
+});
 

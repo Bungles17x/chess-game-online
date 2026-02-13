@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Status - Admin Only</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="admin-features.css" />
+  <link rel="stylesheet" href="server-status.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>🖥️ Server Status</h1>
+      <p>Admin Only - Real-time Server Monitoring</p>
+    </div>
+
+    <!-- Server Overview -->
+    <div class="status-section">
+      <h2>Server Overview</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="status-icon">🟢</div>
+          <div class="status-info">
+            <h3>Server Status</h3>
+            <p id="server-status">Online</p>
+            <p id="server-error" class="server-error hidden"></p>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-icon">👥</div>
+          <div class="status-info">
+            <h3>Active Players</h3>
+            <p id="active-players">0</p>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-icon">🎮</div>
+          <div class="status-info">
+            <h3>Active Games</h3>
+            <p id="active-games">0</p>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-icon">⏱️</div>
+          <div class="status-info">
+            <h3>Uptime</h3>
+            <p id="server-uptime">0h 0m</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Resources -->
+    <div class="status-section">
+      <h2>System Resources</h2>
+      <div class="resource-grid">
+        <div class="resource-card">
+          <h3>CPU Usage</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="cpu-usage" style="width: 0%"></div>
+          </div>
+          <p class="resource-value"><span id="cpu-value">0</span>%</p>
+        </div>
+        <div class="resource-card">
+          <h3>Memory Usage</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="memory-usage" style="width: 0%"></div>
+          </div>
+          <p class="resource-value"><span id="memory-value">0</span>%</p>
+        </div>
+        <div class="resource-card">
+          <h3>Disk Usage</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="disk-usage" style="width: 0%"></div>
+          </div>
+          <p class="resource-value"><span id="disk-value">0</span>%</p>
+        </div>
+        <div class="resource-card">
+          <h3>Network Load</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="network-usage" style="width: 0%"></div>
+          </div>
+          <p class="resource-value"><span id="network-value">0</span>%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="status-section">
+      <h2>Recent Activity</h2>
+      <div class="activity-log" id="activity-log">
+        <div class="activity-item">
+          <span class="activity-time">Just now</span>
+          <span class="activity-message">Server started</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Server Controls -->
+    <div class="status-section">
+      <h2>Server Controls</h2>
+      <div class="control-buttons">
+        <button id="restart-server" class="control-btn restart">🔄 Restart Server</button>
+        <button id="clear-cache" class="control-btn warning">🗑️ Clear Cache</button>
+        <button id="backup-data" class="control-btn info">💾 Backup Data</button>
+        <button id="view-logs" class="control-btn info">📋 View Logs</button>
+      </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="status-section">
+      <h2>Performance Metrics</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h3>Average Response Time</h3>
+          <p id="avg-response-time">0ms</p>
+        </div>
+        <div class="metric-card">
+          <h3>Requests Per Second</h3>
+          <p id="requests-per-second">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>Error Rate</h3>
+          <p id="error-rate">0%</p>
+        </div>
+        <div class="metric-card">
+          <h3>Active Connections</h3>
+          <p id="active-connections">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="status-section">
+      <button id="back-btn" class="control-btn back">← Back to Game</button>
+    </div>
+  </div>
+
+  <script src="encryption.js"></script>
+  <script src="auth.js"></script>
+  <script src="server-status.js"></script>
+</body>
+</html>

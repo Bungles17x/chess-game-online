@@ -94,6 +94,32 @@ function setupEventListeners() {
     syncNowBtn.addEventListener('click', handleSyncNow);
   }
 
+  // Coordinates toggle
+  const coordinatesToggle = document.getElementById('show-coordinates-toggle');
+  if (coordinatesToggle) {
+    coordinatesToggle.addEventListener('change', (e) => {
+      localStorage.setItem('showCoordinates', e.target.checked);
+      window.showCoordinates = e.target.checked;
+      hasUnsavedChanges = true;
+    });
+  }
+
+  // Screen reader toggle
+  const screenReaderToggle = document.getElementById('screen-reader-toggle');
+  if (screenReaderToggle) {
+    screenReaderToggle.addEventListener('change', (e) => {
+      localStorage.setItem('screenReaderMode', e.target.checked);
+      window.screenReaderMode = e.target.checked;
+      hasUnsavedChanges = true;
+
+      // Announce the change to screen readers
+      if (window.announce) {
+        const status = e.target.checked ? 'enabled' : 'disabled';
+        window.announce(`Screen reader mode ${status}`);
+      }
+    });
+  }
+
   // Listen for login/logout events
   window.addEventListener('userLoggedIn', () => {
     checkLoginStatus();
@@ -861,7 +887,8 @@ function loadSettings() {
       moveHints: true,
       autoPromote: false,
       showCoordinates: false,
-      showBanAfterLogin: false
+      showBanAfterLogin: false,
+      screenReaderMode: false
     };
   }
 
@@ -957,11 +984,34 @@ function applySettings(settings) {
   if (typeof settings.showCoordinates === 'boolean') {
     localStorage.setItem('showCoordinates', settings.showCoordinates);
     window.showCoordinates = settings.showCoordinates;
+    
+    // Update the checkbox in settings
+    const coordinatesToggle = document.getElementById('show-coordinates-toggle');
+    if (coordinatesToggle) {
+      coordinatesToggle.checked = settings.showCoordinates;
+    }
   }
 
   // Apply show ban after login setting
   if (typeof settings.showBanAfterLogin === 'boolean') {
     localStorage.setItem('showBanAfterLogin', settings.showBanAfterLogin.toString());
+  }
+
+  // Apply screen reader mode setting
+  if (typeof settings.screenReaderMode === 'boolean') {
+    localStorage.setItem('screenReaderMode', settings.screenReaderMode);
+    window.screenReaderMode = settings.screenReaderMode;
+
+    // Update the checkbox in settings
+    const screenReaderToggle = document.getElementById('screen-reader-toggle');
+    if (screenReaderToggle) {
+      screenReaderToggle.checked = settings.screenReaderMode;
+    }
+
+    // Apply screen reader mode to the game
+    if (typeof window.applyScreenReaderMode === 'function') {
+      window.applyScreenReaderMode(settings.screenReaderMode);
+    }
   }
 }
 
@@ -976,7 +1026,8 @@ function trackInitialSettings() {
     moveHints: localStorage.getItem('moveHints') !== 'false',
     autoPromote: localStorage.getItem('autoPromote') !== 'false',
     showCoordinates: localStorage.getItem('showCoordinates') !== 'false',
-    showBanAfterLogin: localStorage.getItem('showBanAfterLogin') === 'true'
+    showBanAfterLogin: localStorage.getItem('showBanAfterLogin') === 'true',
+    screenReaderMode: localStorage.getItem('screenReaderMode') === 'true'
   };
   hasUnsavedChanges = false;
 }

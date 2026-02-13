@@ -4,7 +4,7 @@
 // Check if current user is admin
 function isAdmin() {
   const currentUser = localStorage.getItem('currentUser');
-  return currentUser && JSON.parse(currentUser).username.toLowerCase() === 'bungles17x';
+  return currentUser && JSON.parse(currentUser).username.toLowerCase() === 'bungles17x','674121bruh';
 }
 
 // Create admin panel UI

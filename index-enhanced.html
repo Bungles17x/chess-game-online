@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Modern Chess - Play beautifully, think brutally. Online and bot chess game with real-time multiplayer." />
+  <meta name="theme-color" content="#0ea5e9" />
+  <title>Modern Chess - Play Beautifully, Think Brutally</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="report-system.css" />
+  <link rel="stylesheet" href="friends.css" />
+  <link rel="stylesheet" href="admin-features.css" />
+  <link rel="stylesheet" href="debugger.css" />
+  <link rel="stylesheet" href="game-enhancements.css" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♟</text></svg>">
+</head>
+
+<body>
+  <!-- Skip to main content for accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Alert Area -->
+  <div id="alert-area" role="alert" aria-live="polite"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen" aria-hidden="true">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p>Loading Modern Chess...</p>
+    </div>
+  </div>
+
+  <!-- No Connection Screen -->
+  <div id="no-connection-screen" class="no-connection-screen hidden" aria-hidden="true">
+    <div class="connection-content">
+      <div class="connection-icon">🔌</div>
+      <h2>No Connection</h2>
+      <p>Unable to connect to the server. Please check your internet connection and try again.</p>
+      <button id="retry-connection-btn" class="primary-btn">Retry Connection</button>
+      <button id="back-to-bot-btn" class="primary-btn">Play Against Bot</button>
+    </div>
+  </div>
+
+  <!-- Main Application -->
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="top-bar" role="banner">
+      <div class="brand">
+        <h1>Modern Chess</h1>
+        <span class="tagline">Play beautifully, think brutally.</span>
+      </div>
+
+      <div id="popup-container"></div>
+
+      <div class="top-right">
+        <button id="theme-toggle" class="pill-btn" aria-label="Toggle dark/light mode">
+          <span class="pill-dot"></span>
+          <span class="pill-label">Dark mode</span>
+        </button>
+
+        <button id="settings-btn" class="pill-btn" aria-label="Open settings">
+          <span class="pill-icon">⚙️</span>
+          <span class="pill-label">Settings</span>
+        </button>
+
+        <div class="dropdown">
+          <button id="menu-btn" class="pill-btn menu-btn" aria-label="Open menu" aria-expanded="false" aria-haspopup="true">
+            <span class="menu-icon">☰</span>
+          </button>
+          <div class="dropdown-content" role="menu">
+            <button id="bot-mode" data-mode="bot" class="dropdown-item" role="menuitem">Bot</button>
+            <button id="online-mode" data-mode="online" class="dropdown-item" role="menuitem">Online</button>
+            <button id="lobby-btn" class="dropdown-item" role="menuitem">Lobby</button>
+            <button id="friends-btn" class="dropdown-item" role="menuitem">👥 Friends</button>
+            <button id="report-btn" class="dropdown-item" role="menuitem">📢 Report Player</button>
+            <button id="checkers-mode" class="dropdown-item" role="menuitem">♟️ Play Checkers</button>
+            <button id="server-status-btn" class="dropdown-item" role="menuitem">🖥️ Server Status</button>
+          </div>
+        </div>
+
+        <div class="status">
+          <span id="turn-indicator">White to move</span>
+          <div class="connection-status">
+            <div id="connection-dot" class="connection-dot" aria-label="Connection status"></div>
+            <span id="connection-text">Connected</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="layout" id="main-content" role="main">
+      <section class="board-card" aria-label="Chess board">
+        <div id="chessboard" class="chessboard" role="grid" aria-label="Chess game board"></div>
+      </section>
+
+      <aside class="side-panel" aria-label="Game controls and information">
+        <h2>Moves</h2>
+        <ul id="moves-list" role="list" aria-label="Move history"></ul>
+        <button id="exit-replay-btn" class="primary-btn hidden">Exit Replay</button>
+        <button id="save-game-btn" class="primary-btn" aria-label="Save current game">Save Game</button>
+        <button id="reset-btn" class="primary-btn" aria-label="Reset game">Reset Game</button>
+        <button id="draw-btn" class="primary-btn" aria-label="Offer draw">Offer Draw</button>
+        <button id="resign-btn" class="primary-btn" aria-label="Resign game">Resign</button>
+
+        <!-- Chat Section -->
+        <button id="toggle-chat-btn" class="primary-btn" aria-expanded="false">Show Chat</button>
+        <div id="chat-container" class="chat-container hidden" role="region" aria-label="Game chat">
+          <h2>Chat</h2>
+          <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Chat messages"></div>
+          <div class="chat-input-container">
+            <label for="chat-input" class="visually-hidden">Type a message</label>
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="200" aria-label="Chat message input">
+            <button id="send-chat-btn" class="primary-btn" aria-label="Send message">Send</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Lobby Modal -->
+  <div id="lobby-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="lobby-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="lobby-title">Game Lobby</h2>
+        <button id="close-lobby-btn" class="close-btn" aria-label="Close lobby">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="lobby-tabs">
+          <button class="tab-btn active" data-tab="rooms" role="tab" aria-selected="true">Rooms</button>
+          <button class="tab-btn" data-tab="friends" role="tab" aria-selected="false">Friends</button>
+        </div>
+
+        <div class="tab-content active" id="rooms-tab">
+          <div class="room-controls">
+            <input type="text" id="room-search" class="search-input" placeholder="Search rooms..." aria-label="Search rooms">
+            <button id="create-room-btn" class="primary-btn">Create Room</button>
+          </div>
+          <ul id="room-list" role="list" aria-label="Available rooms"></ul>
+        </div>
+
+        <div class="tab-content" id="friends-tab">
+          <ul id="lobby-friends-list" role="list" aria-label="Online friends"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friends Modal -->
+  <div id="friends-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="friends-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="friends-title">Friends</h2>
+        <button id="close-friends-btn" class="close-btn" aria-label="Close friends">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="friends-tabs">
+          <button class="tab-btn active" data-tab="friends" role="tab" aria-selected="true">Friends</button>
+          <button class="tab-btn" data-tab="requests" role="tab" aria-selected="false">Requests</button>
+          <button class="tab-btn" data-tab="blocked" role="tab" aria-selected="false">Blocked</button>
+        </div>
+
+        <div class="tab-content active" id="friends-tab">
+          <div class="add-friend">
+            <input type="text" id="add-friend-input" placeholder="Add friend by username..." aria-label="Add friend username">
+            <button id="add-friend-btn" class="primary-btn">Add</button>
+          </div>
+          <ul id="friends-list" role="list" aria-label="Friends list"></ul>
+        </div>
+
+        <div class="tab-content" id="requests-tab">
+          <ul id="friend-requests-list" role="list" aria-label="Friend requests"></ul>
+        </div>
+
+        <div class="tab-content" id="blocked-tab">
+          <ul id="blocked-list" role="list" aria-label="Blocked users"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div id="report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="report-title">Report Player</h2>
+        <button id="close-report-btn" class="close-btn" aria-label="Close report">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="report-form">
+          <div class="form-group">
+            <label for="report-username">Username</label>
+            <input type="text" id="report-username" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="report-reason">Reason</label>
+            <select id="report-reason" required aria-required="true">
+              <option value="">Select a reason...</option>
+              <option value="cheating">Cheating</option>
+              <option value="harassment">Harassment</option>
+              <option value="inappropriate">Inappropriate behavior</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="report-description">Description</label>
+            <textarea id="report-description" rows="4" required aria-required="true"></textarea>
+          </div>
+          <button type="submit" class="primary-btn">Submit Report</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Elements -->
+  <audio id="move-sound" preload="auto">
+    <source src="sounds/move.wav" type="audio/wav">
+  </audio>
+  <audio id="capture-sound" preload="auto">
+    <source src="sounds/capture.wav" type="audio/wav">
+  </audio>
+  <audio id="connection-lost-sound" preload="auto">
+    <source src="sounds/connection-lost.wav" type="audio/wav">
+  </audio>
+  <audio id="reconnected-sound" preload="auto">
+    <source src="sounds/reconnected.wav" type="audio/wav">
+  </audio>
+
+  <!-- Scripts -->
+  <script src="encryption.js"></script>
+  <script src="auth.js"></script>
+  <script src="friends.js"></script>
+  <script src="script.js"></script>
+  <script src="chess.js"></script>
+  <script src="ai move.js"></script>
+  <script src="checkers-game.js"></script>
+  <script src="checkers-mode.js"></script>
+  <script src="checkers-ui.js"></script>
+  <script src="admin-features.js"></script>
+  <script src="debugger.js"></script>
+  <script src="game-enhancements.js"></script>
+  <script src="reporting-system.js"></script>
+  <script src="notification-system.js"></script>
+  <script src="call-notification.js"></script>
+  <script src="user-sync-client.js"></script>
+  <script src="user-sync-handlers.js"></script>
+  <script src="anti-cheat-logger.js"></script>
+  <script src="client-anti-cheat.js"></script>
+
+</body>
+</html>
