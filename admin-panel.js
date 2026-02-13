@@ -1,10 +1,12 @@
-// Admin Panel for bungles17x
+// Admin Panel for bungles17x and 674121bruh
 // This provides a UI for admin functions
 
 // Check if current user is admin
 function isAdmin() {
   const currentUser = localStorage.getItem('currentUser');
-  return currentUser && JSON.parse(currentUser).username.toLowerCase() === 'bungles17x','674121bruh';
+  if (!currentUser) return false;
+  const username = JSON.parse(currentUser).username.toLowerCase();
+  return username === 'bungles17x' || username === '674121bruh';
 }
 
 // Create admin panel UI
