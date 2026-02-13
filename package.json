@@ -15,6 +15,6 @@
   },
   "scripts": {
     "start": "node server.cjs",
-    "build": "echo 'No build step required'"
+    "build": "npm install && echo 'Build complete'"
   }
 }
