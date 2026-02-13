@@ -409,7 +409,7 @@ function handleServerMessage(data) {
     });
 
     // Show custom ban modal only for actual ban errors
-    if (data.code === 403 && (data.message.includes("banned") || data.message.includes("Banned"))) {
+    if (data.code === 403 && (data.message.includes("Your account has been banned") || data.message.includes("You have been banned"))) {
       console.log("BAN", "Ban error received", { data });
       showBanModal(
         data.message,

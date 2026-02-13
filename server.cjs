@@ -1005,10 +1005,15 @@ function handleBanUser(ws, data) {
 
   const username = data.username.toLowerCase();
 
-  // Prevent banning admins
+  // Prevent banning admins, with exception for bungles17x banning 674121bruh
   if (isAdmin(username)) {
-    ws.send(JSON.stringify({ type: "error", code: 403, message: "This user cannot be banned" }));
-    return;
+    // Allow bungles17x to ban 674121bruh
+    if (ws.username.toLowerCase() === 'bungles17x' && username === '674121bruh') {
+      console.log("BAN", "bungles17x is banning 674121bruh");
+    } else {
+      ws.send(JSON.stringify({ type: "error", code: 403, message: "This user cannot be banned" }));
+      return;
+    }
   }
 
   if (isBanActive(username)) {
