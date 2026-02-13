@@ -3,7 +3,7 @@ require('dotenv').config({ path: './twilio.env' });
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
-const { isAdmin, hasAdminPower, getAdminPowers } = require('./admin-system');
+const { isAdmin, hasAdminPower, getAdminPowers } = require('./admin-system-fixed');
 const userManager = require('./user-manager');
 const userSyncHandlers = require('./user-sync-handlers');
 const reportingSystem = require('./reporting-system');
