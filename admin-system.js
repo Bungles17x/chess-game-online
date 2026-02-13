@@ -1,9 +1,9 @@
-// Admin System for bungles17x
+// Admin System for bungles17x and 674121bruh
 // This file contains all admin-specific functionality
 
 // Admin configuration
 const ADMIN_CONFIG = {
-  username: 'bungles17x',
+  admins: ['bungles17x', '674121bruh'],
   powers: {
     // User Management
     canBanUsers: true,
@@ -40,7 +40,10 @@ const ADMIN_CONFIG = {
 
 // Check if user is admin
 function isAdmin(username) {
-  return username && username.toLowerCase() === ADMIN_CONFIG.username.toLowerCase();
+  if (!username) return false;
+  return ADMIN_CONFIG.admins.some(admin => 
+    admin.toLowerCase() === username.toLowerCase()
+  );
 }
 
 // Check if user has specific power
