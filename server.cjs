@@ -993,6 +993,11 @@ function handleGetBannedUsers(ws) {
 }
 
 function handleBanUser(ws, data) {
+  if (!ws.username || !hasAdminPower(ws.username, 'canBanUsers')) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Access denied" }));
+    return;
+  }
+
   if (!data.username) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
     return;
@@ -1000,8 +1005,8 @@ function handleBanUser(ws, data) {
 
   const username = data.username.toLowerCase();
 
-  // Prevent banning bungles17x
-  if (username === 'bungles17x') {
+  // Prevent banning admins
+  if (isAdmin(username)) {
     ws.send(JSON.stringify({ type: "error", code: 403, message: "This user cannot be banned" }));
     return;
   }
@@ -1087,6 +1092,11 @@ function handleBanUser(ws, data) {
 }
 
 function handleUnbanUser(ws, data) {
+  if (!ws.username || !hasAdminPower(ws.username, 'canUnbanUsers')) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Access denied" }));
+    return;
+  }
+
   if (!data.username) {
     ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
     return;
@@ -1676,6 +1686,60 @@ function handleAdminKickUser(ws, data) {
   
   console.log("ADMIN", "User kicked", { kickedBy: ws.username, kickedUser: targetUsername });
   ws.send(JSON.stringify({ type: "success", message: `User ${targetUsername} has been kicked` }));
+}
+
+function handleAdminBanUser(ws, data) {
+  if (!ws.username || !hasAdminPower(ws.username, 'canBanUsers')) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Access denied" }));
+    return;
+  }
+
+  const targetUsername = data.username;
+  const reason = data.reason || 'No reason provided';
+  if (!targetUsername) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  // Add user to banned users
+  bannedUsers.set(targetUsername.toLowerCase(), reason);
+
+  // Find and disconnect the user
+  wss.clients.forEach(client => {
+    if (client.username && client.username.toLowerCase() === targetUsername.toLowerCase()) {
+      client.send(JSON.stringify({
+        type: "banned",
+        message: `You have been banned by an admin. Reason: ${reason}`,
+        bannedBy: ws.username
+      }));
+      client.close();
+    }
+  });
+
+  console.log("ADMIN", "User banned", { bannedBy: ws.username, bannedUser: targetUsername, reason });
+  ws.send(JSON.stringify({ type: "success", message: `User ${targetUsername} has been banned` }));
+}
+
+function handleAdminUnbanUser(ws, data) {
+  if (!ws.username || !hasAdminPower(ws.username, 'canUnbanUsers')) {
+    ws.send(JSON.stringify({ type: "error", code: 403, message: "Access denied" }));
+    return;
+  }
+
+  const targetUsername = data.username;
+  if (!targetUsername) {
+    ws.send(JSON.stringify({ type: "error", code: 400, message: "Username required" }));
+    return;
+  }
+
+  // Remove user from banned users
+  if (bannedUsers.has(targetUsername.toLowerCase())) {
+    bannedUsers.delete(targetUsername.toLowerCase());
+    console.log("ADMIN", "User unbanned", { unbannedBy: ws.username, unbannedUser: targetUsername });
+    ws.send(JSON.stringify({ type: "success", message: `User ${targetUsername} has been unbanned` }));
+  } else {
+    ws.send(JSON.stringify({ type: "error", code: 404, message: "User not found in ban list" }));
+  }
 }
 
 function handleAdminMuteUser(ws, data) {

@@ -95,7 +95,7 @@ function isAdminUser() {
   if (!currentUser) return false;
 
   // Check if username is in admin list or has admin privileges
-  const adminUsers = ['bungles17x']; // Add more admin usernames as needed
+  const adminUsers = ['bungles17x', '674121bruh']; // Add more admin usernames as needed
   return adminUsers.includes(currentUser.username.toLowerCase());
 }
 

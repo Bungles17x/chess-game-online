@@ -2364,10 +2364,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Setup ban management - only show for bungles17x
+  // Setup ban management - only show for admins
   if (manageBansBtn) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser.username !== 'bungles17x') {
+    if (currentUser.username !== 'bungles17x' && currentUser.username !== '674121bruh') {
       manageBansBtn.style.display = 'none';
     } else {
       manageBansBtn.addEventListener("click", () => {
@@ -4419,7 +4419,7 @@ serverStatusBtn.addEventListener("click", () => {
   }
   
   // Check if user is admin
-  const adminUsers = ['bungles17x'];
+  const adminUsers = ['bungles17x', '674121bruh'];
   if (!adminUsers.includes(currentUser.username.toLowerCase())) {
     popup("Access denied: Admin privileges required", "red");
     return;

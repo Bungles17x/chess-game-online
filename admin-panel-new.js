@@ -8,7 +8,9 @@
       const currentUser = localStorage.getItem('currentUser');
       if (!currentUser) return false;
       const user = JSON.parse(currentUser);
-      return user && user.username && user.username.toLowerCase() === 'bungles17x';
+      if (!user || !user.username) return false;
+      const username = user.username.toLowerCase();
+      return username === 'bungles17x' || username === '674121bruh';
     } catch (e) {
       return false;
     }

@@ -8,7 +8,9 @@
       const currentUser = localStorage.getItem('currentUser');
       if (!currentUser) return false;
       const user = JSON.parse(currentUser);
-      return user && user.username && user.username.toLowerCase() === 'bungles17x';
+      if (!user || !user.username) return false;
+      const username = user.username.toLowerCase();
+      return username === 'bungles17x' || username === '674121bruh';
     } catch (e) {
       return false;
     }
@@ -78,6 +80,17 @@
   // Add admin buttons to dropdown
   function addAdminButtons(dropdown) {
     console.log('[Admin Panel] Buttons added');
+
+    // Check if admin cheats button already exists
+    if (!document.getElementById('admin-cheat-btn')) {
+      // Admin Cheats Button
+      const cheatsBtn = document.createElement('button');
+      cheatsBtn.id = 'admin-cheat-btn';
+      cheatsBtn.className = 'dropdown-item';
+      cheatsBtn.textContent = '🎮 Admin Cheats';
+      cheatsBtn.addEventListener('click', openCheatsModal);
+      dropdown.appendChild(cheatsBtn);
+    }
   }
 
 

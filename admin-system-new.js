@@ -37,8 +37,6 @@ const ADMIN_CONFIG = {
   },
   '674121bruh': {
     // User Management
-    canBanUsers: true,
-    canUnbanUsers: true,
     canKickUsers: true,
     canViewUserInfo: true,
     canEditUserInfo: true,

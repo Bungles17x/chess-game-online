@@ -7,7 +7,9 @@
   // Check if current user is admin
   function isAdmin() {
     const currentUser = localStorage.getItem('currentUser');
-    return currentUser && JSON.parse(currentUser).username.toLowerCase() === 'bungles17x';
+    if (!currentUser) return false;
+    const username = JSON.parse(currentUser).username.toLowerCase();
+    return username === 'bungles17x' || username === '674121bruh';
   }
 
   // ==================== REPORTS MANAGEMENT ====================
@@ -679,6 +681,9 @@
 
   function addAdminCheatMenu() {
     if (!isAdmin()) return;
+
+    // Check if button already exists
+    if (document.getElementById('admin-cheat-btn')) return;
 
     const cheatBtn = document.createElement('button');
     cheatBtn.id = 'admin-cheat-btn';
