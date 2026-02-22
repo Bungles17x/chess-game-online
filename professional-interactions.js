@@ -25,8 +25,8 @@ class ProfessionalAnimations {
     const board = document.getElementById('chessboard');
     if (!board) return;
 
-    // Add subtle floating animation to board
-    board.style.animation = 'boardFloat 6s ease-in-out infinite';
+    // Board animation disabled - no floating effect
+    // board.style.animation = 'boardFloat 6s ease-in-out infinite';
   }
 
   // Setup piece animations

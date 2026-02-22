@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Authentication Callback</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      border: 3px solid #30363d;
+      border-top: 3px solid #58a6ff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .message {
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    .success {
+      color: #3fb950;
+    }
+    .error {
+      color: #f85149;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <div class="message">Authenticating with GitHub...</div>
+  </div>
+
+  <script src="github-auth.js"></script>
+  <script>
+    // Handle OAuth callback
+    async function handleCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const error = urlParams.get('error');
+
+      const messageEl = document.querySelector('.message');
+
+      if (error) {
+        messageEl.textContent = 'Authentication failed: ' + error;
+        messageEl.classList.add('error');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 3000);
+        return;
+      }
+
+      if (!code || !state) {
+        messageEl.textContent = 'Invalid callback parameters';
+        messageEl.classList.add('error');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 3000);
+        return;
+      }
+
+      try {
+        await window.githubAuth.handleCallback(code, state);
+        messageEl.textContent = 'Authentication successful! Redirecting...';
+        messageEl.classList.add('success');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      } catch (error) {
+        console.error('Authentication error:', error);
+        messageEl.textContent = 'Authentication failed: ' + error.message;
+        messageEl.classList.add('error');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 3000);
+      }
+    }
+
+    // Handle callback when page loads
+    window.addEventListener('load', handleCallback);
+  </script>
+</body>
+</html>

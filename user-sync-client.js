@@ -1,6 +1,40 @@
 // Client-side User Synchronization System
 // This file handles cross-device profile synchronization
 
+// Function to clear old encrypted data
+function clearOldEncryptedData() {
+  console.log('[User Sync] Clearing old encrypted data...');
+
+  try {
+    // Clear corrupted chessUsers data
+    const chessUsers = localStorage.getItem('chessUsers');
+    if (chessUsers) {
+      try {
+        JSON.parse(chessUsers);
+      } catch (error) {
+        console.log('[User Sync] Found corrupted chessUsers data, clearing it...');
+        localStorage.removeItem('chessUsers');
+      }
+    }
+
+    // Clear other potentially corrupted data
+    const keysToRemove = ['encryptedData', 'userEncryptedData', 'profileEncrypted'];
+    keysToRemove.forEach(key => {
+      if (localStorage.getItem(key)) {
+        console.log('[User Sync] Removing old encrypted key:', key);
+        localStorage.removeItem(key);
+      }
+    });
+
+    console.log('[User Sync] Old encrypted data cleared successfully');
+  } catch (error) {
+    console.error('[User Sync] Error clearing old encrypted data:', error);
+  }
+}
+
+// Make function available globally
+window.clearOldEncryptedData = clearOldEncryptedData;
+
 // User Sync Manager
 class UserSyncManager {
   constructor() {
@@ -15,6 +49,9 @@ class UserSyncManager {
   }
 
   init() {
+    // Clear old encrypted data on initialization
+    clearOldEncryptedData();
+
     // Check if user is logged in
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
@@ -22,18 +59,21 @@ class UserSyncManager {
     }
 
     // Listen for login/logout events
-    window.addEventListener('userLoggedIn', () => this.enableSync());
+    // Disabled to prevent automatic sync and refresh
+    // window.addEventListener('userLoggedIn', () => this.enableSync());
     window.addEventListener('userLoggedOut', () => this.disableSync());
 
     // Listen for profile updates
-    window.addEventListener('profileUpdated', () => this.queueSync());
+    // Disabled to prevent automatic sync and refresh
+    // window.addEventListener('profileUpdated', () => this.queueSync());
 
     // Listen for WebSocket connection
-    window.addEventListener('socketConnected', () => {
-      if (this.syncEnabled) {
-        this.syncAllData();
-      }
-    });
+    // Disabled to prevent automatic sync and refresh
+    // window.addEventListener('socketConnected', () => {
+    //   if (this.syncEnabled) {
+    //     this.syncAllData();
+    //   }
+    // });
   }
 
   enableSync() {
@@ -42,13 +82,21 @@ class UserSyncManager {
     this.syncEnabled = true;
     console.log('[User Sync] Sync enabled');
 
-    // Sync immediately when enabled
-    this.syncAllData();
-
-    // Set up periodic sync (every 5 minutes)
-    this.syncInterval = setInterval(() => {
+    // Only sync if WebSocket is connected
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
       this.syncAllData();
-    }, 5 * 60 * 1000);
+    } else {
+      console.log('[User Sync] WebSocket not connected, will sync when connected');
+    }
+
+    // Disabled periodic sync to prevent automatic refresh
+    // this.syncInterval = setInterval(() => {
+    //   if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    //     this.syncAllData();
+    //   } else {
+    //     console.log('[User Sync] WebSocket not connected, skipping periodic sync');
+    //   }
+    // }, 5 * 60 * 1000);
   }
 
   disableSync() {
@@ -65,11 +113,17 @@ class UserSyncManager {
   }
 
   queueSync() {
+    // Don't queue sync if we're already syncing
+    if (this.syncInProgress) {
+      console.log('[User Sync] Already syncing, skipping queue');
+      return;
+    }
+
     this.pendingUpdates = true;
     // If sync is not in progress, trigger it after a short delay
     if (!this.syncInProgress) {
       setTimeout(() => {
-        if (this.pendingUpdates) {
+        if (this.pendingUpdates && !this.syncInProgress) {
           this.syncAllData();
         }
       }, 1000);
@@ -77,12 +131,95 @@ class UserSyncManager {
   }
 
   syncAllData() {
-    if (!this.syncEnabled || this.syncInProgress) return;
+    // Allow manual sync even when auto-sync is disabled
+    // Only check if sync is in progress
+    if (this.syncInProgress) {
+      console.log('[User Sync] Sync already in progress, skipping');
+      return;
+    }
+
+    // Check if WebSocket is connected before starting sync
+    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+      console.log('[User Sync] WebSocket not connected, cannot sync');
+      return;
+    }
 
     this.syncInProgress = true;
     this.pendingUpdates = false;
 
     console.log('[User Sync] Starting sync...');
+
+    // Track sync completion
+    let syncCompleted = {
+      userData: false,
+      friends: false,
+      savedGames: false
+    };
+
+    const checkSyncComplete = () => {
+      if (syncCompleted.userData && syncCompleted.friends && syncCompleted.savedGames) {
+        this.syncInProgress = false;
+        this.lastSyncTime = Date.now();
+        console.log('[User Sync] All sync operations completed');
+
+        // Store last sync time in localStorage (persists after refresh)
+        localStorage.setItem('lastSyncTime', this.lastSyncTime.toString());
+
+        // Dispatch sync complete event
+        window.dispatchEvent(new CustomEvent('syncComplete', { 
+          detail: { success: true } 
+        }));
+      }
+    };
+
+    // Override sync methods to track completion
+    const originalSyncUserData = this.syncUserData.bind(this);
+    const originalSyncFriends = this.syncFriends.bind(this);
+    const originalSyncSavedGames = this.syncSavedGames.bind(this);
+
+    // Use handleSyncResponse for all sync responses instead of adding multiple listeners
+    const originalHandleSyncResponse = this.handleSyncResponse.bind(this);
+    this.handleSyncResponse = (data) => {
+      originalHandleSyncResponse(data);
+
+      // Track sync completion
+      if (data.type === 'userDataSynced') {
+        syncCompleted.userData = true;
+        checkSyncComplete();
+      } else if (data.type === 'friendsSynced') {
+        syncCompleted.friends = true;
+        checkSyncComplete();
+      } else if (data.type === 'savedGamesSynced') {
+        syncCompleted.savedGames = true;
+        checkSyncComplete();
+      }
+    };
+
+    // Add timeout to ensure sync completes even if some parts fail
+    const syncTimeout = setTimeout(() => {
+      if (this.syncInProgress) {
+        console.log('[User Sync] Sync timeout, marking as complete');
+        this.syncInProgress = false;
+        this.lastSyncTime = Date.now();
+
+        // Dispatch sync complete event even if timeout
+        window.dispatchEvent(new CustomEvent('syncComplete', {
+          detail: { success: true }
+        }));
+      }
+    }, 8000); // 8 seconds timeout
+
+    this.syncUserData = () => {
+      originalSyncUserData();
+    };
+
+    this.syncFriends = () => {
+      originalSyncFriends();
+    };
+
+    this.syncSavedGames = () => {
+      originalSyncSavedGames();
+    };
 
     // Sync user data
     this.syncUserData();
@@ -92,9 +229,6 @@ class UserSyncManager {
 
     // Sync saved games
     this.syncSavedGames();
-
-    this.syncInProgress = false;
-    this.lastSyncTime = Date.now();
   }
 
   syncUserData() {
@@ -215,52 +349,80 @@ class UserSyncManager {
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
     // Update in chessUsers array
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
-    const userIndex = users.findIndex(u => u.username === userData.username);
-    if (userIndex !== -1) {
-      users[userIndex] = userData;
-      localStorage.setItem('chessUsers', JSON.stringify(users));
+    try {
+      const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+      const userIndex = users.findIndex(u => u.username === userData.username);
+      if (userIndex !== -1) {
+        users[userIndex] = userData;
+        localStorage.setItem('chessUsers', JSON.stringify(users));
+      } else {
+        // Add user if not found
+        users.push(userData);
+        localStorage.setItem('chessUsers', JSON.stringify(users));
+      }
+    } catch (error) {
+      console.error('[User Sync] Error updating chessUsers:', error);
+      // Clear corrupted data and start fresh
+      localStorage.setItem('chessUsers', JSON.stringify([userData]));
     }
 
-    // Trigger profile updated event
-    window.dispatchEvent(new CustomEvent('profileUpdated', { detail: userData }));
+    // Only trigger profile updated event if not syncing
+    if (!this.syncInProgress) {
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: userData }));
+    }
   }
 
   updateLocalFriends(friends) {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (currentUser) {
-      currentUser.friends = friends;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      if (currentUser) {
+        currentUser.friends = friends;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-      // Update in chessUsers array
-      const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
-      const userIndex = users.findIndex(u => u.username === currentUser.username);
-      if (userIndex !== -1) {
-        users[userIndex].friends = friends;
-        localStorage.setItem('chessUsers', JSON.stringify(users));
+        // Update in chessUsers array
+        try {
+          const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          const userIndex = users.findIndex(u => u.username === currentUser.username);
+          if (userIndex !== -1) {
+            users[userIndex].friends = friends;
+            localStorage.setItem('chessUsers', JSON.stringify(users));
+          }
+        } catch (error) {
+          console.error('[User Sync] Error updating chessUsers for friends:', error);
+        }
+
+        // Trigger friends updated event
+        window.dispatchEvent(new CustomEvent('friendsUpdated', { detail: friends }));
       }
-
-      // Trigger friends updated event
-      window.dispatchEvent(new CustomEvent('friendsUpdated', { detail: friends }));
+    } catch (error) {
+      console.error('[User Sync] Error updating local friends:', error);
     }
   }
 
   updateLocalSavedGames(savedGames) {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (currentUser) {
-      currentUser.savedGames = savedGames;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      if (currentUser) {
+        currentUser.savedGames = savedGames;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-      // Update in chessUsers array
-      const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
-      const userIndex = users.findIndex(u => u.username === currentUser.username);
-      if (userIndex !== -1) {
-        users[userIndex].savedGames = savedGames;
-        localStorage.setItem('chessUsers', JSON.stringify(users));
+        // Update in chessUsers array
+        try {
+          const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          const userIndex = users.findIndex(u => u.username === currentUser.username);
+          if (userIndex !== -1) {
+            users[userIndex].savedGames = savedGames;
+            localStorage.setItem('chessUsers', JSON.stringify(users));
+          }
+        } catch (error) {
+          console.error('[User Sync] Error updating chessUsers for saved games:', error);
+        }
+
+        // Trigger saved games updated event
+        window.dispatchEvent(new CustomEvent('savedGamesUpdated', { detail: savedGames }));
       }
-
-      // Trigger saved games updated event
-      window.dispatchEvent(new CustomEvent('savedGamesUpdated', { detail: savedGames }));
+    } catch (error) {
+      console.error('[User Sync] Error updating local saved games:', error);
     }
   }
 

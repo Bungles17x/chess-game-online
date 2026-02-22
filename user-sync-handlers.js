@@ -29,8 +29,8 @@ function handleSyncUserData(ws, data, userManager, wss) {
         stats: existingUser.stats || userData.stats,
         // Merge friends lists
         friends: [...new Set([...(existingUser.friends || []), ...(userData.friends || [])])],
-        // Merge saved games
-        savedGames: [...new Set([...(existingUser.savedGames || []), ...(userData.savedGames || [])])]
+        // Merge saved games - use client's saved games (most recent)
+        savedGames: userData.savedGames || existingUser.savedGames || []
       };
 
       userManager.saveUser(mergedData);

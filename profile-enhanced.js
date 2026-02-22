@@ -151,6 +151,21 @@ function updateDisplay() {
   if (playerName) playerName.textContent = playerData.name;
   if (playerLevel) playerLevel.textContent = `Level ${playerData.level}`;
 
+  // Update XP progress bar
+  const xpProgressFill = document.getElementById('xp-progress-fill');
+  const xpText = document.getElementById('xp-text');
+  if (xpProgressFill && xpText) {
+    // Calculate XP needed for next level
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+    const progressPercentage = Math.min((playerData.xp / xpNeeded) * 100, 100);
+
+    // Update progress bar width
+    xpProgressFill.style.width = `${progressPercentage}%`;
+
+    // Update XP text
+    xpText.textContent = `${playerData.xp} / ${xpNeeded} XP`;
+  }
+
   // Update username
   if (usernameDisplay) {
     usernameDisplay.textContent = playerData.username || 'Player';

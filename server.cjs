@@ -133,11 +133,33 @@ async function makeReportCall(reportData, reportId) {
   }
 }
 
-const wss = new WebSocket.Server({ port: 8080 });
+// Create WebSocket server with error handling
+let wss;
+try {
+  wss = new WebSocket.Server({ port: 8080 });
+  console.log('WebSocket server successfully started on port 8080');
+} catch (error) {
+  console.error('Failed to start WebSocket server:', error);
+  console.error('Port 8080 might already be in use. Please check:');
+  console.error('1. Is another instance of the server already running?');
+  console.error('2. Is another application using port 8080?');
+  console.error('3. Do you have permission to use port 8080?');
+  process.exit(1);
+}
 
 const rooms = new Map();
 const connectedUsers = new Map(); // Track connected users by username
 const bannedUsers = new Map(); // Track banned usernames with reasons: {username: reason}
+
+// Handle WebSocket server errors
+wss.on('error', (error) => {
+  console.error('WebSocket server error:', error);
+});
+
+// Log when a client connects
+wss.on('connection', (ws, req) => {
+  console.log('New client connected from:', req.socket.remoteAddress);
+});
 
 // TEMPORARY: Unban bungles17x account on server start
 const adminUsernames = ["bungles17x", "674121bruh"];

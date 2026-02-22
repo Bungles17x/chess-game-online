@@ -160,14 +160,18 @@ let noConnectionTimeout = null; // Store the timeout ID so we can cancel it
 
 // WebSocket configuration
 const WS_CONFIG = {
-  // Use localhost for development, Render for production
-  PRODUCTION_URL: 'wss://chess-game-online-u34h.onrender.com',
-  // Set to true when deploying to production
-  isProduction: true,
+  // Always use port 8080 for WebSocket connections
+  getWebSocketUrl: function() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname;
+
+    // Always use port 8080 for WebSocket connections
+    return `${protocol}//${host}:8080`;
+  }
 };
 
 function getWebSocketUrl() {
-  return WS_CONFIG.isProduction ? WS_CONFIG.PRODUCTION_URL : WS_CONFIG.DEVELOPMENT_URL;
+  return WS_CONFIG.getWebSocketUrl();
 }
 
 // -----------------------------------------------------
@@ -1361,7 +1365,7 @@ function aiMove() {
 
   for (const move of moves) {
     game.move(move);
-    const value = minimax(game, 2, false); 
+    const value = minimax(game, 1, false); // Reduced depth for better performance 
     game.undo();
 
     if (value < bestValue) {
@@ -1691,6 +1695,58 @@ function handleSquareClick(square) {
   renderPosition();
   updateTurnIndicator();
 
+    // Analyze and show feedback for the move (for player moves only)
+  // In bot mode, only analyze white's moves (the player's moves)
+  // In online mode, analyze all moves
+  const shouldAnalyze = (gameMode === "bot" && result.color === 'w') || 
+                       (gameMode === "online");
+
+  console.log('Move analysis check:', { gameMode, shouldAnalyze, turn: game.turn(), move: result, moveColor: result.color });
+
+  if (shouldAnalyze) {
+    // Store move data before loading script
+    const moveData = {
+      from: result.from,
+      to: result.to,
+      captured: result.captured,
+      promotion: result.promotion,
+      color: result.color,
+      piece: result.piece,
+      san: result.san
+    };
+
+    console.log('Stored move data:', moveData);
+
+    // Load move analysis script if not already loaded
+    if (!window.analyzeAndShowFeedback) {
+      console.log('Loading move analysis script...');
+      const moveAnalysisScript = document.createElement('script');
+      moveAnalysisScript.src = 'move-analysis.js';
+      moveAnalysisScript.onload = () => {
+        console.log('Move analysis script loaded successfully');
+        // Analyze the move immediately after script loads
+        try {
+          analyzeAndShowFeedback(game, moveData);
+          console.log('Move analysis completed');
+        } catch (error) {
+          console.error('Error during move analysis:', error);
+        }
+      };
+      moveAnalysisScript.onerror = () => {
+        console.error('Failed to load move analysis script');
+      };
+      document.head.appendChild(moveAnalysisScript);
+    } else {
+      // Script already loaded, analyze immediately
+      try {
+        analyzeAndShowFeedback(game, moveData);
+        console.log('Move analysis completed');
+      } catch (error) {
+        console.error('Error during move analysis:', error);
+      }
+    }
+  }
+
   // AI MOVE
   if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
     setTimeout(aiMove, 200);
@@ -1860,7 +1916,7 @@ function logMove(move) {
   const li = document.createElement("li");
   li.textContent = move.san;
   movesList.appendChild(li);
-  movesList.scrollTop = movesList.scrollHeight;
+  // Auto-scroll disabled - movesList.scrollTop = movesList.scrollHeight;
   
   // Add move to moveHistory for replay
   moveHistory.push(move.san);
@@ -2113,6 +2169,15 @@ resignBtn.addEventListener("click", () => {
   gameMode = "bot";
   isOnlineGame = false;
 });
+
+// Updates button
+const updatesBtn = document.getElementById("updates-btn");
+if (updatesBtn) {
+  updatesBtn.addEventListener("click", () => {
+    debugLog("NAV", "Updates button clicked");
+    window.location.href = "updates.html";
+  });
+}
 
 // -----------------------------------------------------
 // INIT
@@ -3111,25 +3176,93 @@ function updateGameStats(result) {
     };
   }
 
+  // Initialize level if not exists
+  if (!playerData.level) playerData.level = 1;
+  if (!playerData.xp) playerData.xp = 0;
+
   // Update stats
   playerData.stats.gamesPlayed++;
 
+  let xpGained = 0;
   switch(result) {
     case "win":
       playerData.stats.wins++;
       playerData.stats.currentStreak = Math.max(0, playerData.stats.currentStreak) + 1;
+      playerData.xp += 100;
+      xpGained = 100;
       break;
     case "loss":
       playerData.stats.losses++;
       playerData.stats.currentStreak = Math.min(0, playerData.stats.currentStreak) - 1;
+      playerData.xp += 25;
+      xpGained = 25;
       break;
     case "draw":
       playerData.stats.draws++;
+      playerData.xp += 50;
+      xpGained = 50;
       break;
+  }
+
+  // Check for level up
+  const oldLevel = playerData.level;
+  checkLevelUp(playerData);
+
+  // Calculate XP needed for current level
+  const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+  // Show XP notification
+  const xpNotificationScript = document.createElement('script');
+  xpNotificationScript.src = 'xp-notification.js';
+  document.head.appendChild(xpNotificationScript);
+
+  xpNotificationScript.onload = () => {
+    if (typeof showXPNotification === 'function') {
+      showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+    }
+  };
+
+  // If level changed, show animation
+  if (playerData.level > oldLevel) {
+    // Load level up animation script
+    const levelUpScript = document.createElement('script');
+    levelUpScript.src = 'level-up.js';
+    document.head.appendChild(levelUpScript);
+
+    // Wait for script to load then show animation
+    levelUpScript.onload = () => {
+      if (typeof showLevelUpAnimation === 'function') {
+        showLevelUpAnimation(oldLevel, playerData.level);
+      }
+    };
   }
 
   // Save back to localStorage
   localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+}
+
+// Check if player should level up (handles multiple level ups)
+function checkLevelUp(playerData) {
+  if (!playerData.level) playerData.level = 1;
+
+  let leveledUp = false;
+  let levelsGained = 0;
+
+  while (true) {
+    // Improved XP formula: 1000 * level + 500 * (level - 1) for better scaling
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+    if (playerData.xp >= xpNeeded) {
+      playerData.level++;
+      playerData.xp -= xpNeeded;
+      leveledUp = true;
+      levelsGained++;
+    } else {
+      break;
+    }
+  }
+
+  return leveledUp;
 }
 
 // -----------------------------------------------------
@@ -4227,11 +4360,40 @@ function updateGameStatistics() {
       }
       
       // Check for level up
-      const xpNeeded = user.level * 1000;
-      if (user.xp >= xpNeeded) {
+      const oldLevel = user.level || 1;
+      const xpNeeded = 1000 * user.level + 500 * Math.max(0, user.level - 1);
+
+      // Check for multiple level ups
+      while (user.xp >= xpNeeded) {
         user.level++;
         user.xp -= xpNeeded;
-        popup(`Congratulations! You leveled up to Level ${user.level}!`, "green");
+      }
+
+      // Show XP notification
+      const xpNotificationScript = document.createElement('script');
+      xpNotificationScript.src = 'xp-notification.js';
+      document.head.appendChild(xpNotificationScript);
+
+      xpNotificationScript.onload = () => {
+        if (typeof showXPNotification === 'function') {
+          const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
+          showXPNotification(xpGained, result, user.xp, xpNeeded, user.level);
+        }
+      };
+
+      // If level changed, show animation
+      if (user.level > oldLevel) {
+        // Load level up animation script
+        const levelUpScript = document.createElement('script');
+        levelUpScript.src = 'level-up.js';
+        document.head.appendChild(levelUpScript);
+
+        // Wait for script to load then show animation
+        levelUpScript.onload = () => {
+          if (typeof showLevelUpAnimation === 'function') {
+            showLevelUpAnimation(oldLevel, user.level);
+          }
+        };
       }
       
       // Save updated user data
@@ -4275,11 +4437,40 @@ function updateGameStatistics() {
     }
     
     // Check for level up
-    const xpNeeded = playerData.level * 1000;
-    if (playerData.xp >= xpNeeded) {
+    const oldLevel = playerData.level || 1;
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+    // Check for multiple level ups
+    while (playerData.xp >= xpNeeded) {
       playerData.level++;
       playerData.xp -= xpNeeded;
-      popup(`Congratulations! You leveled up to Level ${playerData.level}!`, "green");
+    }
+
+    // Show XP notification
+    const xpNotificationScript = document.createElement('script');
+    xpNotificationScript.src = 'xp-notification.js';
+    document.head.appendChild(xpNotificationScript);
+
+    xpNotificationScript.onload = () => {
+      if (typeof showXPNotification === 'function') {
+        const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
+        showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+      }
+    };
+
+    // If level changed, show animation
+    if (playerData.level > oldLevel) {
+      // Load level up animation script
+      const levelUpScript = document.createElement('script');
+      levelUpScript.src = 'level-up.js';
+      document.head.appendChild(levelUpScript);
+
+      // Wait for script to load then show animation
+      levelUpScript.onload = () => {
+        if (typeof showLevelUpAnimation === 'function') {
+          showLevelUpAnimation(oldLevel, playerData.level);
+        }
+      };
     }
     
     // Save updated player data

@@ -1,0 +1,33 @@
+{
+  "bungles17x": {
+    "id": 1771728790856,
+    "username": "bungles17x",
+    "email": "lildclaycomb@gmail.com",
+    "password": "Claycomb_17x",
+    "avatar": "♟",
+    "level": 1,
+    "xp": 52,
+    "stats": {
+      "gamesPlayed": 0,
+      "wins": 0,
+      "losses": 0,
+      "draws": 0,
+      "currentStreak": 0
+    },
+    "savedGames": [],
+    "createdAt": "2026-02-22T02:53:10.856Z",
+    "settings": {
+      "theme": "dark",
+      "boardTheme": "blue",
+      "chessBoardTheme": "blue",
+      "chessPieceTheme": "classic",
+      "soundEnabled": true,
+      "moveHints": true,
+      "autoPromote": false,
+      "showCoordinates": true,
+      "showBanAfterLogin": false
+    },
+    "updatedAt": "2026-02-22T03:54:40.741Z",
+    "friends": []
+  }
+}

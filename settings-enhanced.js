@@ -51,11 +51,19 @@ document.addEventListener('DOMContentLoaded', () => {
   checkLoginStatus();
   setupThemeSelection();
   setupAvatarSelection();
-  updateSyncStatus();
+
+  // Don't call updateSyncStatus on initial load to prevent refresh
+  // updateSyncStatus();
+
   loadSavedGames();
   loadSettings();
   trackInitialSettings();
   initializeValidation();
+
+  // Disable automatic sync to prevent refresh
+  if (window.userSyncManager) {
+    window.userSyncManager.disableSync();
+  }
 });
 
 // Initialize form validation
@@ -79,7 +87,8 @@ function setupEventListeners() {
   // Back to Game button
   if (backToGameBtn) {
     backToGameBtn.addEventListener('click', () => {
-      checkUnsavedChanges();
+      // Directly go back to game without checking for unsaved changes
+      window.location.href = 'index.html';
     });
   }
 
@@ -180,9 +189,10 @@ function setupEventListeners() {
   });
 
   // Listen for sync events
-  window.addEventListener('profileUpdated', () => {
-    updateSyncStatus();
-  });
+  // Disabled to prevent automatic refresh
+  // window.addEventListener('profileUpdated', () => {
+  //   updateSyncStatus();
+  // });
 
   // Rename popup event listeners
   if (renameClose) {
@@ -636,20 +646,25 @@ function loadSettings() {
 // Track Initial Settings
 function trackInitialSettings() {
   initialSettings = { ...settingsState };
-  hasUnsavedChanges = false;
+  // Don't reset hasUnsavedChanges flag here - it should only be set by user actions
   updateSaveButtonState();
 }
 
 // Check Unsaved Changes
 function checkUnsavedChanges() {
-  if (hasUnsavedChanges) {
-    if (confirm('You have unsaved changes. Do you want to save them?')) {
-      saveSettings();
-    }
+  // Only check for unsaved changes if the flag is set
+  if (!hasUnsavedChanges) {
+    console.log('[Settings] No unsaved changes, going back to game');
+    window.location.href = 'index.html';
+    return;
   }
 
-  // Navigate back to game
-  window.location.href = 'index.html';
+  // Show unsaved changes dialog
+  if (confirm('You have unsaved changes. Do you want to save them?')) {
+    saveSettings();
+    // After saving, go back to game
+    window.location.href = 'index.html';
+  }
 }
 
 // Save Settings
@@ -679,30 +694,80 @@ function saveSettings() {
   window.dispatchEvent(new CustomEvent('settingsSaved', { detail: settingsState }));
 }
 
+// Load Profile Data
+function loadProfileData() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) return;
+
+  // Update display
+  const playerName = document.getElementById('player-name');
+  const usernameDisplay = document.getElementById('username-display');
+  const playerLevel = document.getElementById('player-level');
+  const currentAvatar = document.getElementById('current-avatar');
+
+  if (playerName) playerName.textContent = currentUser.username || 'Player';
+  if (usernameDisplay) usernameDisplay.textContent = '@' + (currentUser.username || 'player');
+  if (playerLevel) playerLevel.textContent = currentUser.level || 1;
+  if (currentAvatar) currentAvatar.textContent = currentUser.avatar || '♟';
+
+  // Update XP progress bar
+  const xpProgressFill = document.getElementById('xp-progress-fill');
+  const xpText = document.getElementById('xp-text');
+  if (xpProgressFill && xpText) {
+    const level = currentUser.level || 1;
+    const xp = currentUser.xp || 0;
+    // Calculate XP needed for next level (1000 XP per level)
+    const xpNeeded = 1000 * level;
+    const progressPercentage = Math.min((xp / xpNeeded) * 100, 100);
+
+    console.log('[XP Progress] Level:', level, 'XP:', xp, 'XP Needed:', xpNeeded, 'Progress:', progressPercentage + '%');
+
+    // Update progress bar width
+    xpProgressFill.style.width = `${progressPercentage}%`;
+
+    // Update XP text
+    xpText.textContent = `${xp} / ${xpNeeded} XP`;
+  }
+
+  // Update statistics
+  const stats = currentUser.stats || {};
+  const totalGames = document.getElementById('total-games');
+  const totalWins = document.getElementById('total-wins');
+  const totalLosses = document.getElementById('total-losses');
+  const totalDraws = document.getElementById('total-draws');
+  const winRate = document.getElementById('win-rate');
+  const currentStreak = document.getElementById('current-streak');
+
+  if (totalGames) totalGames.textContent = stats.gamesPlayed || 0;
+  if (totalWins) totalWins.textContent = stats.wins || 0;
+  if (totalLosses) totalLosses.textContent = stats.losses || 0;
+  if (totalDraws) totalDraws.textContent = stats.draws || 0;
+
+  // Calculate win rate
+  const gamesPlayed = stats.gamesPlayed || 0;
+  const wins = stats.wins || 0;
+  const rate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+  if (winRate) winRate.textContent = rate + '%';
+
+  if (currentStreak) currentStreak.textContent = stats.currentStreak || 0;
+}
+
 // Update Sync Status
 function updateSyncStatus() {
-  const lastSync = localStorage.getItem('lastSyncTime');
+  // Get last sync time from localStorage first (persists after refresh)
+  let lastSync = parseInt(localStorage.getItem('lastSyncTime') || '0');
 
-  if (lastSync) {
-    const syncDate = new Date(parseInt(lastSync));
-    const now = new Date();
-    const diff = now - syncDate;
+  // Also check userSyncManager if available
+  if (window.userSyncManager && window.userSyncManager.lastSyncTime > lastSync) {
+    lastSync = window.userSyncManager.lastSyncTime;
+    localStorage.setItem('lastSyncTime', lastSync.toString());
+  }
 
+  if (lastSync > 0) {
+    const date = new Date(lastSync);
     if (lastSyncTime) {
-      if (diff < 60000) {
-        lastSyncTime.textContent = 'Just now';
-      } else if (diff < 3600000) {
-        const minutes = Math.floor(diff / 60000);
-        lastSyncTime.textContent = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-      } else if (diff < 86400000) {
-        const hours = Math.floor(diff / 3600000);
-        lastSyncTime.textContent = `${hours} hour${hours > 1 ? 's' : ''} ago`;
-      } else {
-        const days = Math.floor(diff / 86400000);
-        lastSyncTime.textContent = `${days} day${days > 1 ? 's' : ''} ago`;
-      }
+      lastSyncTime.textContent = date.toLocaleString();
     }
-
     if (syncStatus) {
       syncStatus.textContent = 'Synced';
       syncStatus.className = 'sync-status synced';
@@ -711,7 +776,6 @@ function updateSyncStatus() {
     if (lastSyncTime) {
       lastSyncTime.textContent = 'Never';
     }
-
     if (syncStatus) {
       syncStatus.textContent = 'Not synced';
       syncStatus.className = 'sync-status not-synced';
@@ -721,17 +785,87 @@ function updateSyncStatus() {
 
 // Handle Sync Now
 function handleSyncNow() {
+  console.log('[Settings Sync] Sync button clicked');
+
+  if (!window.userSyncManager) {
+    console.error('[Settings Sync] userSyncManager not available');
+    showNotification('Sync not available');
+    return;
+  }
+
+  console.log('[Settings Sync Debug] WebSocket status:', {
+    socketExists: !!window.socket,
+    readyState: window.socket ? window.socket.readyState : 'No socket',
+    readyStateText: window.socket ?
+      (window.socket.readyState === 0 ? 'CONNECTING' :
+       window.socket.readyState === 1 ? 'OPEN' :
+       window.socket.readyState === 2 ? 'CLOSING' :
+       window.socket.readyState === 3 ? 'CLOSED' : 'UNKNOWN') : 'No socket'
+  });
+
+  // Check if WebSocket is connected
+  if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+    console.error('[Settings Sync] WebSocket not connected');
+    showNotification('Not connected to server. Cannot sync.');
+    return;
+  }
+
+  console.log('[Settings Sync] Starting sync...');
+  if (syncNowBtn) {
+    syncNowBtn.disabled = true;
+    syncNowBtn.textContent = 'Syncing...';
+  }
   if (syncStatus) {
     syncStatus.textContent = 'Syncing...';
     syncStatus.className = 'sync-status syncing';
   }
 
-  // Simulate sync (replace with actual sync logic)
+  // Listen for sync completion
+  const handleSyncComplete = (event) => {
+    console.log('[Settings Sync] Sync complete event received:', event.detail);
+    const data = event.detail;
+    if (data && data.success) {
+      console.log('[Settings Sync] Sync successful');
+
+      // Store last sync time in localStorage (persists after refresh)
+      localStorage.setItem('lastSyncTime', Date.now().toString());
+
+      if (syncNowBtn) {
+        syncNowBtn.disabled = false;
+        syncNowBtn.textContent = 'Sync Now';
+      }
+
+      // Don't call updateSyncStatus here to prevent refresh
+      // The sync status will be updated on next page load
+      // updateSyncStatus();
+
+      showNotification('Profile synced successfully');
+      window.removeEventListener('syncComplete', handleSyncComplete);
+
+      // Don't call loadProfileData here to prevent refresh
+      // The profile data will be updated on next page load
+      // loadProfileData();
+    }
+  };
+
+  window.addEventListener('syncComplete', handleSyncComplete);
+
+  // Trigger sync
+  console.log('[Settings Sync] Calling syncAllData()');
+  window.userSyncManager.syncAllData();
+
+  // Timeout after 10 seconds
   setTimeout(() => {
-    localStorage.setItem('lastSyncTime', Date.now().toString());
-    updateSyncStatus();
-    showNotification('Sync completed successfully', 'success');
-  }, 1000);
+    if (syncNowBtn && syncNowBtn.disabled) {
+      console.error('[Settings Sync] Sync timed out');
+      if (syncNowBtn) {
+        syncNowBtn.disabled = false;
+        syncNowBtn.textContent = 'Sync Now';
+      }
+      window.removeEventListener('syncComplete', handleSyncComplete);
+      showNotification('Sync timed out. Please try again.');
+    }
+  }, 10000);
 }
 
 // Load Saved Games

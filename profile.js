@@ -150,6 +150,21 @@ function updateDisplay() {
   if (playerName) playerName.textContent = playerData.name;
   if (playerLevel) playerLevel.textContent = `Level ${playerData.level}`;
 
+  // Update XP progress bar
+  const xpProgressFill = document.getElementById('xp-progress-fill');
+  const xpText = document.getElementById('xp-text');
+  if (xpProgressFill && xpText) {
+    // Calculate XP needed for next level
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+    const progressPercentage = Math.min((playerData.xp / xpNeeded) * 100, 100);
+
+    // Update progress bar width
+    xpProgressFill.style.width = `${progressPercentage}%`;
+
+    // Update XP text
+    xpText.textContent = `${playerData.xp} / ${xpNeeded} XP`;
+  }
+
   // Update username
   if (usernameDisplay) {
     usernameDisplay.textContent = playerData.username || 'Player';
@@ -443,17 +458,59 @@ function updateStats(result) {
   // Check for level up
   checkLevelUp();
 
+  // Calculate XP needed for current level
+  const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+  // Show XP notification
+  const xpNotificationScript = document.createElement('script');
+  xpNotificationScript.src = 'xp-notification.js';
+  document.head.appendChild(xpNotificationScript);
+
+  xpNotificationScript.onload = () => {
+    if (typeof showXPNotification === 'function') {
+      const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
+      showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+    }
+  };
+
   // Save data
   savePlayerData();
 }
 
-// Check if player should level up
+// Check if player should level up (handles multiple level ups)
 function checkLevelUp() {
-  const xpNeeded = playerData.level * 1000;
-  if (playerData.xp >= xpNeeded) {
-    playerData.level++;
-    playerData.xp -= xpNeeded;
-    alert(`Congratulations! You leveled up to Level ${playerData.level}!`);
+  let leveledUp = false;
+  let levelsGained = 0;
+
+  while (true) {
+    // Improved XP formula: 1000 * level + 500 * (level - 1) for better scaling
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+    if (playerData.xp >= xpNeeded) {
+      playerData.level++;
+      playerData.xp -= xpNeeded;
+      leveledUp = true;
+      levelsGained++;
+    } else {
+      break;
+    }
+  }
+
+  if (leveledUp) {
+    // Load level up animation script
+    const levelUpScript = document.createElement('script');
+    levelUpScript.src = 'level-up.js';
+    document.head.appendChild(levelUpScript);
+
+    // Wait for script to load then show animation
+    levelUpScript.onload = () => {
+      const oldLevel = playerData.level - levelsGained;
+      const newLevel = playerData.level;
+
+      if (typeof showLevelUpAnimation === 'function') {
+        showLevelUpAnimation(oldLevel, newLevel);
+      }
+    };
   }
 }
 

@@ -24,6 +24,7 @@
       </div>
 
       <div class="top-right">
+        <span id="server-status" style="margin-right: 15px; font-weight: 600;">Connecting...</span>
         <button id="back-to-game-btn" class="primary-btn">← Back to Game</button>
       </div>
     </header>
@@ -43,7 +44,7 @@
             </div>
             <div class="form-group">
               <label for="password">Password</label>
-              <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+              <input type="password" id="password" class="form-input" placeholder="Enter your password" autocomplete="current-password" required>
             </div>
             <div class="form-group checkbox-group">
               <input type="checkbox" id="remember-me">
@@ -73,11 +74,11 @@
             </div>
             <div class="form-group">
               <label for="reg-password">Password</label>
-              <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
+              <input type="password" id="reg-password" class="form-input" placeholder="Create a password" autocomplete="new-password" required>
             </div>
             <div class="form-group">
               <label for="reg-confirm-password">Confirm Password</label>
-              <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" required>
+              <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" autocomplete="new-password" required>
             </div>
             <button type="submit" class="primary-btn">Register</button>
             <p class="form-link">
@@ -94,6 +95,12 @@
               <h3 id="player-name">Player Name</h3>
               <p class="username-display" id="username-display">@username</p>
               <div class="level-badge">Level <span id="player-level">1</span></div>
+              <div class="xp-progress-container">
+                <div class="xp-progress-bar">
+                  <div class="xp-progress-fill" id="xp-progress-fill"></div>
+                </div>
+                <span class="xp-text" id="xp-text">0 / 1000 XP</span>
+              </div>
             </div>
           </div>
 
@@ -293,6 +300,9 @@
   </div>
 
   <!-- Scripts -->
+  <script src="encryption.js"></script>
+  <script src="settings-socket.js"></script>
+  <script src="auth.js"></script>
   <script src="user-sync-client.js"></script>
   <script src="settings.js"></script>
   <script src="screen-reader-simple.js"></script>
