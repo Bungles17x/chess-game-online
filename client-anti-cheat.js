@@ -343,7 +343,7 @@ function detectCheatExtensions() {
 
   // Only log initialization message once
   if (!cheatDetectionInitialized) {
-    debugLog("ANTI-CHEAT", "Cheat extension detection initialized");
+    AntiCheatLogger.info("INIT", "Cheat extension detection initialized");
     cheatDetectionInitialized = true;
   }
   

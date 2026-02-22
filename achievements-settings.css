@@ -1,0 +1,267 @@
+/* Achievements Section in Settings */
+
+.achievements-content {
+  padding: 20px 0;
+}
+
+.achievements-stats {
+  display: flex;
+  gap: 20px;
+  justify-content: space-around;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.achievements-stat {
+  text-align: center;
+}
+
+.achievements-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.achievements-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+#settings-achievements-grid {
+  margin-top: 20px;
+}
+
+/* Rewards Section */
+.rewards-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid var(--background-secondary);
+}
+
+.rewards-section h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.reward-card {
+  background: linear-gradient(135deg, var(--background-primary) 0%, var(--background-secondary) 100%);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.reward-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.reward-card.unlocked {
+  border-color: var(--accent-color);
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-color-dark) 100%);
+}
+
+.reward-card.locked {
+  opacity: 0.7;
+  filter: grayscale(0.5);
+}
+
+.reward-card.locked::before {
+  content: "🔒";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  opacity: 0.3;
+  z-index: 1;
+}
+
+.reward-card-icon {
+  font-size: 48px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.reward-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.reward-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.reward-card-xp-bonus {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.reward-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.reward-card-rarity {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.reward-card-rarity.rarity-common {
+  background: rgba(128, 128, 128, 0.2);
+  color: #808080;
+}
+
+.reward-card-rarity.rarity-uncommon {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.reward-card-rarity.rarity-rare {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.reward-card-rarity.rarity-legendary {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.reward-card-rarity.rarity-mythic {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 140, 0, 0.2) 100%);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.reward-card.unlocked .reward-card-rarity {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.reward-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.reward-card.unlocked .reward-card-title {
+  color: white;
+}
+
+.reward-card-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.reward-card.unlocked .reward-card-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reward-card-requirement {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+.reward-card.unlocked .reward-card-requirement {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.reward-card-status {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reward-card.unlocked .reward-card-status {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.reward-card.locked .reward-card-status {
+  background: var(--background-secondary);
+  color: var(--text-secondary);
+}
+
+.no-rewards-message {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+  padding: 40px 20px;
+  grid-column: 1 / -1;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .achievements-stats {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .achievements-stat {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .achievements-stat-value {
+    font-size: 20px;
+  }
+}

@@ -1139,4 +1139,127 @@
   .sync-info {
     font-size: 11px;
   }
+
+/* TTS Controls Styles */
+.slider-option {
+  margin: 16px 0;
+}
+
+.slider-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.slider-text {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.slider-option input[type="range"] {
+  flex: 2;
+  margin: 0 16px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  outline: none;
+}
+
+.slider-option input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #38bdf8;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.slider-option input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider-option input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #38bdf8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s ease;
+}
+
+.slider-option input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider-value {
+  min-width: 50px;
+  text-align: right;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.voice-option {
+  margin: 16px 0;
+}
+
+.voice-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.voice-text {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.voice-select {
+  flex: 2;
+  margin: 0 16px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.voice-select:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.voice-select:focus {
+  outline: none;
+  border-color: #38bdf8;
+}
+
+@media (max-width: 768px) {
+  .slider-label,
+  .voice-label {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .slider-option input[type="range"],
+  .voice-select {
+    width: 100%;
+    margin: 8px 0 0 0;
+  }
+
+  .slider-value {
+    text-align: left;
+    margin-top: 4px;
+  }
+}
 }

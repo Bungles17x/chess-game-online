@@ -59,6 +59,11 @@ function enableScreenReader() {
   console.log('[Screen Reader] Enabled');
   announce('Screen reader mode enabled');
 
+  // Enable TTS when screen reader is enabled
+  if (window.ttsSystem && typeof window.ttsSystem.enableTTS === 'function') {
+    window.ttsSystem.enableTTS();
+  }
+
   // Add ARIA labels to board
   const board = document.getElementById('chessboard');
   if (board) {
@@ -82,6 +87,11 @@ function enableScreenReader() {
 function disableScreenReader() {
   console.log('[Screen Reader] Disabled');
   announce('Screen reader mode disabled');
+
+  // Disable TTS when screen reader is disabled
+  if (window.ttsSystem && typeof window.ttsSystem.disableTTS === 'function') {
+    window.ttsSystem.disableTTS();
+  }
 
   // Remove ARIA labels
   const board = document.getElementById('chessboard');

@@ -1,0 +1,342 @@
+/* Game Replay System Styles */
+
+/* Replay Controls Container */
+.replay-controls {
+  background-color: var(--background-secondary);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.replay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.replay-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.replay-game-info {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.replay-player-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.replay-player-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Replay Buttons */
+.replay-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.replay-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.replay-btn:hover:not(:disabled) {
+  background-color: var(--accent-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.replay-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.replay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.replay-btn.playing {
+  background-color: var(--accent-color);
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Replay Speed Control */
+.replay-speed-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.replay-speed-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.replay-speed-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.replay-speed-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* Replay Move List */
+.replay-move-list {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--background-primary);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.replay-move-row {
+  display: flex;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.replay-move-row:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.replay-move-number {
+  width: 40px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.replay-move {
+  flex: 1;
+  padding: 2px 4px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.replay-move.current {
+  background-color: var(--accent-color);
+  color: white;
+  font-weight: 500;
+  border-radius: 3px;
+}
+
+/* Replay Move Counter */
+.replay-move-counter {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+}
+
+.replay-counter-value {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+/* Replay Actions */
+.replay-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.replay-action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--accent-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.replay-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.replay-action-btn:active {
+  transform: translateY(0);
+}
+
+.replay-action-btn.secondary {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.replay-action-btn.secondary:hover {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+/* Saved Games List */
+.saved-games-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.saved-game-item {
+  background-color: var(--background-primary);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saved-game-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.saved-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.saved-game-players {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.saved-game-result {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.saved-game-result.win {
+  background-color: #4caf50;
+  color: white;
+}
+
+.saved-game-result.loss {
+  background-color: #f44336;
+  color: white;
+}
+
+.saved-game-result.draw {
+  background-color: #ff9800;
+  color: white;
+}
+
+.saved-game-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.saved-game-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.saved-game-action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saved-game-action-btn:hover {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.saved-game-action-btn.delete {
+  background-color: #f44336;
+  color: white;
+}
+
+.saved-game-action-btn.delete:hover {
+  background-color: #d32f2f;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .replay-controls {
+    padding: 10px;
+  }
+
+  .replay-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .replay-game-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .replay-buttons {
+    flex-wrap: wrap;
+  }
+
+  .replay-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .replay-move-list {
+    max-height: 200px;
+  }
+
+  .replay-move {
+    font-size: 13px;
+  }
+}

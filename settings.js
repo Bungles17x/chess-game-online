@@ -32,10 +32,16 @@ let currentRenameIndex = -1;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize achievements system first
+  if (window.achievementsSystem && typeof window.achievementsSystem.initialize === 'function') {
+    window.achievementsSystem.initialize();
+  }
+  
   setupEventListeners();
   checkLoginStatus();
   setupThemeSelection();
   setupAvatarSelection();
+  setupAchievementsDisplay();
 
   // Don't call updateSyncStatus on initial load to prevent refresh
   // updateSyncStatus();
@@ -321,6 +327,11 @@ function checkLoginStatus() {
     
     // Load saved games
     loadSavedGames();
+    
+    // Load achievements
+    if (typeof loadAchievements === 'function') {
+      loadAchievements();
+    }
   } else {
     // User is not logged in
     loginFormContainer.classList.remove('hidden');
@@ -328,6 +339,12 @@ function checkLoginStatus() {
     profileDisplay.classList.add('hidden');
     profileSettings.classList.add('hidden');
     profileLoginPrompt.classList.remove('hidden');
+    
+    // Hide achievements when logged out
+    const achievementsContent = document.getElementById('achievements-content');
+    const achievementsLoginPrompt = document.getElementById('achievements-login-prompt');
+    if (achievementsContent) achievementsContent.classList.add('hidden');
+    if (achievementsLoginPrompt) achievementsLoginPrompt.classList.remove('hidden');
   }
 }
 
@@ -357,18 +374,20 @@ function loadProfileData() {
   const xpText = document.getElementById('xp-text');
   if (xpProgressFill && xpText) {
     const level = currentUser.level || 1;
-    const xp = currentUser.xp || 0;
-    // Calculate XP needed for next level (1000 XP per level)
-    const xpNeeded = 1000 * level;
-    const progressPercentage = Math.min((xp / xpNeeded) * 100, 100);
+    const totalXP = currentUser.xp || 0;
+    // XP is stored as total cumulative XP
+    const xpForCurrentLevel = (level - 1) * 1000;
+    const xpInCurrentLevel = totalXP - xpForCurrentLevel;
+    const xpNeededForNext = 1000;
+    const progressPercentage = Math.min((xpInCurrentLevel / xpNeededForNext) * 100, 100);
 
-    console.log('[XP Progress] Level:', level, 'XP:', xp, 'XP Needed:', xpNeeded, 'Progress:', progressPercentage + '%');
+    console.log('[XP Progress] Level:', level, 'Total XP:', totalXP, 'XP in current level:', xpInCurrentLevel, 'XP needed:', xpNeededForNext, 'Progress:', progressPercentage + '%');
 
     // Update progress bar width
     xpProgressFill.style.width = `${progressPercentage}%`;
 
     // Update XP text
-    xpText.textContent = `${xp} / ${xpNeeded} XP`;
+    xpText.textContent = `${xpInCurrentLevel} / ${xpNeededForNext} XP`;
   }
 
   // Update statistics
@@ -1298,4 +1317,302 @@ dialogStyle.textContent = `
     background: #d32f2f;
   }
 `;
+
+// Achievements Display Functions
+function setupAchievementsDisplay() {
+  // Get DOM elements
+  const achievementsContent = document.getElementById('achievements-content');
+  const achievementsLoginPrompt = document.getElementById('achievements-login-prompt');
+  const achievementsGrid = document.getElementById('settings-achievements-grid');
+  const categoryButtons = document.querySelectorAll('.achievement-category-btn');
+  
+  // Check if achievements system is available
+  if (!window.achievementsSystem) {
+    console.warn('Achievements system not available');
+    return;
+  }
+
+  // Initialize the achievements system if not already initialized
+  if (typeof window.achievementsSystem.initialize === 'function') {
+    window.achievementsSystem.initialize();
+  }
+  
+  // Load achievements when user logs in
+  window.addEventListener('userLoggedIn', () => {
+    loadAchievements();
+  });
+  
+  // Hide achievements when user logs out
+  window.addEventListener('userLoggedOut', () => {
+    if (achievementsContent) achievementsContent.classList.add('hidden');
+    if (achievementsLoginPrompt) achievementsLoginPrompt.classList.remove('hidden');
+  });
+  
+  // Setup category filter buttons
+  categoryButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Remove active class from all buttons
+      categoryButtons.forEach(btn => btn.classList.remove('active'));
+      // Add active class to clicked button
+      button.classList.add('active');
+      // Filter achievements by category
+      const category = button.dataset.category;
+      filterAchievements(category);
+    });
+  });
+  
+  // Check login status on initial load
+  checkLoginStatus();
+}
+
+function loadAchievements() {
+  try {
+    const achievementsContent = document.getElementById('achievements-content');
+    const achievementsLoginPrompt = document.getElementById('achievements-login-prompt');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    // Check if user is logged in
+    if (!currentUser || !currentUser.username) {
+      if (achievementsContent) achievementsContent.classList.add('hidden');
+      if (achievementsLoginPrompt) achievementsLoginPrompt.classList.remove('hidden');
+      return;
+    }
+    
+    // Show achievements content
+    if (achievementsContent) achievementsContent.classList.remove('hidden');
+    if (achievementsLoginPrompt) achievementsLoginPrompt.classList.add('hidden');
+    
+    // Check for rewards
+    if (window.achievementsSystem && typeof window.achievementsSystem.checkRewards === 'function') {
+      window.achievementsSystem.checkRewards();
+    }
+    
+    // Update XP progress
+    updateXPProgress();
+    
+    // Update achievements stats
+    updateAchievementsStats();
+    
+    // Render all achievements
+    renderAchievements();
+    
+    // Render rewards
+    renderRewards();
+  } catch (error) {
+    console.error('[Settings] Error loading achievements:', error);
+  }
+}
+
+function updateXPProgress() {
+  const totalXP = parseInt(localStorage.getItem('playerXP') || '0');
+  const currentLevel = calculateLevel(totalXP);
+  const xpForCurrentLevel = getXPForLevel(currentLevel);
+  const xpForNextLevel = getXPForLevel(currentLevel + 1);
+  const xpInCurrentLevel = totalXP - xpForCurrentLevel;
+  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+  const progress = (xpInCurrentLevel / xpNeeded) * 100;
+  
+  // Update DOM elements
+  const totalXPElement = document.getElementById('settings-total-xp');
+  const currentLevelElement = document.getElementById('settings-current-level');
+  const xpToNextElement = document.getElementById('settings-xp-to-next');
+  const xpBarElement = document.getElementById('settings-xp-bar');
+  
+  if (totalXPElement) totalXPElement.textContent = totalXP;
+  if (currentLevelElement) currentLevelElement.textContent = `Level ${currentLevel}`;
+  if (xpToNextElement) xpToNextElement.textContent = `${xpInCurrentLevel} / ${xpNeeded} XP`;
+  if (xpBarElement) xpBarElement.style.width = `${progress}%`;
+}
+
+function calculateLevel(xp) {
+  // Simple level calculation: level = floor(xp / 1000) + 1
+  return Math.floor(xp / 1000) + 1;
+}
+
+function getXPForLevel(level) {
+  // XP required for each level: level * 1000
+  return (level - 1) * 1000;
+}
+
+function updateAchievementsStats() {
+  if (!window.achievementsSystem) return;
+  
+  const unlockedAchievements = window.achievementsSystem.getUnlockedAchievements();
+  const totalAchievements = Object.values(window.achievementsSystem.achievements).length;
+  const xpEarned = unlockedAchievements.reduce((sum, achievement) => sum + achievement.xp, 0);
+  
+  // Update DOM elements
+  const unlockedCountElement = document.getElementById('unlocked-count');
+  const totalAchievementsElement = document.getElementById('total-achievements');
+  const xpEarnedElement = document.getElementById('xp-earned');
+  
+  if (unlockedCountElement) unlockedCountElement.textContent = unlockedAchievements.length;
+  if (totalAchievementsElement) totalAchievementsElement.textContent = totalAchievements;
+  if (xpEarnedElement) xpEarnedElement.textContent = xpEarned;
+}
+
+function renderAchievements(category = 'all') {
+  const achievementsGrid = document.getElementById('settings-achievements-grid');
+  if (!achievementsGrid || !window.achievementsSystem) return;
+  
+  // Get achievements based on category
+  let achievements;
+  if (category === 'all') {
+    achievements = Object.values(window.achievementsSystem.achievements);
+  } else {
+    achievements = window.achievementsSystem.getAchievementsByCategory(category);
+  }
+  
+  // Clear grid
+  achievementsGrid.innerHTML = '';
+  
+  // Render each achievement
+  achievements.forEach(achievement => {
+    const card = createAchievementCard(achievement);
+    achievementsGrid.appendChild(card);
+  });
+}
+
+function createAchievementCard(achievement) {
+  const card = document.createElement('div');
+  card.className = `achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+  
+  // Check if achievement has progress tracking
+  const hasProgress = achievement.target !== undefined && achievement.target !== null;
+  
+  let progressHTML = '';
+  
+  if (hasProgress) {
+    const progressPercentage = window.achievementsSystem.getProgressPercentage(achievement.id);
+    const progress = achievement.progress !== undefined ? achievement.progress : (achievement.unlocked ? achievement.target : 0);
+    const target = achievement.target;
+    
+    progressHTML = `
+      <div class="achievement-card-progress">
+        <div class="achievement-card-progress-bar" style="width: ${progressPercentage}%"></div>
+      </div>
+      <div class="achievement-card-xp">Progress: ${progress} / ${target} | +${achievement.xp} XP</div>
+    `;
+  } else {
+    progressHTML = `<div class="achievement-card-xp">+${achievement.xp} XP</div>`;
+  }
+  
+  card.innerHTML = `
+    <div class="achievement-card-icon">${achievement.icon}</div>
+    <div class="achievement-card-content">
+      <div class="achievement-card-title">${achievement.name}</div>
+      <div class="achievement-card-description">${achievement.description}</div>
+      ${progressHTML}
+    </div>
+  `;
+  
+  return card;
+}
+
+function filterAchievements(category) {
+  renderAchievements(category);
+}
+
+function renderRewards() {
+  try {
+    const rewardsGrid = document.getElementById('settings-rewards-grid');
+    if (!rewardsGrid || !window.achievementsSystem) {
+      console.warn('[Settings] Rewards grid or achievements system not available');
+      return;
+    }
+    
+    // Get player stats
+    const totalXP = parseInt(localStorage.getItem('playerXP') || '0');
+    const level = Math.floor(totalXP / 1000) + 1;
+    const unlockedAchievements = window.achievementsSystem.getUnlockedAchievements();
+    const winStreak = parseInt(localStorage.getItem('currentWinStreak') || '0');
+    
+    console.log('[Settings] Rendering rewards - Level:', level, 'Achievements:', unlockedAchievements.length, 'Streak:', winStreak);
+    
+    // Get all rewards
+    const rewards = Object.values(window.achievementsSystem.rewards);
+    
+    // Filter rewards to show only those that are either unlocked or can be unlocked soon
+    const availableRewards = rewards.filter(reward => {
+      if (reward.unlocked) return true;
+      
+      // Check if reward is close to being unlocked
+      let shouldShow = false;
+      switch(reward.id) {
+        case 'level_5':
+          shouldShow = level >= 3; // Show at level 3+
+          break;
+        case 'level_10':
+          shouldShow = level >= 7; // Show at level 7+
+          break;
+        case 'level_25':
+          shouldShow = level >= 20; // Show at level 20+
+          break;
+        case 'level_50':
+          shouldShow = level >= 40; // Show at level 40+
+          break;
+        case 'achievements_5':
+          shouldShow = unlockedAchievements.length >= 3; // Show with 3+ achievements
+          break;
+        case 'achievements_10':
+          shouldShow = unlockedAchievements.length >= 7; // Show with 7+ achievements
+          break;
+        case 'achievements_25':
+          shouldShow = unlockedAchievements.length >= 20; // Show with 20+ achievements
+          break;
+        case 'streak_5':
+          shouldShow = winStreak >= 3; // Show with 3+ win streak
+          break;
+        case 'streak_10':
+          shouldShow = winStreak >= 7; // Show with 7+ win streak
+          break;
+        case 'perfect_game_reward':
+          shouldShow = window.achievementsSystem.achievements.perfectGame && window.achievementsSystem.achievements.perfectGame.unlocked;
+          break;
+        case 'quick_win_reward':
+          shouldShow = window.achievementsSystem.achievements.fourMoveMate && window.achievementsSystem.achievements.fourMoveMate.unlocked;
+          break;
+        default:
+          shouldShow = false;
+          break;
+      }
+      return shouldShow;
+    });
+    
+    console.log('[Settings] Available rewards:', availableRewards.length);
+    
+    // Clear grid
+    rewardsGrid.innerHTML = '';
+    
+    // Render each available reward
+    availableRewards.forEach(reward => {
+      const card = createRewardCard(reward);
+      rewardsGrid.appendChild(card);
+    });
+    
+    // Show message if no rewards available
+    if (availableRewards.length === 0) {
+      rewardsGrid.innerHTML = '<p class="no-rewards-message">Play more games to unlock rewards!</p>';
+    }
+  } catch (error) {
+    console.error('[Settings] Error rendering rewards:', error);
+  }
+}
+
+function createRewardCard(reward) {
+  const card = document.createElement('div');
+  card.className = `reward-card ${reward.unlocked ? 'unlocked' : 'locked'}`;
+  
+  card.innerHTML = `
+    <div class="reward-card-icon">${reward.icon}</div>
+    <div class="reward-card-content">
+      <div class="reward-card-title">${reward.name}</div>
+      <div class="reward-card-description">${reward.description}</div>
+      <div class="reward-card-requirement">${reward.requirement}</div>
+      <div class="reward-card-status">${reward.unlocked ? 'Unlocked' : 'Locked'}</div>
+    </div>
+  `;
+  
+  return card;
+}
 document.head.appendChild(dialogStyle);

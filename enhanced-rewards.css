@@ -1,0 +1,356 @@
+
+/* ============================================
+   ENHANCED REWARDS SYSTEM - PREMIUM EDITION
+   ============================================ */
+
+/* Reward Card Base Styles */
+.reward-card {
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.98) 100%);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Hover Effects */
+.reward-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 8px 12px rgba(0, 0, 0, 0.4),
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Shimmer Effect */
+.reward-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.reward-card:hover::before {
+  left: 100%;
+}
+
+/* Unlocked State */
+.reward-card.unlocked {
+  border-color: rgba(255, 215, 0, 0.5);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
+  animation: unlockGlow 2s ease-in-out infinite;
+}
+
+@keyframes unlockGlow {
+  0%, 100% {
+    box-shadow: 
+      0 4px 6px rgba(0, 0, 0, 0.3),
+      0 10px 20px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 4px 6px rgba(0, 0, 0, 0.3),
+      0 10px 20px rgba(0, 0, 0, 0.2),
+      0 0 40px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Locked State */
+.reward-card.locked {
+  opacity: 0.6;
+  filter: grayscale(0.3) brightness(0.8);
+}
+
+/* Icon Container */
+.reward-card-icon {
+  font-size: 56px;
+  align-self: center;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Icon Animation */
+.reward-card.unlocked .reward-card-icon {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Content Section */
+.reward-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Header Section */
+.reward-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Title */
+.reward-card-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.reward-card.unlocked .reward-card-title {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* XP Bonus Badge */
+.reward-card-xp-bonus {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  animation: xpGlow 2s ease-in-out infinite;
+}
+
+@keyframes xpGlow {
+  0%, 100% {
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 10px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 20px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Description */
+.reward-card-description {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.reward-card.unlocked .reward-card-description {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Requirement */
+.reward-card-requirement {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+
+.reward-card.unlocked .reward-card-requirement {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Footer Section */
+.reward-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Rarity Badge */
+.reward-card-rarity {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.reward-card-rarity.rarity-common {
+  background: linear-gradient(135deg, rgba(128, 128, 128, 0.3) 0%, rgba(96, 96, 96, 0.2) 100%);
+  color: #b0b0b0;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+}
+
+.reward-card-rarity.rarity-uncommon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.2) 100%);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+}
+
+.reward-card-rarity.rarity-rare {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 100%);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.reward-card-rarity.rarity-legendary {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(147, 51, 234, 0.2) 100%);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  box-shadow: 0 2px 4px rgba(168, 85, 247, 0.2);
+  animation: legendaryPulse 2s ease-in-out infinite;
+}
+
+@keyframes legendaryPulse {
+  0%, 100% {
+    box-shadow: 0 2px 4px rgba(168, 85, 247, 0.2);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+  }
+}
+
+.reward-card-rarity.rarity-mythic {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 140, 0, 0.2) 100%);
+  color: #ffd700;
+  border: 2px solid rgba(255, 215, 0, 0.6);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(255, 215, 0, 0.4);
+  animation: mythicGlow 2s ease-in-out infinite;
+}
+
+@keyframes mythicGlow {
+  0%, 100% {
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      0 0 15px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      0 0 25px rgba(255, 215, 0, 0.6);
+  }
+}
+
+/* Type Badge */
+.reward-card-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reward-card.unlocked .reward-card-type {
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffd700;
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* Particle Effects */
+.reward-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.reward-card:hover::after {
+  opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reward-card {
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .reward-card-icon {
+    font-size: 48px;
+    width: 90px;
+    height: 90px;
+  }
+
+  .reward-card-title {
+    font-size: 18px;
+  }
+
+  .reward-card-description {
+    font-size: 13px;
+  }
+}

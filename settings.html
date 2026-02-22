@@ -7,6 +7,12 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="profile.css" />
   <link rel="stylesheet" href="settings.css" />
+  <link rel="stylesheet" href="ultimate-game-enhancements.css" />
+  <link rel="stylesheet" href="advanced-animations.css" />
+  <link rel="stylesheet" href="extreme-visual-effects.css" />
+  <link rel="stylesheet" href="achievements-system.css" />
+  <link rel="stylesheet" href="enhanced-rewards.css" />
+  <link rel="stylesheet" href="enhanced-achievements.css" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -191,6 +197,75 @@
         </div>
       </section>
 
+      <!-- Achievements and Rewards Section -->
+      <section class="settings-section" id="achievements-section">
+        <h2>Achievements & Rewards</h2>
+
+        <div id="achievements-content" class="achievements-content hidden">
+          <!-- XP Progress -->
+          <div class="xp-progress-section">
+            <div class="xp-progress-header">
+              <div class="xp-progress-title">Your Progress</div>
+              <div class="xp-progress-value">
+                <span id="settings-total-xp">0</span> XP
+              </div>
+            </div>
+            <div class="xp-progress-bar-container">
+              <div class="xp-progress-bar" id="settings-xp-bar" style="width: 0%"></div>
+            </div>
+            <div class="xp-progress-info">
+              <span id="settings-current-level">Level 1</span>
+              <span id="settings-xp-to-next">0 / 1000 XP</span>
+            </div>
+          </div>
+
+          <!-- Achievement Categories -->
+          <div class="achievement-categories">
+            <button class="achievement-category-btn active" data-category="all">All</button>
+            <button class="achievement-category-btn" data-category="gameplay">Gameplay</button>
+            <button class="achievement-category-btn" data-category="streak">Win Streaks</button>
+            <button class="achievement-category-btn" data-category="checkmate">Checkmates</button>
+            <button class="achievement-category-btn" data-category="capture">Captures</button>
+            <button class="achievement-category-btn" data-category="games">Games</button>
+            <button class="achievement-category-btn" data-category="online">Online</button>
+            <button class="achievement-category-btn" data-category="special">Special</button>
+          </div>
+
+          <!-- Achievements Stats -->
+          <div class="achievements-stats">
+            <div class="achievements-stat">
+              <span class="achievements-stat-label">Unlocked</span>
+              <span class="achievements-stat-value" id="unlocked-count">0</span>
+            </div>
+            <div class="achievements-stat">
+              <span class="achievements-stat-label">Total</span>
+              <span class="achievements-stat-value" id="total-achievements">0</span>
+            </div>
+            <div class="achievements-stat">
+              <span class="achievements-stat-label">XP Earned</span>
+              <span class="achievements-stat-value" id="xp-earned">0</span>
+            </div>
+          </div>
+
+          <!-- Achievements Grid -->
+          <div class="achievements-grid" id="settings-achievements-grid">
+            <!-- Achievements will be dynamically loaded here -->
+          </div>
+
+          <!-- Rewards Section -->
+          <div class="rewards-section">
+            <h3>Rewards</h3>
+            <div class="rewards-grid" id="settings-rewards-grid">
+              <!-- Rewards will be dynamically loaded here -->
+            </div>
+          </div>
+        </div>
+
+        <div id="achievements-login-prompt" class="login-prompt">
+          <p>Please log in to view your achievements and rewards</p>
+        </div>
+      </section>
+
       <!-- Game Settings Section -->
       <section class="settings-section" id="game-section">
         <h2>Game Settings</h2>
@@ -212,9 +287,9 @@
             <label class="toggle-label">
               <input type="checkbox" id="screen-reader-toggle">
               <span class="toggle-slider"></span>
-              <span class="toggle-text">Screen Reader Mode</span>
+              <span class="toggle-text">Screen Reader & Text-to-Speech</span>
             </label>
-            <p class="setting-description">Enhanced announcements for screen readers including piece positions, moves, and game state</p>
+            <p class="setting-description">Enhanced announcements for screen readers including piece positions, moves, and game state. Also enables text-to-speech for all UI interactions.</p>
           </div>
         </div>
       </section>
@@ -301,10 +376,33 @@
 
   <!-- Scripts -->
   <script src="encryption.js"></script>
+  <script src="comprehensive-fix.js"></script>
+  <script src="reset-season-to-one.js"></script>
   <script src="settings-socket.js"></script>
   <script src="auth.js"></script>
   <script src="user-sync-client.js"></script>
+  <script src="achievements-system.js"></script>
+  <script src="xp-level-fix.js"></script>
+  <script src="xp-display-fix.js"></script>
+  <script src="xp-debugger.js"></script>
+  <script src="xp-progress-fix.js"></script>
+  <script src="achievements-xp-fix.js"></script>
+  <script src="xp-reset.js"></script>
+  <script src="season-countdown.js"></script>
+  <script src="season-end-auto-commit-fixed.js"></script>
+  <script src="achievements-fix.js"></script>
+  <script src="game-integration-fix.js"></script>
+  <script src="achievements-display-fix.js"></script>
+  <script src="achievements-xp-display-fix.js"></script>
+  <script src="achievements-init.js"></script>
+  <script src="test-achievements.js"></script>
   <script src="settings.js"></script>
+  <script src="tts-system.js"></script>
   <script src="screen-reader-simple.js"></script>
+  <script src="ultimate-game-enhancements.js"></script>
+  <script src="advanced-game-features.js"></script>
+  <script src="enhanced-ui-components-v2.js"></script>
+  <script src="extreme-ai-analysis.js"></script>
+  <script src="extreme-visual-effects.js"></script>
 </body>
 </html>

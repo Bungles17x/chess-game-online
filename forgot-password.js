@@ -1,10 +1,5 @@
 // Forgot Password JavaScript
 
-// Load encryption utility
-const encryptionScript = document.createElement('script');
-encryptionScript.src = 'encryption.js';
-document.head.appendChild(encryptionScript);
-
 // State management
 let currentStep = 1;
 let userEmail = '';

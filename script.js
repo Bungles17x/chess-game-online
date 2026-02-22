@@ -780,13 +780,28 @@ function handleServerMessage(data) {
     debugLog("GAME", "Move received from opponent", {
       move: data.move
     });
-    game.move(data.move);
-    lastMove = data.move;
-    const soundId = data.move.captured ? "capture-sound" : "move-sound";
+    
+    // Validate move before executing
+    const result = game.move(data.move);
+    if (!result) {
+      debugLog("GAME", "Invalid move from opponent", {
+        move: data.move
+      });
+      console.error("Invalid move from opponent:", data.move);
+      return;
+    }
+    
+    lastMove = result;
+    const soundId = result.captured ? "capture-sound" : "move-sound";
     playSoundById(soundId);
-    logMove(data.move);
+    logMove(result);
     renderPosition();
     updateTurnIndicator();
+    
+    // Speak move using TTS
+    if (window.ttsSystem && typeof window.ttsSystem.speakMove === 'function') {
+      window.ttsSystem.speakMove(result);
+    }
   }
 
   if (data.type === "roomClosed") {
@@ -1532,6 +1547,11 @@ function renderPosition() {
       span.classList.add("piece");
       span.style.color = piece.color === "w" ? "#f9fafb" : "#020617";
       span.textContent = pieceToUnicode[piece.type];
+      
+      // Add smooth transition for piece movement
+      span.style.transition = "transform 0.2s ease, opacity 0.2s ease";
+      span.style.transform = "scale(1)";
+      
       sq.appendChild(span);
     }
   }
@@ -1584,6 +1604,11 @@ function handleSquareClick(square) {
 
     clearHighlights();
     highlightSelectionAndMoves();
+    
+    // Speak piece selection using TTS
+    if (window.ttsSystem && typeof window.ttsSystem.speakPieceSelected === 'function') {
+      window.ttsSystem.speakPieceSelected(square, piece);
+    }
     return;
   }
 
@@ -1672,6 +1697,19 @@ function handleSquareClick(square) {
   if (!result) {
     debugLog("BOARD", "Move failed", { move });
     console.error("Move failed:", move);
+    
+    // Provide user feedback about why the move failed
+    const board = game.board();
+    const fromPiece = board[8 - parseInt(move.from[1])][move.from.charCodeAt(0) - 97];
+    
+    if (!fromPiece) {
+      popup("No piece at that position", "red");
+    } else if (fromPiece.color !== game.turn()) {
+      popup("It's not your turn", "red");
+    } else {
+      popup("Invalid move", "red");
+    }
+    
     return;
   }
 
@@ -1716,6 +1754,11 @@ function handleSquareClick(square) {
   clearHighlights();
   renderPosition();
   updateTurnIndicator();
+  
+  // Speak move using TTS
+  if (window.ttsSystem && typeof window.ttsSystem.speakMove === 'function') {
+    window.ttsSystem.speakMove(result);
+  }
 
     // Analyze and show feedback for the move (for player moves only)
   // In bot mode, only analyze white's moves (the player's moves)
@@ -1776,6 +1819,10 @@ function handleSquareClick(square) {
 
   // Check for game over and update statistics
   if (game.game_over()) {
+    // Speak game status using TTS
+    if (window.ttsSystem && typeof window.ttsSystem.speakGameStatus === 'function') {
+      window.ttsSystem.speakGameStatus();
+    }
     updateGameStatistics();
   }
 }
