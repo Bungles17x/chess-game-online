@@ -97,6 +97,8 @@ const backToBotBtn = document.getElementById("back-to-bot-btn");
 const connectionParticles = document.getElementById("connection-particles");
 const connectionDot = document.getElementById("connection-dot");
 const connectionText = document.getElementById("connection-text");
+const serverIssueModal = document.getElementById("server-issue-modal");
+const serverIssueOkBtn = document.getElementById("server-issue-ok-btn");
 const connectionQuality = document.getElementById("connection-quality");
 const latencyGraph = document.getElementById("latency-graph");
 const latencyValue = document.getElementById("latency-value");
@@ -397,6 +399,11 @@ function ensureSocket() {
         error: error.message || "Unknown error",
         socketState: socket ? socket.readyState : "No socket"
       });
+
+      // Check if this is the first connection attempt and show server issue modal
+      if (reconnectAttempts === 0 && gameMode === "online") {
+        showServerIssueModal();
+      }
     };
 
   } catch (err) {
@@ -2205,6 +2212,19 @@ if (updatesBtn) {
 document.addEventListener("DOMContentLoaded", () => {
   debugLog("INIT", "DOM loaded, initializing application");
 
+  // Check if online mode should be disabled
+  checkOnlineModeStatus();
+
+  // Setup server issue modal OK button
+  if (serverIssueOkBtn) {
+    serverIssueOkBtn.addEventListener("click", () => {
+      hideServerIssueModal();
+      // Disable online mode and save to localStorage
+      localStorage.setItem('onlineModeDisabled', 'true');
+      disableOnlineMode();
+    });
+  }
+
   // Load settings from localStorage or user profile
   loadGameSettings();
   
@@ -2654,6 +2674,69 @@ function showLoadingScreen() {
 function hideLoadingScreen() {
   debugLog("UI", "Hiding loading screen");
   loadingScreen.classList.add("hidden");
+}
+
+// -----------------------------------------------------
+// SERVER ISSUE MODAL FUNCTIONS
+// -----------------------------------------------------
+function showServerIssueModal() {
+  debugLog("UI", "Showing server issue modal");
+  if (serverIssueModal) {
+    serverIssueModal.classList.remove("hidden");
+  }
+}
+
+function hideServerIssueModal() {
+  debugLog("UI", "Hiding server issue modal");
+  if (serverIssueModal) {
+    serverIssueModal.classList.add("hidden");
+  }
+}
+
+function disableOnlineMode() {
+  debugLog("UI", "Disabling online mode");
+  // Disable the online mode button
+  if (onlineModeBtn) {
+    onlineModeBtn.disabled = true;
+    onlineModeBtn.style.opacity = "0.5";
+    onlineModeBtn.style.cursor = "not-allowed";
+    onlineModeBtn.title = "Online mode is currently unavailable";
+  }
+  // Switch to bot mode
+  gameMode = "bot";
+  document.querySelectorAll("[data-mode]").forEach(btn => {
+    btn.classList.remove("active");
+    if (btn.dataset.mode === "bot") {
+      btn.classList.add("active");
+    }
+  });
+}
+
+// Check if online mode should be disabled
+function checkOnlineModeStatus() {
+  const onlineModeDisabled = localStorage.getItem('onlineModeDisabled');
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+  // Only disable online mode if it's been disabled and user is not bungles17x
+  if (onlineModeDisabled === 'true' && currentUser?.username !== 'bungles17x') {
+    disableOnlineMode();
+  }
+}
+
+// Enable online mode (only for bungles17x)
+function enableOnlineMode() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+  if (currentUser?.username === 'bungles17x') {
+    localStorage.setItem('onlineModeDisabled', 'false');
+    if (onlineModeBtn) {
+      onlineModeBtn.disabled = false;
+      onlineModeBtn.style.opacity = "";
+      onlineModeBtn.style.cursor = "";
+      onlineModeBtn.title = "";
+    }
+    debugLog("UI", "Online mode enabled by bungles17x");
+  }
 }
 
 // -----------------------------------------------------
