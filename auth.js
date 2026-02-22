@@ -131,6 +131,9 @@ function setupLoginForm(loginForm) {
       localStorage.removeItem('rememberedUser');
     }
 
+    // Set flag to show server issue modal after login
+    localStorage.setItem('showServerIssueModal', 'true');
+
     // Redirect to game
     window.location.href = 'index.html';
   });

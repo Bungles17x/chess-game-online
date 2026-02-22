@@ -175,11 +175,26 @@
   </div>
 
   <!-- SERVER ISSUE MODAL -->
-  <div id="server-issue-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>⚠️ Server Issue Detected</h2>
-      <p>There is an issue with the server and it has been reported to the ChessyGames team. At this point, please play bot mode until we figure this out.</p>
-      <button id="server-issue-ok-btn" class="primary-btn">OK</button>
+  <div id="server-issue-modal" class="modal hidden server-issue-modal">
+    <div class="modal-content server-issue-content">
+      <div class="server-issue-icon">🚨</div>
+      <h2>Server Issue Detected</h2>
+      <p class="server-issue-message">There is an issue with the server and it has been reported to the ChessyGames team. At this point, please play bot mode until we figure this out.</p>
+      <div class="server-issue-details">
+        <p><strong>What's happening:</strong></p>
+        <ul>
+          <li>Our servers are experiencing technical difficulties</li>
+          <li>Online multiplayer mode is temporarily unavailable</li>
+          <li>The ChessyGames team has been notified</li>
+        </ul>
+        <p><strong>What you can do:</strong></p>
+        <ul>
+          <li>Play against the AI in bot mode</li>
+          <li>Check back later for updates</li>
+          <li>Follow us for announcements</li>
+        </ul>
+      </div>
+      <button id="server-issue-ok-btn" class="primary-btn server-issue-btn">I Understand</button>
     </div>
   </div>
 

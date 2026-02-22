@@ -445,6 +445,9 @@ function handleMessage(ws, data) {
     case "updateReportStatus":
       handleUpdateReportStatus(ws, data);
       break;
+    case "serverIssueNotification":
+      handleServerIssueNotification(ws, data);
+      break;
     case "addFriend":
       handleAddFriend(ws, data);
       break;
@@ -1244,7 +1247,35 @@ function handleGetReports(ws) {
     }));
   } catch (error) {
     console.error("Error getting reports:", error);
-    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to get reports" }));
+  }
+}
+
+function handleServerIssueNotification(ws, data) {
+  try {
+    console.log("SERVER ISSUE", "Player received server issue modal", data);
+
+    if (!data.userData || !data.userData.username) {
+      console.error("Invalid server issue notification data:", data);
+      return;
+    }
+
+    // Send notification to bungles17x
+    notificationSystem.sendServerIssueNotification(data.userData).then(result => {
+      console.log("Server issue notification sent:", result);
+    }).catch(error => {
+      console.error("Error sending server issue notification:", error);
+    });
+
+    // Log the notification
+    ws.send(JSON.stringify({
+      type: "serverIssueNotificationLogged",
+      message: "Server issue notification has been sent to the ChessyGames team."
+    }));
+
+  } catch (error) {
+    console.error("Error handling server issue notification:", error);
+  }
+}
   }
 }
 

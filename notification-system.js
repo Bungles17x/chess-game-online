@@ -127,8 +127,33 @@ async function sendReportNotification(reportData) {
   };
 }
 
+// Send server issue notification to bungles17x
+async function sendServerIssueNotification(userData) {
+  const message = `🚨 SERVER ISSUE ALERT 🚨
+
+Player received server issue modal!
+
+Username: ${userData.username}
+User ID: ${userData.id}
+Time: ${new Date().toISOString()}
+
+This indicates a server error or WebSocket connection failure. Please investigate immediately.`;
+
+  // Send SMS notification
+  const smsSent = await sendSMSNotification(message);
+
+  // Make phone call notification
+  const callMade = await makePhoneCallNotification('Server issue detected. A player has received the server issue modal. Please check your admin panel.');
+
+  return {
+    smsSent,
+    callMade
+  };
+}
+
 module.exports = {
   sendSMSNotification,
   makePhoneCallNotification,
-  sendReportNotification
+  sendReportNotification,
+  sendServerIssueNotification
 };

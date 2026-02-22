@@ -374,6 +374,11 @@ function ensureSocket() {
         pingTimeout = null;
       }
 
+      // Show server issue modal on connection failure (not clean close)
+      if (!event.wasClean && gameMode === "online") {
+        showServerIssueModal();
+      }
+
       // Only auto-reconnect if we are in online mode
       if (gameMode === "online") {
         reconnectAttempts++;
@@ -2215,13 +2220,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Check if online mode should be disabled
   checkOnlineModeStatus();
 
+  // Check if we should show the server issue modal (after login)
+  const showServerIssueModalFlag = localStorage.getItem('showServerIssueModal');
+  if (showServerIssueModalFlag === 'true') {
+    // Show the modal
+    showServerIssueModal();
+  }
+
   // Setup server issue modal OK button
   if (serverIssueOkBtn) {
     serverIssueOkBtn.addEventListener("click", () => {
       hideServerIssueModal();
-      // Disable online mode and save to localStorage
-      localStorage.setItem('onlineModeDisabled', 'true');
-      disableOnlineMode();
+      // Permanently disable online mode (can only be enabled by bungles17x)
+      permanentlyDisableOnlineMode();
     });
   }
 
@@ -2683,6 +2694,18 @@ function showServerIssueModal() {
   debugLog("UI", "Showing server issue modal");
   if (serverIssueModal) {
     serverIssueModal.classList.remove("hidden");
+
+    // Send notification to server (if connected)
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (currentUser.username && currentUser.username !== 'bungles17x') {
+        socket.send(JSON.stringify({
+          type: 'serverIssueNotification',
+          userData: currentUser
+        }));
+        debugLog("SOCKET", "Server issue notification sent", { username: currentUser.username });
+      }
+    }
   }
 }
 
@@ -2736,7 +2759,17 @@ function enableOnlineMode() {
       onlineModeBtn.title = "";
     }
     debugLog("UI", "Online mode enabled by bungles17x");
+    alert("Online mode has been re-enabled!");
+  } else {
+    alert("Only bungles17x can enable online mode!");
   }
+}
+
+// Disable online mode permanently (can only be enabled by bungles17x)
+function permanentlyDisableOnlineMode() {
+  localStorage.setItem('onlineModeDisabled', 'true');
+  disableOnlineMode();
+  debugLog("UI", "Online mode permanently disabled");
 }
 
 // -----------------------------------------------------
