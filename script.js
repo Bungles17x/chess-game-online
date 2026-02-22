@@ -392,6 +392,9 @@ function ensureSocket() {
         socketState: socket ? socket.readyState : "No socket"
       });
 
+      // Hide loading screen on error
+      hideLoadingScreen();
+
       // Check if this is the first connection attempt and show server issue modal
       if (reconnectAttempts === 0 && gameMode === "online") {
         showServerIssueModal();
@@ -2222,8 +2225,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (serverIssueOkBtn) {
     serverIssueOkBtn.addEventListener("click", () => {
       hideServerIssueModal();
-      // Permanently disable online mode (can only be enabled by bungles17x)
-      permanentlyDisableOnlineMode();
     });
   }
 
@@ -2663,12 +2664,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // LOADING SCREEN FUNCTIONS
 // -----------------------------------------------------
 function showLoadingScreen() {
-  // Don't show loading screen on GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  if (isGitHubPages) {
-    debugLog("UI", "Skipping loading screen on GitHub Pages");
-    return;
-  }
   debugLog("UI", "Showing loading screen");
   loadingScreen.classList.remove("hidden");
 }
