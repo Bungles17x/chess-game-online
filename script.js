@@ -249,12 +249,32 @@ function ensureSocket() {
     gameMode
   });
   
+  // Check if running on GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+
+  if (isGitHubPages) {
+    debugLog("SOCKET", "Detected GitHub Pages - online mode not available");
+    // Show a message to the user
+    if (gameMode === "online") {
+      alert("Online mode is not available on GitHub Pages. Please use local mode or deploy to a server with WebSocket support.");
+      // Switch to local mode
+      gameMode = "local";
+      document.querySelectorAll("[data-mode]").forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.dataset.mode === "local") {
+          btn.classList.add("active");
+        }
+      });
+      hideLoadingScreen();
+    }
+    return;
+  }
+
   // Prevent creating multiple sockets
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     debugLog("SOCKET", "Socket already exists and is connecting or open");
     return;
   }
-
 
   const wsUrl = getWebSocketUrl();
   debugLog("SOCKET", "Attempting to connect", {
