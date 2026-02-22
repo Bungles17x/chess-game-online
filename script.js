@@ -2120,14 +2120,9 @@ createRoomBtn.addEventListener("click", () => {
 lobbyBtn.addEventListener("click", () => {
   debugLog("LOBBY", "Lobby button clicked");
 
-  // Check if running on GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
 
-  if (isGitHubPages) {
-    debugLog("LOBBY", "Detected GitHub Pages - lobby not available");
-    alert("Online mode is not available on GitHub Pages. Please use local mode or deploy to a server with WebSocket support.");
-    return;
-  }
+
+
   
   // If already in a room, leave it first
   if (isInRoom) {
