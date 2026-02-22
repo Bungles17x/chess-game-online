@@ -33,6 +33,23 @@ function debugConnectionStatus() {
 
 // Initialize WebSocket connection
 function initWebSocket() {
+  // Check if running on GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+
+  if (isGitHubPages) {
+    console.log('[Settings Socket] Sync not available on GitHub Pages');
+    // Hide or disable the sync button
+    const syncNowBtn = document.getElementById('sync-now-btn');
+    if (syncNowBtn) {
+      syncNowBtn.disabled = true;
+      syncNowBtn.textContent = 'Sync not available';
+      syncNowBtn.title = 'Sync is not available on GitHub Pages';
+      syncNowBtn.style.opacity = '0.5';
+      syncNowBtn.style.cursor = 'not-allowed';
+    }
+    return;
+  }
+
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     console.log('[Settings Socket] WebSocket already connected or connecting');
     debugConnectionStatus();
