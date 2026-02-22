@@ -2725,6 +2725,63 @@ function disableOnlineMode() {
     onlineModeBtn.style.cursor = "not-allowed";
     onlineModeBtn.title = "Online mode is currently unavailable";
   }
+  // Disable lobby button
+  const lobbyBtn = document.getElementById('lobby-btn');
+  if (lobbyBtn) {
+    lobbyBtn.disabled = true;
+    lobbyBtn.style.opacity = "0.5";
+    lobbyBtn.style.cursor = "not-allowed";
+    lobbyBtn.title = "Lobby is currently unavailable";
+  }
+  // Disable all lobby modal elements
+  const lobbyModal = document.getElementById('lobby-modal');
+  const createRoomBtn = document.getElementById('create-room-btn');
+  const closeLobbyBtn = document.getElementById('close-lobby-btn');
+  const roomSearch = document.getElementById('room-search');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const roomList = document.getElementById('room-list');
+  const friendsList = document.getElementById('lobby-friends-list');
+
+  if (lobbyModal) {
+    lobbyModal.classList.add('hidden');
+  }
+
+  if (createRoomBtn) {
+    createRoomBtn.disabled = true;
+    createRoomBtn.style.opacity = "0.5";
+    createRoomBtn.style.cursor = "not-allowed";
+    createRoomBtn.title = "Lobby is currently unavailable";
+  }
+
+  if (closeLobbyBtn) {
+    closeLobbyBtn.disabled = true;
+    closeLobbyBtn.style.opacity = "0.5";
+    closeLobbyBtn.style.cursor = "not-allowed";
+    closeLobbyBtn.title = "Lobby is currently unavailable";
+  }
+
+  if (roomSearch) {
+    roomSearch.disabled = true;
+    roomSearch.style.opacity = "0.5";
+    roomSearch.style.cursor = "not-allowed";
+  }
+
+  tabBtns.forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    btn.style.cursor = "not-allowed";
+  });
+
+  if (roomList) {
+    roomList.style.opacity = "0.5";
+    roomList.style.pointerEvents = "none";
+  }
+
+  if (friendsList) {
+    friendsList.style.opacity = "0.5";
+    friendsList.style.pointerEvents = "none";
+  }
+
   // Switch to bot mode
   gameMode = "bot";
   document.querySelectorAll("[data-mode]").forEach(btn => {
@@ -2758,6 +2815,58 @@ function enableOnlineMode() {
       onlineModeBtn.style.cursor = "";
       onlineModeBtn.title = "";
     }
+    // Enable lobby button
+    const lobbyBtn = document.getElementById('lobby-btn');
+    if (lobbyBtn) {
+      lobbyBtn.disabled = false;
+      lobbyBtn.style.opacity = "";
+      lobbyBtn.style.cursor = "";
+      lobbyBtn.title = "";
+    }
+    // Enable all lobby modal elements
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const closeLobbyBtn = document.getElementById('close-lobby-btn');
+    const roomSearch = document.getElementById('room-search');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const roomList = document.getElementById('room-list');
+    const friendsList = document.getElementById('lobby-friends-list');
+
+    if (createRoomBtn) {
+      createRoomBtn.disabled = false;
+      createRoomBtn.style.opacity = "";
+      createRoomBtn.style.cursor = "";
+      createRoomBtn.title = "";
+    }
+
+    if (closeLobbyBtn) {
+      closeLobbyBtn.disabled = false;
+      closeLobbyBtn.style.opacity = "";
+      closeLobbyBtn.style.cursor = "";
+      closeLobbyBtn.title = "";
+    }
+
+    if (roomSearch) {
+      roomSearch.disabled = false;
+      roomSearch.style.opacity = "";
+      roomSearch.style.cursor = "";
+    }
+
+    tabBtns.forEach(btn => {
+      btn.disabled = false;
+      btn.style.opacity = "";
+      btn.style.cursor = "";
+    });
+
+    if (roomList) {
+      roomList.style.opacity = "";
+      roomList.style.pointerEvents = "";
+    }
+
+    if (friendsList) {
+      friendsList.style.opacity = "";
+      friendsList.style.pointerEvents = "";
+    }
+
     debugLog("UI", "Online mode enabled by bungles17x");
     alert("Online mode has been re-enabled!");
   } else {
