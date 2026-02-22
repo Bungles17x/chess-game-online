@@ -2641,6 +2641,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // LOADING SCREEN FUNCTIONS
 // -----------------------------------------------------
 function showLoadingScreen() {
+  // Don't show loading screen on GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  if (isGitHubPages) {
+    debugLog("UI", "Skipping loading screen on GitHub Pages");
+    return;
+  }
   debugLog("UI", "Showing loading screen");
   loadingScreen.classList.remove("hidden");
 }
