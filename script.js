@@ -162,13 +162,21 @@ let noConnectionTimeout = null; // Store the timeout ID so we can cancel it
 
 // WebSocket configuration
 const WS_CONFIG = {
-  // Always use port 8080 for WebSocket connections
+  // Use public WebSocket server for GitHub Pages, local server for development
   getWebSocketUrl: function() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
+    // Check if running on GitHub Pages
+    const isGitHubPages = window.location.hostname.includes('github.io');
 
-    // Always use port 8080 for WebSocket connections
-    return `${protocol}//${host}:8080`;
+    if (isGitHubPages) {
+      // Use a public WebSocket server for GitHub Pages
+      // Replace with your own public WebSocket server URL
+      return 'wss://chess-game-online-u34h.onrender.com';
+    } else {
+      // Use local server for development
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname;
+      return `${protocol}//${host}:8080`;
+    }
   }
 };
 
@@ -251,27 +259,6 @@ function ensureSocket() {
     gameMode
   });
   
-  // Check if running on GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
-
-  if (isGitHubPages) {
-    debugLog("SOCKET", "Detected GitHub Pages - online mode not available");
-    // Show a message to the user
-    if (gameMode === "online") {
-      alert("Online mode is not available on GitHub Pages. Please use local mode or deploy to a server with WebSocket support.");
-      // Switch to local mode
-      gameMode = "local";
-      document.querySelectorAll("[data-mode]").forEach(btn => {
-        btn.classList.remove("active");
-        if (btn.dataset.mode === "local") {
-          btn.classList.add("active");
-        }
-      });
-      hideLoadingScreen();
-    }
-    return;
-  }
-
   // Prevent creating multiple sockets
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     debugLog("SOCKET", "Socket already exists and is connecting or open");
