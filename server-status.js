@@ -123,18 +123,39 @@ function connectToServer() {
       // Check if there's no internet connection
       if (!navigator.onLine) {
         currentError = 'No internet connection. Please check your network connection and try again.';
-        updateServerStatus({
-          status: 'Error',
-          error: currentError,
-          activePlayers: 0,
-          activeGames: 0,
-          uptime: '0h 0m'
-        });
+      } else {
+        currentError = 'Cannot connect to server - Network error. The server may be offline or experiencing issues.';
       }
+      
+      updateServerStatus({
+        status: 'Error',
+        error: currentError,
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: '0h 0m'
+      });
     };
     
-    statusSocket.onclose = () => {
-      addActivityLog('Disconnected from server');
+    statusSocket.onclose = (event) => {
+      addActivityLog(`Disconnected from server (code: ${event.code})`);
+      
+      // Set error message based on close code
+      if (event.code === 1000) {
+        currentError = 'Connection closed normally';
+      } else if (event.code === 1006) {
+        currentError = 'Connection closed abnormally - Network error';
+      } else {
+        currentError = `Connection closed (code: ${event.code})`;
+      }
+      
+      updateServerStatus({
+        status: 'Offline',
+        error: currentError,
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: '0h 0m'
+      });
+      
       // Attempt to reconnect after 5 seconds
       setTimeout(connectToServer, 5000);
     };
@@ -480,6 +501,11 @@ function formatTime(date) {
 function startAutoRefresh() {
   // Refresh status every 5 seconds
   setInterval(() => {
+    // Request updated status from server via WebSocket
+    if (statusSocket && statusSocket.readyState === WebSocket.OPEN) {
+      statusSocket.send(JSON.stringify({ type: 'get_server_status' }));
+    }
+    
     updateServerStatus();
     updateSystemResources();
     updatePerformanceMetrics();
