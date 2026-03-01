@@ -100,7 +100,12 @@ function initWebSocket() {
 
         // Handle sync responses
         if (window.userSyncManager) {
-          window.userSyncManager.handleSyncResponse(data);
+          // Check if this is a sync response message
+          const syncMessageTypes = ['userDataSynced', 'friendsSynced', 'savedGamesSynced', 'userProfileUpdated', 'userProfile'];
+          if (syncMessageTypes.includes(data.type)) {
+            console.log('[Settings Socket] Passing sync response to userSyncManager:', data.type);
+            window.userSyncManager.handleSyncResponse(data);
+          }
         }
       } catch (error) {
         console.error('[Settings Socket] Error parsing message:', error);
