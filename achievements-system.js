@@ -454,11 +454,21 @@ const achievementsSystem = {
   // Save achievements to localStorage
   saveAchievements() {
     localStorage.setItem('chessAchievements', JSON.stringify(this.achievements));
+    
+    // Sync with server using server data manager
+    if (window.serverDataManager) {
+      window.serverDataManager.syncAchievements();
+    }
   },
 
   // Save rewards to localStorage
   saveRewards() {
     localStorage.setItem('chessRewards', JSON.stringify(this.rewards));
+    
+    // Sync with server using server data manager
+    if (window.serverDataManager) {
+      window.serverDataManager.syncAchievements();
+    }
   },
 
   // Check and unlock rewards based on player progress

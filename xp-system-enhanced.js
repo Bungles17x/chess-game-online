@@ -222,6 +222,12 @@ if (window.xpSystemLoaded) {
       }
       localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
 
+      // Sync with server using server data manager
+      if (window.serverDataManager) {
+        window.serverDataManager.updateUserData(user);
+        console.log('[XP System] Synced user data with server');
+      }
+
       console.log('[XP System] User data saved:', user);
     } catch (error) {
       console.error('[XP System] Error saving user data:', error);

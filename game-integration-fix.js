@@ -328,6 +328,12 @@ function updatePlayerStats(gameData) {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('[Game Integration] Updated user XP:', newXP, 'Level:', currentUser.level);
     
+    // Sync with server using server data manager
+    if (window.serverDataManager) {
+      window.serverDataManager.updateUserData(currentUser);
+      console.log('[Game Integration] Synced user data with server');
+    }
+    
     // Show level up animation if level changed
     if (currentUser.level > oldLevel) {
       console.log('[Game Integration] Level up detected! Old level:', oldLevel, 'New level:', currentUser.level);

@@ -15,13 +15,18 @@ if (!window.SeasonConfig) {
   console.log('[Comprehensive Fix] SeasonConfig initialized');
 }
 
-// Fix 2: Ensure currentUser is properly initialized
+// Fix 2: Ensure currentUser is properly initialized from server
 if (!window.currentUser) {
   const savedUser = localStorage.getItem('currentUser');
   if (savedUser) {
     try {
       window.currentUser = JSON.parse(savedUser);
-      console.log('[Comprehensive Fix] currentUser loaded from localStorage');
+      console.log('[Comprehensive Fix] currentUser loaded from localStorage (will sync with server)');
+      
+      // Use server data manager to sync
+      if (window.serverDataManager) {
+        window.serverDataManager.syncUserData();
+      }
     } catch (e) {
       console.error('[Comprehensive Fix] Error loading currentUser:', e);
       window.currentUser = {

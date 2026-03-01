@@ -315,6 +315,10 @@ wss.on('connection', (ws) => {
           console.log('[Switch] Handling syncSavedGames');
           handleSyncSavedGames(ws, clientId);
           break;
+        case 'syncAchievements':
+          console.log('[Switch] Handling syncAchievements');
+          handleSyncAchievements(ws, clientId, data);
+          break;
         case 'reportSystemFix':
           console.log('[Switch] Handling reportSystemFix');
           handleReportSystemFix(ws, data);
@@ -990,6 +994,48 @@ function handleReportSystemFix(ws, data) {
     type: 'reportSystemFixAck',
     message: 'Report system fix acknowledged'
   }));
+}
+
+// Handle syncAchievements
+function handleSyncAchievements(ws, clientId, data) {
+  const client = clients.get(clientId);
+  if (!client || !client.username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Not authenticated'
+    }));
+    return;
+  }
+  
+  const user = userManager.getUser(client.username);
+  if (!user) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'User not found'
+    }));
+    return;
+  }
+  
+  // Update achievements and rewards
+  if (data.achievements) {
+    user.achievements = data.achievements;
+  }
+  
+  if (data.rewards) {
+    user.rewards = data.rewards;
+  }
+  
+  // Save updated user
+  userManager.updateUser(user.username, user);
+  
+  // Send confirmation
+  ws.send(JSON.stringify({
+    type: 'achievementsSynced',
+    achievements: user.achievements,
+    rewards: user.rewards
+  }));
+  
+  console.log('[Achievements] Synced for:', client.username);
 }
 
 // Clean up inactive clients periodically

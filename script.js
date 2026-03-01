@@ -3314,6 +3314,13 @@ function saveCurrentGame() {
       }
       
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      
+      // Sync with server using server data manager
+      if (window.serverDataManager) {
+        window.serverDataManager.syncSavedGames();
+        debugLog("GAME", "Synced saved games with server");
+      }
+      
       debugLog("GAME", "Saved to currentUser successfully");
     } else {
       // Fallback to chessSavedGames for non-authenticated users
