@@ -150,11 +150,10 @@ function setupRegisterForm(registerForm) {
   registerForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const username = document.getElementById('username').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
-    const terms = document.getElementById('terms').checked;
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirmPassword = document.getElementById('reg-confirm-password').value;
 
     // Validate inputs
     if (!username) {
@@ -197,10 +196,7 @@ function setupRegisterForm(registerForm) {
       return;
     }
 
-    if (!terms) {
-      showError('You must agree to the Terms of Service');
-      return;
-    }
+
 
     // Check if user already exists
     const users = secureStorage.getItem('chessUsers') || [];
