@@ -8,6 +8,16 @@ let connectionStartTime = null;
 let currentError = null;
 let serverOnline = false;
 let lastCheckTime = null;
+let checkCount = 0;
+let successCount = 0;
+let failureCount = 0;
+let responseTimes = [];
+let maxResponseTimes = 50;
+let uptimeStart = Date.now();
+let lastOnlineTime = null;
+let lastOfflineTime = null;
+let consecutiveFailures = 0;
+let maxConsecutiveFailures = 3;
 
 // Render server URL
 const RENDER_SERVER_URL = 'wss://chess-game-online-u34h.onrender.com';
@@ -27,17 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listeners for online/offline events
   window.addEventListener('offline', () => {
     currentError = 'No internet connection. Please check your network connection and try again.';
+    addActivityLog('❌ Internet connection lost');
+    addActivityLog('ℹ️ Please check your network connection');
+    addActivityLog('ℹ️ Server status monitoring is paused until connection is restored');
     updateServerStatus({
       status: 'Offline',
       error: currentError,
       activePlayers: 0,
       activeGames: 0,
-      uptime: '0h 0m'
+      uptime: formatDuration(Date.now() - uptimeStart)
     });
   });
 
   window.addEventListener('online', () => {
-    addActivityLog('Internet connection restored');
+    addActivityLog('✅ Internet connection restored');
+    addActivityLog('ℹ️ Resuming server status monitoring');
     currentError = null;
     checkServerStatus();
   });
@@ -47,39 +61,172 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Check server health
 async function checkServerStatus() {
+  const checkStart = Date.now();
+  checkCount++;
+  
+  if (typeof addDebuggerLog === 'function') {
+    addDebuggerLog(`Starting health check #${checkCount}`, LogCategory.INFO);
+  }
+  
   try {
     const response = await fetch(`${RENDER_API_URL}/api/status`, {
       method: 'GET',
       mode: 'cors',
-      cache: 'no-cache'
+      cache: 'no-cache',
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
 
+    const responseTime = Date.now() - checkStart;
     serverOnline = response.ok;
     lastCheckTime = new Date();
 
+    // Track response times
+    responseTimes.push(responseTime);
+    if (responseTimes.length > maxResponseTimes) {
+      responseTimes.shift();
+    }
+
     if (serverOnline) {
-      addActivityLog('✅ Server is online');
+      successCount++;
+      consecutiveFailures = 0;
+      lastOnlineTime = new Date();
+      
+      if (typeof addDebuggerLog === 'function') {
+        addDebuggerLog(`Server is online - Response time: ${responseTime}ms`, LogCategory.SUCCESS);
+      }
+      
+      if (lastOfflineTime) {
+        const downtime = Date.now() - lastOfflineTime.getTime();
+        addActivityLog(`✅ Server is online and responding (${responseTime}ms)`);
+        addActivityLog(`ℹ️ Server was offline for ${formatDuration(downtime)}`);
+        
+        if (typeof addDebuggerLog === 'function') {
+          addDebuggerLog(`Server back online after ${formatDuration(downtime)} downtime`, LogCategory.SUCCESS);
+        }
+      } else {
+        addActivityLog(`✅ Server is online and responding (${responseTime}ms)`);
+      }
     } else {
-      addActivityLog('❌ Server is offline');
+      failureCount++;
+      consecutiveFailures++;
+      
+      if (!lastOfflineTime) {
+        lastOfflineTime = new Date();
+      }
+      
+      addActivityLog('❌ Server responded but returned an error status');
+      addActivityLog('ℹ️ The server may be starting up or experiencing issues');
+      
+      if (typeof addDebuggerLog === 'function') {
+        addDebuggerLog(`Server responded with error status`, LogCategory.ERROR);
+      }
+      
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        addActivityLog(`⚠️ Warning: Server has failed ${consecutiveFailures} consecutive checks`);
+        
+        if (typeof addDebuggerLog === 'function') {
+          addDebuggerLog(`Warning: ${consecutiveFailures} consecutive failures`, LogCategory.WARNING);
+        }
+      }
     }
 
     updateServerStatus({
       status: serverOnline ? 'Online' : 'Offline',
       activePlayers: 0,
       activeGames: 0,
-      uptime: '0h 0m'
+      uptime: formatDuration(Date.now() - uptimeStart)
     });
+    
+    updatePerformanceMetrics();
   } catch (error) {
     serverOnline = false;
     lastCheckTime = new Date();
-    addActivityLog('❌ Cannot connect to server');
-    updateServerStatus({
-      status: 'Offline',
-      error: 'Cannot connect to server',
-      activePlayers: 0,
-      activeGames: 0,
-      uptime: '0h 0m'
-    });
+    failureCount++;
+    consecutiveFailures++;
+    
+    if (!lastOfflineTime) {
+      lastOfflineTime = new Date();
+    }
+    
+    // Detailed error handling
+    if (error.name === 'AbortError') {
+      addActivityLog('❌ Connection timeout - Server did not respond within 10 seconds');
+      addActivityLog('ℹ️ The server may be offline, starting up, or experiencing high load');
+      
+      if (typeof addDebuggerLog === 'function') {
+        addDebuggerLog(`Connection timeout - Server did not respond within 10 seconds`, LogCategory.ERROR);
+      }
+      
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        addActivityLog(`⚠️ Warning: Server has failed ${consecutiveFailures} consecutive checks`);
+      }
+      
+      updateServerStatus({
+        status: 'Offline',
+        error: 'Connection timeout - Server not responding',
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: formatDuration(Date.now() - uptimeStart)
+      });
+    } else if (error.message.includes('Failed to fetch')) {
+      addActivityLog('❌ Cannot connect to server - Network error');
+      addActivityLog('ℹ️ Possible causes: Server is offline, CORS issues, or network problems');
+      
+      if (typeof addDebuggerLog === 'function') {
+        addDebuggerLog(`Network error - Failed to fetch: ${error.message}`, LogCategory.ERROR);
+      }
+      
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        addActivityLog(`⚠️ Warning: Server has failed ${consecutiveFailures} consecutive checks`);
+        
+        if (typeof addDebuggerLog === 'function') {
+          addDebuggerLog(`Warning: ${consecutiveFailures} consecutive failures`, LogCategory.WARNING);
+        }
+      }
+      
+      updateServerStatus({
+        status: 'Offline',
+        error: 'Cannot connect to server - Network error',
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: formatDuration(Date.now() - uptimeStart)
+      });
+    } else {
+      addActivityLog('❌ Error checking server status: ' + error.message);
+      addActivityLog('ℹ️ An unexpected error occurred while trying to connect');
+      
+      if (typeof addDebuggerLog === 'function') {
+        addDebuggerLog(`Unexpected error: ${error.message}`, LogCategory.ERROR);
+      }
+      
+      updateServerStatus({
+        status: 'Offline',
+        error: 'Error: ' + error.message,
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: formatDuration(Date.now() - uptimeStart)
+      });
+    }
+    
+    updatePerformanceMetrics();
+  }
+}
+
+// Format duration in human-readable format
+function formatDuration(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) {
+    return `${days}d ${hours % 24}h ${minutes % 60}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
   }
 }
 
@@ -119,7 +266,7 @@ function updateServerStatus(customData = null) {
     status: serverOnline ? 'Online' : 'Offline',
     activePlayers: 0,
     activeGames: 0,
-    uptime: '0h 0m'
+    uptime: formatDuration(Date.now() - uptimeStart)
   };
 
   if (customData) {
@@ -179,19 +326,70 @@ function updateSystemResources() {
 
 // Update performance metrics
 function updatePerformanceMetrics() {
+  // Calculate average response time
+  let avgResponseTime = 0;
+  if (responseTimes.length > 0) {
+    avgResponseTime = Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length);
+  }
+  
+  // Calculate success rate
+  const successRate = checkCount > 0 ? ((successCount / checkCount) * 100).toFixed(1) : '0.0';
+  
+  // Calculate error rate
+  const errorRate = checkCount > 0 ? ((failureCount / checkCount) * 100).toFixed(1) : '0.0';
+  
+  // Get min/max response times
+  const minResponseTime = responseTimes.length > 0 ? Math.min(...responseTimes) : 0;
+  const maxResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
+  
   const metrics = {
-    responseTime: lastCheckTime ? `${Date.now() - lastCheckTime.getTime()}ms ago` : 'Never',
-    requestsPerSecond: 0,
-    errorRate: serverOnline ? '0%' : '100%'
+    responseTime: avgResponseTime + 'ms',
+    minResponseTime: minResponseTime + 'ms',
+    maxResponseTime: maxResponseTime + 'ms',
+    checkCount: checkCount,
+    successCount: successCount,
+    failureCount: failureCount,
+    successRate: successRate + '%',
+    errorRate: errorRate + '%',
+    uptime: formatDuration(Date.now() - uptimeStart),
+    lastCheck: lastCheckTime ? lastCheckTime.toLocaleTimeString() : 'Never'
   };
 
+  // Update UI elements
   const responseTimeElement = document.getElementById('response-time');
   const rpsElement = document.getElementById('requests-per-second');
   const errorRateElement = document.getElementById('error-rate');
-
-  if (responseTimeElement) responseTimeElement.textContent = metrics.responseTime;
-  if (rpsElement) rpsElement.textContent = metrics.requestsPerSecond;
-  if (errorRateElement) errorRateElement.textContent = metrics.errorRate;
+  const activeConnectionsElement = document.getElementById('active-connections');
+  
+  if (responseTimeElement) {
+    responseTimeElement.textContent = metrics.responseTime;
+    responseTimeElement.title = `Min: ${metrics.minResponseTime} | Max: ${metrics.maxResponseTime}`;
+  }
+  
+  if (rpsElement) {
+    rpsElement.textContent = metrics.checkCount;
+    rpsElement.title = `Success: ${metrics.successCount} | Failure: ${metrics.failureCount}`;
+  }
+  
+  if (errorRateElement) {
+    errorRateElement.textContent = metrics.errorRate;
+    errorRateElement.className = parseFloat(errorRate) > 50 ? 'error-high' : 'error-normal';
+  }
+  
+  if (activeConnectionsElement) {
+    activeConnectionsElement.textContent = serverOnline ? '1' : '0';
+  }
+  
+  // Update additional metrics if elements exist
+  const successRateElement = document.getElementById('success-rate');
+  if (successRateElement) {
+    successRateElement.textContent = metrics.successRate;
+  }
+  
+  const checkCountElement = document.getElementById('check-count');
+  if (checkCountElement) {
+    checkCountElement.textContent = metrics.checkCount;
+  }
 }
 
 // Initialize controls
@@ -202,11 +400,13 @@ function initializeControls() {
   const refreshButton = document.getElementById('refresh-button');
   if (refreshButton) {
     refreshButton.addEventListener('click', () => {
+      addActivityLog('🔄 Manual refresh requested');
+      addActivityLog('ℹ️ Checking server status...');
       checkServerStatus();
       updateServerStatus();
       updateSystemResources();
       updatePerformanceMetrics();
-      addActivityLog('Status refreshed');
+      addActivityLog('✅ Status refreshed successfully');
     });
   }
 
@@ -215,7 +415,9 @@ function initializeControls() {
   if (restartButton) {
     restartButton.addEventListener('click', () => {
       addActivityLog('⚠️ Server restart requested');
-      alert('Server restart is not available from this page. Please restart the server from the Render dashboard.');
+      addActivityLog('ℹ️ Note: Server restart must be done from the Render dashboard');
+      addActivityLog('ℹ️ Go to dashboard.render.com to restart your server');
+      alert('Server restart is not available from this page.\n\nTo restart your server:\n1. Go to dashboard.render.com\n2. Select your service\n3. Click Manual Deploy > Clear build cache & deploy\n\nOr use the Render CLI: render restart <service-name>');
     });
   }
 
@@ -223,8 +425,15 @@ function initializeControls() {
   const clearCacheButton = document.getElementById('clear-cache');
   if (clearCacheButton) {
     clearCacheButton.addEventListener('click', () => {
-      addActivityLog('🗑️ Cache cleared');
-      alert('Cache cleared successfully!');
+      addActivityLog('🗑️ Clearing local cache...');
+      if (typeof caches !== 'undefined') {
+        caches.keys().then(names => {
+          for (let name of names) caches.delete(name);
+        });
+      }
+      addActivityLog('✅ Local cache cleared');
+      addActivityLog('ℹ️ Browser cache has been cleared');
+      alert('Cache cleared successfully!\n\nLocal browser cache and service worker cache have been cleared.');
     });
   }
 
@@ -233,7 +442,9 @@ function initializeControls() {
   if (backupButton) {
     backupButton.addEventListener('click', () => {
       addActivityLog('💾 Data backup requested');
-      alert('Data backup is not available from this page. Please use the Render dashboard to backup data.');
+      addActivityLog('ℹ️ Note: Data backup must be done from the Render dashboard');
+      addActivityLog('ℹ️ Or use the Render CLI: render backup create <service-name>');
+      alert('Data backup is not available from this page.\n\nTo backup your data:\n1. Go to dashboard.render.com\n2. Select your service\n3. Go to Backups tab\n4. Click Create Backup\n\nOr use the Render CLI:\nrender backup create <service-name>');
     });
   }
 
@@ -242,7 +453,9 @@ function initializeControls() {
   if (viewLogsButton) {
     viewLogsButton.addEventListener('click', () => {
       addActivityLog('📋 Opening logs...');
-      alert('Logs are displayed in the activity log below. For full server logs, please check the Render dashboard.');
+      addActivityLog('ℹ️ Activity log is displayed below');
+      addActivityLog('ℹ️ For full server logs, check the Render dashboard');
+      alert('Logs are displayed in the activity log below.\n\nFor full server logs:\n1. Go to dashboard.render.com\n2. Select your service\n3. Click on Logs tab\n\nOr use the Render CLI:\nrender logs <service-name>');
     });
   }
 
@@ -250,22 +463,65 @@ function initializeControls() {
   const exportStatsButton = document.getElementById('export-stats');
   if (exportStatsButton) {
     exportStatsButton.addEventListener('click', () => {
-      addActivityLog('📥 Stats exported');
+      addActivityLog('📥 Exporting server statistics...');
+      
+      // Calculate statistics
+      const avgResponseTime = responseTimes.length > 0 
+        ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) 
+        : 0;
+      const minResponseTime = responseTimes.length > 0 ? Math.min(...responseTimes) : 0;
+      const maxResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
+      const successRate = checkCount > 0 ? ((successCount / checkCount) * 100).toFixed(2) : '0.00';
+      const errorRate = checkCount > 0 ? ((failureCount / checkCount) * 100).toFixed(2) : '0.00';
+      
       const stats = {
-        timestamp: new Date().toISOString(),
-        status: serverOnline ? 'Online' : 'Offline',
-        activePlayers: 0,
-        activeGames: 0,
-        uptime: '0h 0m',
-        lastCheck: lastCheckTime ? lastCheckTime.toISOString() : null
+        exportInfo: {
+          timestamp: new Date().toISOString(),
+          exportedBy: 'Server Status Monitoring System',
+          version: '2.0'
+        },
+        serverInfo: {
+          url: RENDER_API_URL,
+          status: serverOnline ? 'Online' : 'Offline',
+          lastCheck: lastCheckTime ? lastCheckTime.toISOString() : null,
+          lastOnline: lastOnlineTime ? lastOnlineTime.toISOString() : null,
+          lastOffline: lastOfflineTime ? lastOfflineTime.toISOString() : null
+        },
+        monitoringStats: {
+          uptime: formatDuration(Date.now() - uptimeStart),
+          totalChecks: checkCount,
+          successfulChecks: successCount,
+          failedChecks: failureCount,
+          successRate: successRate + '%',
+          errorRate: errorRate + '%',
+          consecutiveFailures: consecutiveFailures
+        },
+        performanceMetrics: {
+          averageResponseTime: avgResponseTime + 'ms',
+          minResponseTime: minResponseTime + 'ms',
+          maxResponseTime: maxResponseTime + 'ms',
+          totalResponseTimes: responseTimes.length,
+          responseTimes: responseTimes
+        },
+        configuration: {
+          healthCheckInterval: '10 seconds',
+          autoRefreshInterval: '30 seconds',
+          maxResponseTime: '10 seconds',
+          maxConsecutiveFailures: maxConsecutiveFailures,
+          maxResponseTimesStored: maxResponseTimes
+        },
+        notes: 'These are local monitoring statistics from the server status page, not actual server statistics'
       };
       const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'server-stats.json';
+      a.download = `server-stats-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      addActivityLog('✅ Statistics exported successfully');
+      addActivityLog('ℹ️ File saved as: server-stats-' + new Date().toISOString().split('T')[0] + '.json');
+      alert('Statistics exported successfully!\n\nFile has been downloaded with the current server status and monitoring data.\n\nNote: These are local statistics from this monitoring page, not the actual server statistics.');
     });
   }
 
@@ -273,9 +529,15 @@ function initializeControls() {
   const clearStatsButton = document.getElementById('clear-stats');
   if (clearStatsButton) {
     clearStatsButton.addEventListener('click', () => {
-      if (confirm('Are you sure you want to clear all statistics?')) {
-        addActivityLog('🗑️ Statistics cleared');
-        alert('Statistics cleared successfully!');
+      addActivityLog('⚠️ Clear statistics requested');
+      addActivityLog('ℹ️ This will clear local monitoring statistics only');
+      if (confirm('Are you sure you want to clear all local statistics?\n\nThis will:\n- Clear the activity log\n- Reset monitoring data\n\nThis will NOT affect the actual server or its data.')) {
+        addActivityLog('🗑️ Local statistics cleared');
+        addActivityLog('ℹ️ Activity log has been reset');
+        addActivityLog('ℹ️ Monitoring data has been reset');
+        alert('Statistics cleared successfully!\n\nLocal monitoring statistics have been cleared.\nThe actual server and its data are unaffected.');
+      } else {
+        addActivityLog('ℹ️ Clear statistics cancelled');
       }
     });
   }
@@ -295,8 +557,23 @@ function initializeControls() {
 function initializeActivityLog() {
   const logContainer = document.getElementById('activity-log');
   if (logContainer) {
-    addActivityLog('Server status monitoring initialized');
-    addActivityLog('Connecting to Render server...');
+    addActivityLog('🚀 Server Status Monitoring System Initialized');
+    addActivityLog('═════════════════════════════════════════════════');
+    addActivityLog('ℹ️ Monitoring Configuration:');
+    addActivityLog('   • Target Server: ' + RENDER_API_URL);
+    addActivityLog('   • Health Check Interval: 10 seconds');
+    addActivityLog('   • Auto-Refresh Interval: 30 seconds');
+    addActivityLog('   • Max Response Time: 10 seconds');
+    addActivityLog('   • Max Consecutive Failures: ' + maxConsecutiveFailures);
+    addActivityLog('═════════════════════════════════════════════════');
+    addActivityLog('ℹ️ Monitoring Features:');
+    addActivityLog('   • Real-time server status tracking');
+    addActivityLog('   • Response time monitoring');
+    addActivityLog('   • Success/failure statistics');
+    addActivityLog('   • Uptime tracking');
+    addActivityLog('   • Automatic error detection');
+    addActivityLog('═════════════════════════════════════════════════');
+    addActivityLog('⏳ Starting initial server health check...');
   }
 }
 
@@ -336,3 +613,286 @@ function startAutoRefresh() {
 window.updateServerStatus = updateServerStatus;
 window.addActivityLog = addActivityLog;
 window.checkServerStatus = checkServerStatus;
+
+// ============================================
+// DEBUGGER FUNCTIONALITY
+// ============================================
+
+// Debugger state
+const debuggerState = {
+  logs: [],
+  paused: false,
+  autoScroll: true,
+  showTimestamp: true,
+  showCategory: true,
+  filter: 'all',
+  maxLogs: 1000
+};
+
+// Log categories
+const LogCategory = {
+  INFO: 'info',
+  WARNING: 'warning',
+  ERROR: 'error',
+  SUCCESS: 'success'
+};
+
+// Initialize debugger
+document.addEventListener('DOMContentLoaded', () => {
+  initializeDebugger();
+});
+
+function initializeDebugger() {
+  console.log('[Debugger] Initializing...');
+  
+  // Get debugger elements
+  const pauseBtn = document.getElementById('debugger-pause');
+  const searchBtn = document.getElementById('debugger-search');
+  const clearBtn = document.getElementById('debugger-clear');
+  const exportBtn = document.getElementById('debugger-export');
+  const searchCloseBtn = document.getElementById('debugger-search-close');
+  const searchInput = document.getElementById('debugger-search-input');
+  const filterSelect = document.getElementById('debugger-filter');
+  const autoScrollToggle = document.getElementById('debugger-auto-scroll');
+  const showTimestampToggle = document.getElementById('debugger-show-timestamp');
+  const showCategoryToggle = document.getElementById('debugger-show-category');
+  const copyBtn = document.getElementById('debugger-copy');
+  
+  // Pause/Resume button
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      debuggerState.paused = !debuggerState.paused;
+      pauseBtn.textContent = debuggerState.paused ? '▶️' : '⏸️';
+      addDebuggerLog(
+        debuggerState.paused ? 'Debugger paused' : 'Debugger resumed',
+        LogCategory.INFO
+      );
+      updateDebuggerStatus();
+    });
+  }
+  
+  // Search button
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      const searchBar = document.getElementById('debugger-search-bar');
+      searchBar.style.display = searchBar.style.display === 'none' ? 'flex' : 'none';
+      if (searchBar.style.display === 'flex') {
+        searchInput.focus();
+      }
+    });
+  }
+  
+  // Search close button
+  if (searchCloseBtn) {
+    searchCloseBtn.addEventListener('click', () => {
+      document.getElementById('debugger-search-bar').style.display = 'none';
+      searchInput.value = '';
+      renderDebuggerLogs();
+    });
+  
+  // Search input
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderDebuggerLogs();
+    });
+  }
+  
+  // Clear button
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear all debugger logs?')) {
+        debuggerState.logs = [];
+        renderDebuggerLogs();
+        updateDebuggerStats();
+        addDebuggerLog('Logs cleared', LogCategory.INFO);
+      }
+    });
+  }
+  
+  // Export button
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      exportDebuggerLogs();
+    });
+  }
+  
+  // Filter select
+  if (filterSelect) {
+    filterSelect.addEventListener('change', (e) => {
+      debuggerState.filter = e.target.value;
+      renderDebuggerLogs();
+    });
+  }
+  
+  // Auto scroll toggle
+  if (autoScrollToggle) {
+    autoScrollToggle.addEventListener('change', (e) => {
+      debuggerState.autoScroll = e.target.checked;
+    });
+  }
+  
+  // Show timestamp toggle
+  if (showTimestampToggle) {
+    showTimestampToggle.addEventListener('change', (e) => {
+      debuggerState.showTimestamp = e.target.checked;
+      renderDebuggerLogs();
+    });
+  }
+  
+  // Show category toggle
+  if (showCategoryToggle) {
+    showCategoryToggle.addEventListener('change', (e) => {
+      debuggerState.showCategory = e.target.checked;
+      renderDebuggerLogs();
+    });
+  }
+  
+  // Copy button
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      copyDebuggerLogs();
+    });
+  }
+  
+  console.log('[Debugger] Initialized');
+}
+
+function addDebuggerLog(message, category = LogCategory.INFO) {
+  if (debuggerState.paused) {
+    return;
+  }
+  
+  const log = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    message: message,
+    category: category
+  };
+  
+  debuggerState.logs.push(log);
+  
+  // Keep only maxLogs
+  if (debuggerState.logs.length > debuggerState.maxLogs) {
+    debuggerState.logs.shift();
+  }
+  
+  renderDebuggerLogs();
+  updateDebuggerStats();
+}
+
+function renderDebuggerLogs() {
+  const logsContainer = document.getElementById('debugger-logs');
+  if (!logsContainer) return;
+  
+  // Get filter and search values
+  const filter = debuggerState.filter;
+  const searchTerm = document.getElementById('debugger-search-input')?.value.toLowerCase() || '';
+  
+  // Filter logs
+  let filteredLogs = debuggerState.logs.filter(log => {
+    if (filter !== 'all' && log.category !== filter) {
+      return false;
+    }
+    if (searchTerm && !log.message.toLowerCase().includes(searchTerm)) {
+      return false;
+    }
+    return true;
+  });
+  
+  // Render logs
+  logsContainer.innerHTML = filteredLogs.map(log => {
+    const timestamp = new Date(log.timestamp);
+    const timeStr = timestamp.toLocaleTimeString();
+    const dateStr = timestamp.toLocaleDateString();
+    
+    let logHTML = `<div class="debugger-log-entry" data-category="${log.category}">`;
+    
+    if (debuggerState.showTimestamp) {
+      logHTML += `<span class="debugger-timestamp">${dateStr} ${timeStr}</span>`;
+    }
+    
+    if (debuggerState.showCategory) {
+      logHTML += `<span class="debugger-category debugger-${log.category}">[${log.category.toUpperCase()}]</span>`;
+    }
+    
+    logHTML += `<span class="debugger-message">${escapeHtml(log.message)}</span>`;
+    logHTML += `</div>`;
+    
+    return logHTML;
+  }).join('');
+  
+  // Update log count
+  const logCount = document.getElementById('debugger-log-count');
+  if (logCount) {
+    logCount.textContent = `${filteredLogs.length} logs`;
+  }
+  
+  // Auto scroll
+  if (debuggerState.autoScroll) {
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+  }
+}
+
+function updateDebuggerStats() {
+  const totalLogs = document.getElementById('debug-total-logs');
+  const errors = document.getElementById('debug-errors');
+  const warnings = document.getElementById('debug-warnings');
+  const info = document.getElementById('debug-info');
+  
+  if (totalLogs) totalLogs.textContent = debuggerState.logs.length;
+  if (errors) errors.textContent = debuggerState.logs.filter(l => l.category === LogCategory.ERROR).length;
+  if (warnings) warnings.textContent = debuggerState.logs.filter(l => l.category === LogCategory.WARNING).length;
+  if (info) info.textContent = debuggerState.logs.filter(l => l.category === LogCategory.INFO).length;
+}
+
+function updateDebuggerStatus() {
+  const statusIndicator = document.getElementById('debugger-status');
+  if (!statusIndicator) return;
+  
+  const statusDot = statusIndicator.querySelector('.status-dot');
+  const statusText = statusIndicator.querySelector('.status-text');
+  
+  if (debuggerState.paused) {
+    statusDot.className = 'status-dot paused';
+    statusText.textContent = 'Paused';
+  } else {
+    statusDot.className = 'status-dot active';
+    statusText.textContent = 'Active';
+  }
+}
+
+function exportDebuggerLogs() {
+  const logs = JSON.stringify(debuggerState.logs, null, 2);
+  const blob = new Blob([logs], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `debugger-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  addDebuggerLog('Logs exported', LogCategory.SUCCESS);
+}
+
+function copyDebuggerLogs() {
+  const logsText = debuggerState.logs.map(log => {
+    const timestamp = new Date(log.timestamp).toISOString();
+    return `[${timestamp}] [${log.category.toUpperCase()}] ${log.message}`;
+  }).join('\n');
+  
+  navigator.clipboard.writeText(logsText).then(() => {
+    addDebuggerLog('Logs copied to clipboard', LogCategory.SUCCESS);
+  }).catch(err => {
+    addDebuggerLog('Failed to copy logs: ' + err.message, LogCategory.ERROR);
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Export debugger functions
+window.addDebuggerLog = addDebuggerLog;
+window.LogCategory = LogCategory;
