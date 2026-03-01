@@ -244,11 +244,17 @@ function handleLogin(e) {
     }
 
     // Send login request to server
+    // Check if input is an email or username
+    const isEmail = email.includes('@');
+    console.log('[Login] Attempting to login with:', { isEmail, email, password: '***' });
+    
     window.socket.send(JSON.stringify({
       type: 'login',
-      email: email,
+      email: isEmail ? email : undefined,
+      username: isEmail ? undefined : email,
       password: password
     }));
+    console.log('[Login] Login request sent');
 
     // Listen for login response
     const handleLoginResponse = (event) => {

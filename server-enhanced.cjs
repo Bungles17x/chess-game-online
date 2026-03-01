@@ -405,8 +405,27 @@ function handleLogin(ws, clientId, data) {
     return;
   }
 
+  // Username + password login
+  if (username && password) {
+    const user = userManager.getUser(username);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'User not found'
+      }));
+      return;
+    }
+
+    if (user.password !== password) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Incorrect password'
+      }));
+      return;
+    }
+  }
   // Username-only login (original behavior)
-  if (!username || username.length < 3) {
+  else if (!username || username.length < 3) {
     ws.send(JSON.stringify({
       type: 'error',
       message: 'Invalid username'
@@ -453,10 +472,12 @@ function handleLogin(ws, clientId, data) {
     client.username = username;
   }
 
-  // Send success message
+  // Send success message with user data
+  const user = userManager.getUser(username);
   ws.send(JSON.stringify({
     type: 'loginSuccess',
-    username
+    username: user.username,
+    userData: user
   }));
 
   console.log('User logged in:', username);
