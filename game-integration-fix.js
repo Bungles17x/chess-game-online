@@ -322,10 +322,21 @@ function updatePlayerStats(gameData) {
   // Update currentUser level
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
   if (currentUser) {
+    const oldLevel = currentUser.level;
     currentUser.xp = newXP;
     currentUser.level = Math.floor(newXP / 1000) + 1;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('[Game Integration] Updated user XP:', newXP, 'Level:', currentUser.level);
+    
+    // Show level up animation if level changed
+    if (currentUser.level > oldLevel) {
+      console.log('[Game Integration] Level up detected! Old level:', oldLevel, 'New level:', currentUser.level);
+      if (typeof showLevelUpAnimation === 'function') {
+        showLevelUpAnimation(oldLevel, currentUser.level);
+      } else {
+        console.log('[Game Integration] showLevelUpAnimation not available');
+      }
+    }
   }
 
   console.log('[Game Integration] Updated player stats', {

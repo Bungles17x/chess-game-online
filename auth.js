@@ -9,7 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerBtn = document.getElementById('register-btn');
   
   setupLoginForm(loginForm);
-  setupRegisterForm(registerForm);
+  
+  // Only setup register form if not on settings.html (settings.js handles it)
+  if (!window.location.pathname.includes('settings.html')) {
+    setupRegisterForm(registerForm);
+  }
+  
   setupAuthButtons(loginBtn, registerBtn);
 });
 

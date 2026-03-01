@@ -14,6 +14,8 @@ if (window.levelUpLoaded) {
 
 // Function to show level up animation
 function showLevelUpAnimation(oldLevel, newLevel) {
+  console.log('[Level Up] Showing animation from level', oldLevel, 'to', newLevel);
+  
   // Create overlay
   const overlay = document.createElement('div');
   overlay.className = 'level-up-overlay';
@@ -110,5 +112,11 @@ function playLevelUpSound() {
 }
 
   // Make the function globally available
+  window.showLevelUpAnimation = showLevelUpAnimation;
+  console.log('[Level Up] Function made globally available');
+}
+
+// Ensure the function is globally available even if script was already loaded
+if (window.levelUpLoaded && typeof window.showLevelUpAnimation !== 'function') {
   window.showLevelUpAnimation = showLevelUpAnimation;
 }
