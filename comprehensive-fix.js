@@ -249,7 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fix 12: Handle errors gracefully
 window.addEventListener('error', (event) => {
-  console.error('[Comprehensive Fix] Error caught:', event.error);
+  console.error('[Comprehensive Fix] Error caught:', {
+    message: event.error ? event.error.message : 'Unknown error',
+    stack: event.error ? event.error.stack : 'No stack trace',
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno
+  });
 });
 
 console.log('[Comprehensive Fix] All fixes applied successfully!');

@@ -1,0 +1,221 @@
+
+/* Interactive Practice Styles */
+
+.practice-description {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.scenario-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 20px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.scenario-btn:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.scenario-icon {
+  font-size: 32px;
+}
+
+.scenario-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.scenario-description {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.practice-feedback {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.practice-feedback.hidden {
+  display: none;
+}
+
+.scenario-info h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.scenario-info p {
+  margin: 0 0 10px 0;
+  color: #666;
+}
+
+.scenario-info .explanation {
+  background: #e3f2fd;
+  padding: 10px;
+  border-radius: 5px;
+  border-left: 3px solid #2196f3;
+  font-style: italic;
+}
+
+.step-indicator {
+  text-align: center;
+  font-weight: 600;
+  color: #667eea;
+  margin-top: 10px;
+}
+
+.move-feedback {
+  margin-top: 15px;
+  padding: 15px;
+  border-radius: 5px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.move-feedback.correct {
+  background: #c8e6c9;
+  color: #2e7d32;
+  border-left: 4px solid #4caf50;
+}
+
+.move-feedback.incorrect {
+  background: #ffcdd2;
+  color: #c62828;
+  border-left: 4px solid #f44336;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.recommended-move-highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  box-shadow: 0 0 20px 5px rgba(102, 126, 234, 0.8) !important;
+  animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 20px 5px rgba(102, 126, 234, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(102, 126, 234, 1);
+  }
+}
+
+.scenario-complete {
+  text-align: center;
+}
+
+.scenario-complete h4 {
+  color: #4caf50;
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.scenario-complete p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.3s;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+}
+
+/* Practice Info Panel */
+.practice-info-panel {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.practice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.practice-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-practice {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.close-practice:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.practice-content {
+  margin-top: 10px;
+}
+
+.practice-explanation {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.practice-progress {
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0.9;
+}

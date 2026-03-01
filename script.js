@@ -34,6 +34,7 @@ const dropdown = document.querySelector(".dropdown");
 const closeThemeBtn = document.getElementById("close-theme-btn");
 const closeLobbyBtn = document.getElementById("close-lobby-btn");
 const botModeBtn = document.getElementById("bot-mode");
+const localModeBtn = document.getElementById("local-mode");
 const onlineModeBtn = document.getElementById("online-mode");
 const checkersModeBtn = document.getElementById("checkers-mode");
 const serverStatusBtn = document.getElementById("server-status-btn");
@@ -1086,6 +1087,19 @@ function switchToBotMode() {
   chatContainer.classList.add("hidden");
 }
 
+function switchToLocalMode() {
+  debugLog("MODE", "Switching to local 1v1 mode");
+  gameMode = "local";
+  botModeBtn.classList.remove("active");
+  localModeBtn.classList.add("active");
+  onlineModeBtn.classList.remove("active");
+  roomId = null;
+  window.roomId = null;
+
+  // Hide the chat container when switching to local mode
+  chatContainer.classList.add("hidden");
+}
+
 function leaveRoom() {
   debugLog("LOBBY", "Leaving room", {
     roomId,
@@ -1394,11 +1408,41 @@ function minimax(game, depth, isMaximizing) {
 function aiMove() {
   debugLog("AI", "AI making a move");
   
-  const moves = game.moves();
-  if (moves.length === 0) return;
+  // Use enhanced AI if available
+  if (window.enhancedAI && typeof window.enhancedAI.makeMove === 'function') {
+    console.log('[AI] Using enhanced AI');
+    const bestMove = window.enhancedAI.makeMove(game, 2); // Use difficulty 2 (depth 2)
+    
+    if (!bestMove) return;
 
-  let bestMove = null;
-  let bestValue = Infinity; // AI is black, minimizing
+    const result = game.move(bestMove);
+    if (!result) return;
+
+    // Track the last move for highlighting
+    lastMove = result;
+
+    debugLog("AI", "AI made a move", {
+      move: bestMove
+    });
+
+    const soundId = result.captured ? "capture-sound" : "move-sound";
+    playSoundById(soundId);
+
+    logMove(result);
+    renderPosition();
+    updateTurnIndicator();
+
+    if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
+      setTimeout(aiMove, 200);
+    }
+  } else {
+    console.log('[AI] Enhanced AI not available, using fallback');
+    // Fallback to original implementation
+    const moves = game.moves();
+    if (moves.length === 0) return;
+
+    let bestMove = null;
+    let bestValue = Infinity; // AI is black, minimizing
 
   for (const move of moves) {
     game.move(move);
@@ -1434,8 +1478,9 @@ playSoundById(soundId);
   renderPosition();
   updateTurnIndicator();
 
-  if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
-    setTimeout(aiMove, 200);
+    if (gameMode === "bot" && game.turn() === "b" && !game.game_over()) {
+      setTimeout(aiMove, 200);
+    }
   }
 }
 
@@ -1782,11 +1827,18 @@ function handleSquareClick(square) {
 
     console.log('Stored move data:', moveData);
 
-    // Load move analysis script if not already loaded
+    // Load enhanced systems if not already loaded
+    if (!window.xpSystem) {
+      console.log('Loading enhanced XP system...');
+      const xpSystemScript = document.createElement('script');
+      xpSystemScript.src = 'xp-system-enhanced.js';
+      document.head.appendChild(xpSystemScript);
+    }
+    
     if (!window.analyzeAndShowFeedback) {
-      console.log('Loading move analysis script...');
+      console.log('Loading enhanced move analysis script...');
       const moveAnalysisScript = document.createElement('script');
-      moveAnalysisScript.src = 'move-analysis.js';
+      moveAnalysisScript.src = 'move-analysis-enhanced.js';
       moveAnalysisScript.onload = () => {
         console.log('Move analysis script loaded successfully');
         // Analyze the move immediately after script loads
@@ -2266,6 +2318,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (showServerIssueModalFlag === 'true') {
     // Show the modal
     showServerIssueModal();
+    // Clear the flag to prevent showing it again
+    localStorage.removeItem('showServerIssueModal');
   }
 
   // Setup server issue modal OK button
@@ -2593,8 +2647,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Setup report form submission
+  // Skip this since comprehensive-report-fix.js handles it
   const reportForm = document.getElementById('report-form');
-  if (reportForm) {
+  if (false && reportForm) {
     reportForm.addEventListener("submit", (e) => {
       e.preventDefault();
       
@@ -3446,83 +3501,93 @@ function exitReplayMode() {
 // GAME STATISTICS FUNCTIONS
 // -----------------------------------------------------
 function updateGameStats(result) {
-  // Load player data
-  let playerData = JSON.parse(localStorage.getItem("chessPlayerData") || "{}");
+  // Use the enhanced XP system if available
+  if (window.xpSystem && typeof window.xpSystem.awardGameXP === 'function') {
+    console.log('[Game Stats] Using enhanced XP system');
+    window.xpSystem.awardGameXP(result);
+  } else {
+    console.log('[Game Stats] Enhanced XP system not available, using fallback');
+    // Fallback to original implementation
+    // Load player data
+    let playerData = JSON.parse(localStorage.getItem("chessPlayerData") || "{}");
 
-  // Initialize if not exists
-  if (!playerData.stats) {
-    playerData.stats = {
-      gamesPlayed: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      currentStreak: 0
-    };
-  }
-
-  // Initialize level if not exists
-  if (!playerData.level) playerData.level = 1;
-  if (!playerData.xp) playerData.xp = 0;
-
-  // Update stats
-  playerData.stats.gamesPlayed++;
-
-  let xpGained = 0;
-  switch(result) {
-    case "win":
-      playerData.stats.wins++;
-      playerData.stats.currentStreak = Math.max(0, playerData.stats.currentStreak) + 1;
-      playerData.xp += 100;
-      xpGained = 100;
-      break;
-    case "loss":
-      playerData.stats.losses++;
-      playerData.stats.currentStreak = Math.min(0, playerData.stats.currentStreak) - 1;
-      playerData.xp += 25;
-      xpGained = 25;
-      break;
-    case "draw":
-      playerData.stats.draws++;
-      playerData.xp += 50;
-      xpGained = 50;
-      break;
-  }
-
-  // Check for level up
-  const oldLevel = playerData.level;
-  checkLevelUp(playerData);
-
-  // Calculate XP needed for current level
-  const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
-
-  // Show XP notification
-  const xpNotificationScript = document.createElement('script');
-  xpNotificationScript.src = 'xp-notification.js';
-  document.head.appendChild(xpNotificationScript);
-
-  xpNotificationScript.onload = () => {
-    if (typeof showXPNotification === 'function') {
-      showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+    // Initialize if not exists
+    if (!playerData.stats) {
+      playerData.stats = {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        currentStreak: 0
+      };
     }
-  };
 
-  // If level changed, show animation
-  if (playerData.level > oldLevel) {
-    // Load level up animation script
-    const levelUpScript = document.createElement('script');
-    levelUpScript.src = 'level-up.js';
-    document.head.appendChild(levelUpScript);
+    // Initialize level if not exists
+    if (!playerData.level) playerData.level = 1;
+    if (!playerData.xp) playerData.xp = 0;
 
-    // Wait for script to load then show animation
-    levelUpScript.onload = () => {
-      if (typeof showLevelUpAnimation === 'function') {
-        showLevelUpAnimation(oldLevel, playerData.level);
+    // Update stats
+    playerData.stats.gamesPlayed++;
+
+    let xpGained = 0;
+    switch(result) {
+      case "win":
+        playerData.stats.wins++;
+        playerData.stats.currentStreak = Math.max(0, playerData.stats.currentStreak) + 1;
+        playerData.xp += 100;
+        xpGained = 100;
+        break;
+      case "loss":
+        playerData.stats.losses++;
+        playerData.stats.currentStreak = Math.min(0, playerData.stats.currentStreak) - 1;
+        playerData.xp += 25;
+        xpGained = 25;
+        break;
+      case "draw":
+        playerData.stats.draws++;
+        playerData.xp += 50;
+        xpGained = 50;
+        break;
+    }
+
+    // Check for level up
+    const oldLevel = playerData.level;
+    checkLevelUp(playerData);
+
+    // Calculate XP needed for current level
+    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
+
+    // Show XP notification
+    const xpNotificationScript = document.createElement('script');
+    xpNotificationScript.src = 'xp-notification.js';
+    document.head.appendChild(xpNotificationScript);
+
+    xpNotificationScript.onload = () => {
+      if (typeof showXPNotification === 'function') {
+        // Calculate XP in current level for the notification
+        const xpInCurrentLevel = playerData.xp - ((playerData.level - 1) * 1000);
+        showXPNotification(xpGained, result, xpInCurrentLevel, 1000, playerData.level);
       }
     };
-  }
 
-  // Save back to localStorage
-  localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+    // If level changed, show animation
+    if (playerData.level > oldLevel) {
+      // Load level up animation script
+      const levelUpScript = document.createElement('script');
+      levelUpScript.src = 'level-up.js';
+      document.head.appendChild(levelUpScript);
+
+      // Wait for script to load then show animation
+      levelUpScript.onload = () => {
+        if (typeof showLevelUpAnimation === 'function') {
+          showLevelUpAnimation(oldLevel, playerData.level);
+        }
+      };
+    }
+
+    // Save back to localStorage
+    localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+  }
 }
 
 // Check if player should level up (handles multiple level ups)
@@ -4601,8 +4666,15 @@ function updateGameStatistics() {
     result = "draw";
   }
   
-  // Load player data from localStorage
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  // Use the enhanced XP system if available
+  if (window.xpSystem && typeof window.xpSystem.awardGameXP === 'function') {
+    console.log('[Game Statistics] Using enhanced XP system');
+    window.xpSystem.awardGameXP(result);
+  } else {
+    console.log('[Game Statistics] Enhanced XP system not available, using fallback');
+    // Fallback to original implementation
+    // Load player data from localStorage
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
   
   if (currentUser && currentUser.username) {
     // Update authenticated user's statistics
@@ -4661,7 +4733,9 @@ function updateGameStatistics() {
       xpNotificationScript.onload = () => {
         if (typeof showXPNotification === 'function') {
           const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
-          showXPNotification(xpGained, result, user.xp, xpNeeded, user.level);
+          // Calculate XP in current level for the notification
+          const xpInCurrentLevel = user.xp - ((user.level - 1) * 1000);
+          showXPNotification(xpGained, result, xpInCurrentLevel, 1000, user.level);
         }
       };
 
@@ -4720,15 +4794,9 @@ function updateGameStatistics() {
         break;
     }
     
-    // Check for level up
+    // Check for level up - simple formula: 1000 XP per level
     const oldLevel = playerData.level || 1;
-    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
-
-    // Check for multiple level ups
-    while (playerData.xp >= xpNeeded) {
-      playerData.level++;
-      playerData.xp -= xpNeeded;
-    }
+    playerData.level = Math.floor(playerData.xp / 1000) + 1;
 
     // Show XP notification
     const xpNotificationScript = document.createElement('script');
@@ -4738,7 +4806,9 @@ function updateGameStatistics() {
     xpNotificationScript.onload = () => {
       if (typeof showXPNotification === 'function') {
         const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
-        showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+        // Calculate XP in current level for the notification
+        const xpInCurrentLevel = playerData.xp - ((playerData.level - 1) * 1000);
+        showXPNotification(xpGained, result, xpInCurrentLevel, 1000, playerData.level);
       }
     };
 
@@ -4759,6 +4829,7 @@ function updateGameStatistics() {
     
     // Save updated player data
     localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+    }
   }
   
   // Show result message

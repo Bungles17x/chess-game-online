@@ -1,0 +1,251 @@
+/* Tutorial Mode Styles */
+
+/* Tutorial Section in Settings */
+.tutorial-section {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tutorial-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.tutorial-options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.tutorial-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+
+.tutorial-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tutorial-icon {
+  font-size: 20px;
+}
+
+/* Tutorial Progress */
+.tutorial-progress {
+  margin-top: 15px;
+}
+
+.progress-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Tutorial Overlay */
+.tutorial-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.tutorial-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Tutorial Card */
+.tutorial-card {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tutorial-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.tutorial-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.tutorial-close:hover {
+  color: var(--text-primary);
+}
+
+/* Tutorial Content */
+.tutorial-content {
+  margin-bottom: 24px;
+}
+
+.tutorial-content p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+/* Tutorial Navigation */
+.tutorial-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tutorial-nav-btn {
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.tutorial-nav-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.tutorial-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tutorial Dots */
+.tutorial-dots {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+
+.tutorial-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.3s;
+}
+
+.tutorial-dot.active {
+  background: var(--accent);
+}
+
+/* Tutorial Progress Text */
+.tutorial-progress-text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Tutorial Highlight */
+.tutorial-highlight {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 4px var(--accent), 0 0 0 8px rgba(14, 165, 233, 0.3);
+  border-radius: 4px;
+}
+
+/* Tutorial Complete */
+.tutorial-complete {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.complete-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.tutorial-complete h3 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.tutorial-complete p {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary);
+}
+
+.tutorial-restart {
+  margin: 0 auto;
+  display: block;
+  width: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .tutorial-card {
+    padding: 20px;
+  }
+
+  .tutorial-options {
+    flex-direction: column;
+  }
+
+  .tutorial-navigation {
+    flex-direction: column;
+  }
+
+  .tutorial-dots {
+    order: -1;
+    margin-bottom: 12px;
+  }
+}

@@ -1,10 +1,16 @@
 // Level Up Animation
 
-// Load the CSS file
-const levelUpCSS = document.createElement('link');
-levelUpCSS.rel = 'stylesheet';
-levelUpCSS.href = 'level-up.css';
-document.head.appendChild(levelUpCSS);
+// Prevent the script from being loaded multiple times
+if (window.levelUpLoaded) {
+  console.log('[Level Up] Script already loaded, skipping...');
+} else {
+  window.levelUpLoaded = true;
+
+  // Load the CSS file
+  const levelUpCSS = document.createElement('link');
+  levelUpCSS.rel = 'stylesheet';
+  levelUpCSS.href = 'level-up-enhanced.css';
+  document.head.appendChild(levelUpCSS);
 
 // Function to show level up animation
 function showLevelUpAnimation(oldLevel, newLevel) {
@@ -103,5 +109,6 @@ function playLevelUpSound() {
   oscillator.stop(audioContext.currentTime + 0.5);
 }
 
-// Make the function globally available
-window.showLevelUpAnimation = showLevelUpAnimation;
+  // Make the function globally available
+  window.showLevelUpAnimation = showLevelUpAnimation;
+}

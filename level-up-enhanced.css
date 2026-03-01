@@ -1,0 +1,267 @@
+/* Enhanced Level Up Animation Styles with Realistic Lightning */
+
+.level-up-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.level-up-container {
+  text-align: center;
+  position: relative;
+  padding: 40px;
+}
+
+.level-up-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  animation: glow 2s ease-in-out infinite;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.level-display {
+  font-size: 120px;
+  font-weight: 900;
+  color: #fff;
+  position: relative;
+  display: inline-block;
+  min-width: 200px;
+  min-height: 150px;
+}
+
+.old-level {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: oldLevelFade 0.5s ease-out forwards;
+}
+
+.new-level {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: newLevelAppear 0.8s ease-out 0.5s forwards;
+}
+
+.lightning-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  animation: lightningFlash 0.6s ease-out 0.2s forwards;
+}
+
+.lightning-bolt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 400px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    #fff 5%,
+    #ffd700 10%,
+    #fff 15%,
+    transparent 20%,
+    #fff 25%,
+    #ffd700 30%,
+    #fff 35%,
+    transparent 40%,
+    #fff 45%,
+    #ffd700 50%,
+    #fff 55%,
+    transparent 60%,
+    #fff 65%,
+    #ffd700 70%,
+    #fff 75%,
+    transparent 80%
+  );
+  clip-path: polygon(
+    50% 0%,
+    55% 15%,
+    45% 15%,
+    52% 25%,
+    40% 25%,
+    48% 35%,
+    35% 35%,
+    50% 50%,
+    45% 50%,
+    55% 60%,
+    40% 60%,
+    48% 70%,
+    35% 70%,
+    50% 85%,
+    45% 85%,
+    52% 100%,
+    48% 100%,
+    52% 85%,
+    60% 85%,
+    50% 70%,
+    65% 70%,
+    55% 60%,
+    70% 60%,
+    50% 50%,
+    65% 50%,
+    52% 35%,
+    65% 35%,
+    48% 25%,
+    60% 25%,
+    50% 15%,
+    55% 15%
+  );
+  animation: boltStrike 0.8s ease-out 0.2s forwards;
+  filter: blur(1px) drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 40px #fff);
+}
+
+.lightning-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
+  animation: glowPulse 0.6s ease-out 0.2s forwards;
+}
+
+.level-up-message {
+  font-size: 24px;
+  color: #fff;
+  margin-top: 40px;
+  opacity: 0;
+  animation: messageAppear 0.5s ease-out 1.3s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+  50% {
+    text-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 215, 0, 0.8);
+  }
+}
+
+@keyframes oldLevelFade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+}
+
+@keyframes newLevelAppear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes lightningFlash {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.3;
+  }
+  60% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes boltStrike {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(-5deg);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.1) rotate(3deg);
+    opacity: 0.8;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(0.95) rotate(-3deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+@keyframes messageAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

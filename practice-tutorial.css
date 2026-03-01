@@ -1,0 +1,61 @@
+
+/* Practice Tutorial Styles */
+
+.practice-card {
+  max-width: 600px;
+}
+
+.recommended-move {
+  margin-top: 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recommended-move.hidden {
+  display: none;
+}
+
+.move-label {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.move-display {
+  background: white;
+  color: #667eea;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.practice-highlight {
+  box-shadow: 0 0 20px 5px rgba(102, 126, 234, 0.8) !important;
+  animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 20px 5px rgba(102, 126, 234, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(102, 126, 234, 1);
+  }
+}
+
+.practice-tutorial-options {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.practice-tutorial-options .tutorial-btn {
+  flex: 1;
+  min-width: 200px;
+}

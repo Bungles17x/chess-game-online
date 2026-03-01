@@ -35,22 +35,45 @@ function renderReportsList(reports) {
   reports.forEach(report => {
     const reportElement = document.createElement('div');
     reportElement.className = 'report-item';
+
+    // Format priority badge
+    const priorityClass = `priority-${report.priority || 'normal'}`;
+    const priorityLabel = (report.priority || 'normal').charAt(0).toUpperCase() + (report.priority || 'normal').slice(1);
+
     reportElement.innerHTML = `
       <div class="report-header">
         <span class="report-id">#${report.id.substring(0, 8)}</span>
         <span class="report-type">${report.reportType || 'Unknown'}</span>
         <span class="report-status status-${report.status}">${report.status || 'pending'}</span>
+        <span class="report-priority ${priorityClass}">${priorityLabel}</span>
       </div>
       <div class="report-body">
-        <p><strong>Reporter:</strong> ${report.reportedBy}</p>
-        <p><strong>Opponent:</strong> ${report.opponent}</p>
-        <p><strong>Reason:</strong> ${report.reason}</p>
+        <p><strong>Reporter:</strong> ${report.reportedBy || 'Unknown'}</p>
+        <p><strong>Opponent:</strong> ${report.opponent || 'Unknown'}</p>
+        <p><strong>Reason:</strong> ${report.reason || 'No reason provided'}</p>
         <p><strong>Description:</strong> ${report.description || 'No description provided'}</p>
         <p><strong>Time:</strong> ${new Date(report.timestamp).toLocaleString()}</p>
+        ${report.reviewed ? `<p><strong>Reviewed by:</strong> ${report.reviewedBy || 'Unknown'}</p>` : ''}
+        ${report.resolution ? `<p><strong>Resolution:</strong> ${report.resolution}</p>` : ''}
+        ${report.notes && report.notes.length > 0 ? `
+          <div class="report-notes">
+            <strong>Notes:</strong>
+            ${report.notes.map(note => `
+              <div class="report-note">
+                <span class="note-author">${note.addedBy || 'Unknown'}:</span>
+                <span class="note-text">${note.text}</span>
+                <span class="note-time">${new Date(note.addedAt).toLocaleString()}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
       <div class="report-actions">
         <button class="primary-btn view-replay-btn" data-replay-id="${report.replayId}">View Replay</button>
         <button class="primary-btn update-status-btn" data-report-id="${report.id}">Update Status</button>
+        <button class="primary-btn update-priority-btn" data-report-id="${report.id}">Update Priority</button>
+        <button class="primary-btn add-note-btn" data-report-id="${report.id}">Add Note</button>
+        <button class="danger-btn delete-report-btn" data-report-id="${report.id}">Delete</button>
       </div>
     `;
     reportsList.appendChild(reportElement);
@@ -70,6 +93,27 @@ function renderReportsList(reports) {
       updateReportStatus(reportId);
     });
   });
+
+  document.querySelectorAll('.update-priority-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const reportId = e.target.dataset.reportId;
+      updateReportPriority(reportId);
+    });
+  });
+
+  document.querySelectorAll('.add-note-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const reportId = e.target.dataset.reportId;
+      addReportNote(reportId);
+    });
+  });
+
+  document.querySelectorAll('.delete-report-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const reportId = e.target.dataset.reportId;
+      deleteReport(reportId);
+    });
+  });
 }
 
 // Function to view game replay
@@ -86,8 +130,10 @@ function viewGameReplay(replayId) {
 
 // Function to update report status
 function updateReportStatus(reportId) {
+  const statusOptions = ['pending', 'investigating', 'resolved', 'dismissed'];
   const newStatus = prompt('Enter new status (pending, investigating, resolved, dismissed):');
-  if (newStatus && ['pending', 'investigating', 'resolved', 'dismissed'].includes(newStatus.toLowerCase())) {
+
+  if (newStatus && statusOptions.includes(newStatus.toLowerCase())) {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'updateReportStatus',
@@ -102,15 +148,88 @@ function updateReportStatus(reportId) {
   }
 }
 
+// Function to update report priority
+function updateReportPriority(reportId) {
+  const priorityOptions = ['normal', 'high', 'critical'];
+  const newPriority = prompt('Enter new priority (normal, high, critical):');
+
+  if (newPriority && priorityOptions.includes(newPriority.toLowerCase())) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'updateReportPriority',
+        reportId: reportId,
+        priority: newPriority.toLowerCase()
+      }));
+    } else {
+      showAlert('Connection error. Please try again.');
+    }
+  } else {
+    showAlert('Invalid priority. Please use: normal, high, or critical');
+  }
+}
+
+// Function to add note to report
+function addReportNote(reportId) {
+  const note = prompt('Enter note:');
+
+  if (note && note.trim()) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'addReportNote',
+        reportId: reportId,
+        note: note.trim()
+      }));
+    } else {
+      showAlert('Connection error. Please try again.');
+    }
+  }
+}
+
+// Function to delete report
+function deleteReport(reportId) {
+  const confirmed = confirm('Are you sure you want to delete this report?');
+
+  if (confirmed) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'deleteReport',
+        reportId: reportId
+      }));
+    } else {
+      showAlert('Connection error. Please try again.');
+    }
+  }
+}
+
+// Function to search reports
+function searchReports(query) {
+  if (!query || query.trim() === '') {
+    // If empty query, load all reports
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'getReports' }));
+    }
+    return;
+  }
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'searchReports',
+      query: query.trim()
+    }));
+  } else {
+    showAlert('Connection error. Please try again.');
+  }
+}
+
 // Handle report-related WebSocket messages
 function handleReportMessages(data) {
   switch (data.type) {
     case 'reportSubmitted':
-      showAlert(data.message);
+      showAlert(data.message || 'Report submitted successfully');
       break;
 
     case 'reportsList':
-      renderReportsList(data.reports);
+      renderReportsList(data.reports || []);
       break;
 
     case 'reportDetails':
@@ -130,7 +249,40 @@ function handleReportMessages(data) {
       }
       break;
 
+    case 'reportPriorityUpdated':
+      showAlert(`Report priority updated to: ${data.priority}`);
+      // Refresh the reports list
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'getReports' }));
+      }
+      break;
+
+    case 'reportNoteAdded':
+      showAlert('Note added to report');
+      // Refresh the reports list
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'getReports' }));
+      }
+      break;
+
+    case 'reportDeleted':
+      showAlert('Report deleted successfully');
+      // Refresh the reports list
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'getReports' }));
+      }
+      break;
+
+    case 'searchResults':
+      renderReportsList(data.reports || []);
+      break;
+
+    case 'error':
+      showAlert(data.message || 'An error occurred');
+      break;
+
     default:
+      console.log('Unknown report message type:', data.type);
       break;
   }
 }

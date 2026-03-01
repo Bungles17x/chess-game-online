@@ -371,4 +371,471 @@ body.light-theme .metric-card {
     transform: translateY(0);
   }
 }
+
+/* Debugger Log Entry Styles */
+.debugger-log-entry {
+  padding: 8px;
+  margin-bottom: 4px;
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 4px;
+  border-left: 3px solid #6366f1;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+/* ERROR logs - Red */
+.debugger-log-entry.error {
+  background: rgba(220, 38, 38, 0.15);
+  border-left: 3px solid #ef4444;
+}
+
+.debugger-log-entry.error .debugger-log-category {
+  color: #fca5a5;
+  font-weight: bold;
+}
+
+.debugger-log-entry.error .debugger-log-message {
+  color: #fecaca;
+}
+
+/* WARNING logs - Orange/Yellow */
+.debugger-log-entry.warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 3px solid #f59e0b;
+}
+
+.debugger-log-entry.warning .debugger-log-category {
+  color: #fcd34d;
+  font-weight: bold;
+}
+
+.debugger-log-entry.warning .debugger-log-message {
+  color: #fde68a;
+}
+
+/* INFO logs - Blue */
+.debugger-log-entry.info {
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid #3b82f6;
+}
+
+.debugger-log-entry.info .debugger-log-category {
+  color: #93c5fd;
+  font-weight: bold;
+}
+
+.debugger-log-entry.info .debugger-log-message {
+  color: #bfdbfe;
+}
+
+/* Normal logs - Default purple */
+.debugger-log-entry:not(.error):not(.warning):not(.info) {
+  border-left: 3px solid #6366f1;
+}
+
+.debugger-log-entry:not(.error):not(.warning):not(.info) .debugger-log-category {
+  color: #a5b4fc;
+}
+
+.debugger-log-entry:not(.error):not(.warning):not(.info) .debugger-log-message {
+  color: #e2e8f0;
+}
+
+.debugger-log-entry:hover {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.debugger-log-time {
+  color: #64748b;
+  margin-right: 8px;
+  font-size: 0.75rem;
+}
+
+.debugger-log-category {
+  font-weight: bold;
+  margin-right: 8px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.debugger-log-message {
+  color: #e2e8f0;
+  word-break: break-word;
+}
+
+/* Debugger Header Enhancements */
+.debugger-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.debugger-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-text {
+  color: #a5b4fc;
+  font-weight: 500;
+}
+
+/* Debugger Search Bar */
+.debugger-search-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.debugger-search-input {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.debugger-search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Debugger Settings */
+.debugger-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.debugger-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.debugger-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.debugger-toggle span {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+/* Debugger Log Toolbar */
+.debugger-log-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.debugger-btn-small {
+  padding: 0.25rem 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.debugger-btn-small:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
+}
+
+/* Debugger Buttons */
+.debugger-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+  color: #a5b4fc;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.debugger-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
+  transform: translateY(-1px);
+}
+
+.debugger-btn:active {
+  transform: translateY(0);
+}
+
+/* Paused State */
+.debugger-status-indicator.paused .status-dot {
+  background: #f59e0b;
+  animation: none;
+}
+
+.debugger-status-indicator.paused .status-text {
+  color: #fcd34d;
+}
+
+/* No Results Message */
+.debugger-no-results {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Error Explanations */
+.debugger-error-explanation {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-left: 3px solid #ef4444;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.error-explanation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  color: #e2e8f0;
+  font-weight: 600;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.error-explanation-toggle:hover {
+  color: #f1f5f9;
+}
+
+.toggle-icon {
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.toggle-text {
+  font-size: 0.875rem;
+}
+
+.error-explanation-content {
+  margin-top: 0.5rem;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.error-explanation-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.error-explanation-content.expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+.error-explanation-title {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.error-explanation-title:first-child {
+  margin-top: 0;
+}
+
+.error-explanation-text {
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.error-explanation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-explanation-list li {
+  color: #94a3b8;
+  padding: 0.25rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.4;
+}
+
+.error-explanation-list li:before {
+  content: "•";
+  position: absolute;
+  left: 0.5rem;
+  color: #ef4444;
+}
+
+.error-severity {
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.severity-high {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.severity-medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.severity-low {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+/* Connection Quality Indicator */
+.quality-indicator {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.quality-indicator.excellent {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.quality-indicator.good {
+  background: rgba(14, 165, 233, 0.2);
+  color: #7dd3fc;
+}
+
+.quality-indicator.fair {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.quality-indicator.poor {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card h3 {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.stat-card p {
+  color: var(--text-main);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Room List */
+.room-list {
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.room-item:last-child {
+  margin-bottom: 0;
+}
+
+.room-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.room-name {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.room-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.no-rooms {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem;
+  font-size: 0.95rem;
 }

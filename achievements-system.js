@@ -546,7 +546,7 @@ const achievementsSystem = {
       console.log('[Rewards] Unlocking queen gambit reward');
       this.unlockReward('queen_gambit_reward');
     }
-    if (this.achievements.comebackKing && this.achievements.comebackKing.unlocked && !this.rewards.comebackKingReward.unlocked) {
+    if (this.achievements.comeback && this.achievements.comeback.unlocked && !this.rewards.comebackKingReward.unlocked) {
       console.log('[Rewards] Unlocking comeback king reward');
       this.unlockReward('comeback_king_reward');
     }
@@ -775,6 +775,12 @@ const achievementsSystem = {
     const currentXP = currentUser.xp || 0;
     const newXP = currentXP + amount;
     currentUser.xp = newXP;
+
+    // Calculate and update level based on XP
+    const newLevel = Math.floor(newXP / 1000) + 1;
+    currentUser.level = newLevel;
+
+    console.log('[Achievements] Awarded', amount, 'XP. New total:', newXP, 'New level:', newLevel);
     
     // Save to localStorage
     localStorage.setItem('currentUser', JSON.stringify(currentUser));

@@ -19,7 +19,9 @@
   <link rel="stylesheet" href="button-variants.css" />
   <link rel="stylesheet" href="complete-enhancements.css" />
   <link rel="stylesheet" href="enhanced-game-features.css" />
-  <link rel="stylesheet" href="game-improvements.css" />
+  <link rel="stylesheet" href="tutorial-mode.css" />
+  <link rel="stylesheet" href="interactive-practice.css" />
+  <link rel="stylesheet" href="simple-enhancements.css" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,6 +61,7 @@
           </button>
           <div class="dropdown-content">
             <button id="bot-mode" data-mode="bot" class="dropdown-item">Bot</button>
+            <button id="local-mode" data-mode="local" class="dropdown-item">1v1 Local</button>
             <button id="online-mode" data-mode="online" class="dropdown-item">Online</button>
             <button id="lobby-btn" class="dropdown-item">Lobby</button>
             <button id="friends-btn" class="dropdown-item">👥 Friends</button>
@@ -275,7 +278,7 @@
   <div id="report-modal" class="modal hidden">
     <div class="modal-content">
       <h2>Report Player</h2>
-      <form id="report-form">
+      <form id="report-form" onsubmit="return false;">
         <div class="form-group">
           <label for="report-type">Report Type:</label>
           <select id="report-type" class="form-input" required>
@@ -294,7 +297,7 @@
           <textarea id="report-description" class="form-input" rows="4" placeholder="Please provide detailed description of the issue..."></textarea>
         </div>
         <div class="form-actions">
-          <button type="submit" class="primary-btn">Submit Report</button>
+          <button type="button" id="submit-report-btn" class="primary-btn">Submit Report</button>
           <button type="button" id="close-report-btn" class="primary-btn">Cancel</button>
         </div>
       </form>
@@ -356,11 +359,17 @@
   <script src="anti-cheat-report-fix.js"></script>
   <script src="enhanced-game-features.js"></script>
   <script src="game-fixes.js"></script>
+  <script src="enhanced-ai.js"></script>
+  <script src="xp-system-enhanced.js"></script>
+  <script src="level-up.js"></script>
   <script src="script.js"></script>
   <script src="achievements-system.js"></script>
   <script src="achievements-fix.js"></script>
   <script src="game-integration-fix.js"></script>
   <script src="report-system-ui.js"></script>
+  <!-- <script src="report-form-fix.js"></script> Disabled in favor of report-submit-handler.js -->
+  <!-- <script src="comprehensive-report-fix.js"></script> Disabled in favor of report-submit-handler.js -->
+  <script src="report-submit-handler.js"></script>
   <script src="admin-panel-enhanced.js"></script>
   <script src="admin-features.js"></script>
   <script src="debugger.js"></script>
@@ -368,7 +377,6 @@
   <script src="user-sync-client.js"></script>
   <script src="settings-button.js"></script>
   <script src="game-enhancements.js"></script>
-  <script src="game-improvements.js"></script>
   <script src="tts-system.js"></script>
   <script src="tts-enhancements.js"></script>
   <script src="screen-reader-simple.js"></script>
@@ -378,6 +386,12 @@
   <script src="extreme-ai-analysis.js"></script>
   <script src="extreme-visual-effects.js"></script>
   <script src="ultimate-game-enhancements-v2.js"></script>
+  <script src="safe-enhancements.js"></script>
+  <script src="tutorial-mode-fixed.js"></script>
+  <script src="interactive-practice.js"></script>
+  <script src="practice-advance.js"></script>
+  <script src="practice-integration-fixed.js"></script>
+  <script src="simple-enhancements.js"></script>
 
 </body>
 </html>

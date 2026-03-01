@@ -1,0 +1,16 @@
+{
+  "id": "d4d47faa-bc57-46fc-b00e-10a31f2d411a",
+  "timestamp": "2026-02-27T23:13:06.872Z",
+  "status": "pending",
+  "priority": "normal",
+  "reviewed": false,
+  "reviewedBy": null,
+  "reviewedAt": null,
+  "resolution": null,
+  "reportType": "bug",
+  "reportedBy": "bungles17x",
+  "opponent": "AI Bot",
+  "reason": "No reason provided",
+  "description": "test",
+  "replayId": null
+}

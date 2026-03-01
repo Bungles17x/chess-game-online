@@ -1,0 +1,112 @@
+/* Enhanced Move Feedback Styles */
+
+.move-feedback {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  z-index: 10000;
+  animation: moveFeedbackIn 0.3s ease-out, moveFeedbackOut 0.3s ease-in 1.7s forwards;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  min-width: 200px;
+  max-width: 350px;
+}
+
+/* Excellent move - Gold with glow */
+.move-feedback.excellent {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 193, 7, 0.95));
+  color: #1a1a1a;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Good move - Green */
+.move-feedback.good {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.95));
+  color: #ffffff;
+  border-color: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Okay move - Blue */
+.move-feedback.okay {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+  color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Weak move - Orange */
+.move-feedback.weak {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(234, 88, 12, 0.95));
+  color: #ffffff;
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Bad move - Red */
+.move-feedback.bad {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Blunder - Dark red with shake animation */
+.move-feedback.blunder {
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.95), rgba(153, 27, 27, 0.95));
+  color: #ffffff;
+  border-color: rgba(185, 28, 28, 0.8);
+  box-shadow: 0 0 30px rgba(185, 28, 28, 0.6), 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: moveFeedbackIn 0.3s ease-out, shake 0.5s ease-in-out 0.3s, moveFeedbackOut 0.3s ease-in 1.7s forwards;
+}
+
+@keyframes moveFeedbackIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes moveFeedbackOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px) rotate(-2deg);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px) rotate(2deg);
+  }
+}
+
+/* XP amount styling */
+.move-feedback span.xp-amount {
+  font-weight: 700;
+  font-size: 0.9em;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+}

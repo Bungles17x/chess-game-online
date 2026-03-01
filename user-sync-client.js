@@ -49,9 +49,6 @@ class UserSyncManager {
   }
 
   init() {
-    // Clear old encrypted data on initialization
-    clearOldEncryptedData();
-
     // Check if user is logged in
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="admin-features.css" />
   <link rel="stylesheet" href="server-status.css" />
+  <link rel="stylesheet" href="debugger.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
@@ -52,6 +53,59 @@
             <p id="server-uptime">0h 0m</p>
           </div>
         </div>
+        <div class="status-card">
+          <div class="status-icon">📊</div>
+          <div class="status-info">
+            <h3>Connection Quality</h3>
+            <p id="connection-quality" class="quality-indicator good">Good</p>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-icon">⚡</div>
+          <div class="status-info">
+            <h3>Latency</h3>
+            <p id="connection-latency">0ms</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Statistics -->
+    <div class="status-section">
+      <h2>Connection Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Messages Received</h3>
+          <p id="messages-received">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Messages Sent</h3>
+          <p id="messages-sent">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Reconnection Attempts</h3>
+          <p id="reconnect-attempts">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Peak Games</h3>
+          <p id="peak-games">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection History -->
+    <div class="status-section">
+      <h2>Connection History</h2>
+      <div id="connection-history" class="connection-history">
+        <p class="no-history">No connection history</p>
+      </div>
+    </div>
+
+    <!-- Active Games List -->
+    <div class="status-section">
+      <h2>Active Games</h2>
+      <div id="room-list" class="room-list">
+        <p class="no-rooms">No active games</p>
       </div>
     </div>
 
@@ -109,6 +163,8 @@
         <button id="clear-cache" class="control-btn warning">🗑️ Clear Cache</button>
         <button id="backup-data" class="control-btn info">💾 Backup Data</button>
         <button id="view-logs" class="control-btn info">📋 View Logs</button>
+        <button id="export-stats" class="control-btn success">📥 Export Stats</button>
+        <button id="clear-stats" class="control-btn danger">🗑️ Clear Stats</button>
       </div>
     </div>
 
@@ -135,6 +191,78 @@
       </div>
     </div>
 
+    <!-- Debugger Section -->
+    <div class="status-section">
+      <h2>🐛 Debugger</h2>
+      <div id="debugger-container" class="debugger-container">
+        <div class="debugger-header">
+          <div class="debugger-header-left">
+            <h3>Server Debugger</h3>
+            <div class="debugger-status-indicator" id="debugger-status">
+              <span class="status-dot"></span>
+              <span class="status-text">Active</span>
+            </div>
+          </div>
+          <div class="debugger-controls">
+            <button id="debugger-pause" class="debugger-btn" title="Pause/Resume">⏸️</button>
+            <button id="debugger-search" class="debugger-btn" title="Search">🔍</button>
+            <button id="debugger-clear" class="debugger-btn" title="Clear Logs">🗑️</button>
+            <button id="debugger-export" class="debugger-btn" title="Export Logs">📥</button>
+          </div>
+        </div>
+        <div class="debugger-search-bar" id="debugger-search-bar" style="display: none;">
+          <input type="text" id="debugger-search-input" placeholder="Search logs..." class="debugger-search-input">
+          <button id="debugger-search-close" class="debugger-btn">✕</button>
+        </div>
+        <div class="debugger-body">
+          <div class="debugger-sidebar">
+            <div class="debugger-section">
+              <h4>📁 Log Filter</h4>
+              <select id="debugger-filter" class="debugger-select">
+                <option value="all">All Logs</option>
+                <option value="error">Errors Only</option>
+                <option value="warning">Warnings</option>
+                <option value="info">Info</option>
+              </select>
+            </div>
+            <div class="debugger-section">
+              <h4>📊 Statistics</h4>
+              <div class="debugger-info">
+                <div>Total Logs: <span id="debug-total-logs">0</span></div>
+                <div>Errors: <span id="debug-errors">0</span></div>
+                <div>Warnings: <span id="debug-warnings">0</span></div>
+                <div>Info: <span id="debug-info">0</span></div>
+              </div>
+            </div>
+            <div class="debugger-section">
+              <h4>⚙️ Settings</h4>
+              <div class="debugger-settings">
+                <label class="debugger-toggle">
+                  <input type="checkbox" id="debugger-auto-scroll" checked>
+                  <span>Auto Scroll</span>
+                </label>
+                <label class="debugger-toggle">
+                  <input type="checkbox" id="debugger-show-timestamp" checked>
+                  <span>Show Timestamp</span>
+                </label>
+                <label class="debugger-toggle">
+                  <input type="checkbox" id="debugger-show-category" checked>
+                  <span>Show Category</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="debugger-main">
+            <div class="debugger-log-toolbar">
+              <span id="debugger-log-count">0 logs</span>
+              <button id="debugger-copy" class="debugger-btn-small" title="Copy All">📋 Copy</button>
+            </div>
+            <div id="debugger-logs" class="debugger-log-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Back Button -->
     <div class="status-section">
       <button id="back-btn" class="control-btn back">← Back to Game</button>
@@ -143,6 +271,7 @@
 
   <script src="encryption.js"></script>
   <script src="auth.js"></script>
-  <script src="server-status.js"></script>
+  <script src="server-status-new.js"></script>
+  <script src="server-status-debugger-enhanced-v5.js"></script>
 </body>
 </html>

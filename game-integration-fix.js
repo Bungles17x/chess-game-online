@@ -7,7 +7,8 @@
 
 let originalGameMove = null;
 let originalGameReset = null;
-let moveHistory = [];
+let integrationMoveHistory = [];
+let isDispatchingMove = false;
 
 function interceptGameMethods() {
   if (typeof game === 'undefined' || !game) {
@@ -32,7 +33,7 @@ function interceptGameMethods() {
     if (result) {
       // Track move
       const moveNumber = game.history().length;
-      moveHistory.push({
+      integrationMoveHistory.push({
         ...result,
         moveNumber,
         timestamp: Date.now()
@@ -101,7 +102,7 @@ function interceptGameMethods() {
   // Override reset method
   game.reset = function() {
     const result = originalGameReset();
-    moveHistory = [];
+    integrationMoveHistory = [];
 
     // Dispatch game end event for reset
     dispatchGameEndEvent({
@@ -235,6 +236,9 @@ function isComeback() {
 // ============================================
 
 function dispatchGameMoveEvent(data) {
+  if (isDispatchingMove) return;
+  isDispatchingMove = true;
+
   document.dispatchEvent(new CustomEvent('gameMove', {
     detail: data,
     bubbles: true,
@@ -242,6 +246,11 @@ function dispatchGameMoveEvent(data) {
   }));
 
   console.log('[Game Integration] Dispatched gameMove event', data);
+
+  // Reset flag after a short delay
+  setTimeout(() => {
+    isDispatchingMove = false;
+  }, 100);
 }
 
 function dispatchGameEndEvent(data) {
@@ -307,7 +316,17 @@ function updatePlayerStats(gameData) {
   // Award XP
   const xpAwarded = gameData.result === 'win' ? 100 : gameData.result === 'draw' ? 50 : 25;
   const currentXP = parseInt(localStorage.getItem('playerXP') || '0');
-  localStorage.setItem('playerXP', (currentXP + xpAwarded).toString());
+  const newXP = currentXP + xpAwarded;
+  localStorage.setItem('playerXP', newXP.toString());
+
+  // Update currentUser level
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (currentUser) {
+    currentUser.xp = newXP;
+    currentUser.level = Math.floor(newXP / 1000) + 1;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    console.log('[Game Integration] Updated user XP:', newXP, 'Level:', currentUser.level);
+  }
 
   console.log('[Game Integration] Updated player stats', {
     result: gameData.result,

@@ -1,10 +1,16 @@
 // XP Notification System
 
-// Load the CSS file
-const xpNotificationCSS = document.createElement('link');
-xpNotificationCSS.rel = 'stylesheet';
-xpNotificationCSS.href = 'xp-notification.css';
-document.head.appendChild(xpNotificationCSS);
+// Prevent the script from being loaded multiple times
+if (window.xpNotificationLoaded) {
+  console.log('[XP Notification] Script already loaded, skipping...');
+} else {
+  window.xpNotificationLoaded = true;
+
+  // Load the CSS file
+  const xpNotificationCSS = document.createElement('link');
+  xpNotificationCSS.rel = 'stylesheet';
+  xpNotificationCSS.href = 'xp-notification.css';
+  document.head.appendChild(xpNotificationCSS);
 
 // Create notification container
 let xpNotificationContainer = null;
@@ -136,5 +142,7 @@ function playXPGainSound(amount) {
   }
 }
 
-// Make functions globally available
-window.showXPNotification = showXPNotification;
+  // Make functions globally available
+  window.showXPNotification = showXPNotification;
+  window.playXPGainSound = playXPGainSound;
+}

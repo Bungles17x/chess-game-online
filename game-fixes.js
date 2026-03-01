@@ -182,14 +182,9 @@ function safeUpdateStatistics(result) {
         break;
     }
 
-    // Check for level up
+    // Check for level up - simple formula: 1000 XP per level
     const oldLevel = currentUser.level || 1;
-    const xpNeeded = 1000 * currentUser.level + 500 * Math.max(0, currentUser.level - 1);
-
-    while (currentUser.xp >= xpNeeded) {
-      currentUser.level++;
-      currentUser.xp -= xpNeeded;
-    }
+    currentUser.level = Math.floor(currentUser.xp / 1000) + 1;
 
     // Save updated user data
     localStorage.setItem("currentUser", JSON.stringify(currentUser));
@@ -206,7 +201,9 @@ function safeUpdateStatistics(result) {
     // Show notifications
     if (typeof showXPNotification === 'function') {
       const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
-      showXPNotification(xpGained, result, currentUser.xp, xpNeeded, currentUser.level);
+      // Calculate XP in current level for the notification
+      const xpInCurrentLevel = currentUser.xp - ((currentUser.level - 1) * 1000);
+      showXPNotification(xpGained, result, xpInCurrentLevel, 1000, currentUser.level);
     }
 
     if (currentUser.level > oldLevel && typeof showLevelUpAnimation === 'function') {

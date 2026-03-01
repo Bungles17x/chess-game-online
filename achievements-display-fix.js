@@ -79,11 +79,13 @@ function updateXPDisplay() {
   console.log('[XP Debug] currentUser.xp:', currentUser?.xp);
   console.log('[XP Debug] currentUser.level:', currentUser?.level);
   
-  // XP is stored as XP in current level, not cumulative
+  // XP is stored as cumulative XP
   const totalXP = currentUser ? (currentUser.xp || 0) : parseInt(localStorage.getItem('playerXP') || '0');
   const currentLevel = currentUser ? (currentUser.level || 1) : Math.floor(totalXP / 1000) + 1;
+  const xpForCurrentLevel = (currentLevel - 1) * 1000;
+  const xpInCurrentLevel = totalXP - xpForCurrentLevel;
   const xpNeeded = 1000;
-  const progress = (totalXP / xpNeeded) * 100;
+  const progress = Math.min((xpInCurrentLevel / xpNeeded) * 100, 100);
   
   console.log('[XP Debug] Calculated values:', { totalXP, currentLevel, xpNeeded, progress });
 
@@ -95,7 +97,7 @@ function updateXPDisplay() {
 
   if (totalXPElement) totalXPElement.textContent = totalXP;
   if (currentLevelElement) currentLevelElement.textContent = `Level ${currentLevel}`;
-  if (xpToNextElement) xpToNextElement.textContent = `${totalXP} / ${xpNeeded} XP`;
+  if (xpToNextElement) xpToNextElement.textContent = `${xpInCurrentLevel} / ${xpNeeded} XP`;
   if (xpBarElement) xpBarElement.style.width = `${progress}%`;
 
   console.log('[Achievements Display] Updated XP display', { totalXP, currentLevel, xpNeeded, progress });

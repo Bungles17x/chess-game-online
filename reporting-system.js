@@ -8,22 +8,59 @@ const REPORTS_DIR = path.join(__dirname, 'reports');
 const GAME_REPLAYS_DIR = path.join(__dirname, 'game-replays');
 const ARCHIVED_REPORTS_DIR = path.join(__dirname, 'reports', 'archived');
 const MAX_REPLAY_AGE_DAYS = 30; // Archive replays older than 30 days
-const MAX_REPORTS_PER_USER = 10; // Limit reports per user per day
+const MAX_REPORTS_PER_USER = 100; // Limit reports per user per day
+
+// Debug mode
+let DEBUG_MODE = process.env.REPORT_DEBUG === 'true' || false;
+
+// Debug logging function
+function debugLog(category, message, data = null) {
+  if (!DEBUG_MODE) return;
+
+  const timestamp = new Date().toISOString();
+  const prefix = `[REPORT DEBUG ${category}] ${timestamp}`;
+
+  if (data) {
+    console.log(`${prefix}: ${message}`, data);
+  } else {
+    console.log(`${prefix}: ${message}`);
+  }
+}
+
+// Enable/disable debug mode
+function setDebugMode(enabled) {
+  DEBUG_MODE = enabled;
+  debugLog('SYSTEM', `Debug mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
+}
+
+// Get debug status
+function isDebugEnabled() {
+  return DEBUG_MODE;
+}
 
 // Track report submissions per user
 const userReportCounts = new Map();
 
 // Create necessary directories if they don't exist
 function initializeDirectories() {
+  debugLog('INIT', 'Initializing report directories');
+
   if (!fs.existsSync(REPORTS_DIR)) {
     fs.mkdirSync(REPORTS_DIR, { recursive: true });
+    debugLog('INIT', `Created reports directory: ${REPORTS_DIR}`);
   }
+
   if (!fs.existsSync(GAME_REPLAYS_DIR)) {
     fs.mkdirSync(GAME_REPLAYS_DIR, { recursive: true });
+    debugLog('INIT', `Created game replays directory: ${GAME_REPLAYS_DIR}`);
   }
+
   if (!fs.existsSync(ARCHIVED_REPORTS_DIR)) {
     fs.mkdirSync(ARCHIVED_REPORTS_DIR, { recursive: true });
+    debugLog('INIT', `Created archived reports directory: ${ARCHIVED_REPORTS_DIR}`);
   }
+
+  debugLog('INIT', 'All directories initialized successfully');
 }
 
 // Store reports in memory
@@ -304,6 +341,163 @@ function getGameReplay(replayId) {
   }
 }
 
+// Delete report
+function deleteReport(reportId) {
+  try {
+    const reportPath = path.join(REPORTS_DIR, `${reportId}.json`);
+    if (fs.existsSync(reportPath)) {
+      // Archive instead of delete
+      const archivePath = path.join(ARCHIVED_REPORTS_DIR, `deleted-${reportId}.json`);
+      fs.renameSync(reportPath, archivePath);
+
+      // Remove from memory
+      reports.delete(reportId);
+
+      console.log('Report deleted:', reportId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error deleting report:', error);
+    return false;
+  }
+}
+
+// Get report statistics
+function getReportStatistics() {
+  try {
+    const allReports = getAllReports();
+
+    const stats = {
+      total: allReports.length,
+      byStatus: {},
+      byType: {},
+      byPriority: {},
+      reviewed: 0,
+      pending: 0
+    };
+
+    allReports.forEach(report => {
+      // Count by status
+      if (!stats.byStatus[report.status]) {
+        stats.byStatus[report.status] = 0;
+      }
+      stats.byStatus[report.status]++;
+
+      // Count by type
+      if (!stats.byType[report.reportType]) {
+        stats.byType[report.reportType] = 0;
+      }
+      stats.byType[report.reportType]++;
+
+      // Count by priority
+      if (!stats.byPriority[report.priority]) {
+        stats.byPriority[report.priority] = 0;
+      }
+      stats.byPriority[report.priority]++;
+
+      // Count reviewed vs pending
+      if (report.reviewed) {
+        stats.reviewed++;
+      } else {
+        stats.pending++;
+      }
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting report statistics:', error);
+    return null;
+  }
+}
+
+// Get reports by user
+function getReportsByUser(username) {
+  try {
+    const allReports = getAllReports();
+    return allReports.filter(r => r.reportedBy === username);
+  } catch (error) {
+    console.error('Error getting reports by user:', error);
+    return [];
+  }
+}
+
+// Get reports about user
+function getReportsAboutUser(username) {
+  try {
+    const allReports = getAllReports();
+    return allReports.filter(r => r.opponent === username);
+  } catch (error) {
+    console.error('Error getting reports about user:', error);
+    return [];
+  }
+}
+
+// Add note to report
+function addReportNote(reportId, note, addedBy) {
+  try {
+    const report = getReportById(reportId);
+    if (report) {
+      if (!report.notes) {
+        report.notes = [];
+      }
+
+      report.notes.push({
+        text: note,
+        addedBy: addedBy,
+        addedAt: new Date().toISOString()
+      });
+
+      report.updatedAt = new Date().toISOString();
+
+      const reportPath = path.join(REPORTS_DIR, `${reportId}.json`);
+      fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+      reports.set(reportId, report);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error adding note to report:', error);
+    return false;
+  }
+}
+
+// Get report notes
+function getReportNotes(reportId) {
+  try {
+    const report = getReportById(reportId);
+    if (report && report.notes) {
+      return report.notes;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error getting report notes:', error);
+    return [];
+  }
+}
+
+// Search reports
+function searchReports(query) {
+  try {
+    const allReports = getAllReports();
+    const queryLower = query.toLowerCase();
+
+    return allReports.filter(report => {
+      return (
+        report.reportedBy?.toLowerCase().includes(queryLower) ||
+        report.opponent?.toLowerCase().includes(queryLower) ||
+        report.reason?.toLowerCase().includes(queryLower) ||
+        report.description?.toLowerCase().includes(queryLower) ||
+        report.id?.toLowerCase().includes(queryLower)
+      );
+    });
+  } catch (error) {
+    console.error('Error searching reports:', error);
+    return [];
+  }
+}
+
 // Initialize the reporting system
 initializeDirectories();
 
@@ -317,5 +511,12 @@ module.exports = {
   markReportAsReviewed,
   getGameReplay,
   archiveOldReports,
-  checkUserReportLimit
+  checkUserReportLimit,
+  deleteReport,
+  getReportStatistics,
+  getReportsByUser,
+  getReportsAboutUser,
+  addReportNote,
+  getReportNotes,
+  searchReports
 };

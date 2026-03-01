@@ -116,14 +116,13 @@ async function sendReportNotification(reportData) {
   // Send SMS notification
   const smsSent = await sendSMSNotification(message);
 
-  // Make phone call notification
-  const callMade = await makePhoneCallNotification('New chess game report received. Please check your admin panel.');
+  // Phone call notification removed to avoid rickroll
+  // const callMade = await makePhoneCallNotification('New chess game report received. Please check your admin panel.');
 
-  // Note: Call notification is handled by the client via WebSocket message
+  // Note: Phone call notification removed to avoid rickroll
 
   return {
-    smsSent,
-    callMade
+    smsSent
   };
 }
 

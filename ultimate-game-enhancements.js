@@ -140,12 +140,12 @@ function createRippleEffect(event) {
 // ============================================
 
 // Track last move
-let lastMove = null;
+let ultimateLastMove = null;
 
-// Track moves and update lastMove
+// Track moves and update ultimateLastMove
 function trackMove(move) {
   if (move) {
-    lastMove = {
+    ultimateLastMove = {
       from: move.from,
       to: move.to,
       timestamp: Date.now()
@@ -171,9 +171,9 @@ function highlightLastMove() {
     square.classList.remove('last-move-from', 'last-move-to');
   });
 
-  if (lastMove) {
-    const fromSquare = document.querySelector(`[data-square="${lastMove.from}"]`);
-    const toSquare = document.querySelector(`[data-square="${lastMove.to}"]`);
+  if (ultimateLastMove) {
+    const fromSquare = document.querySelector(`[data-square="${ultimateLastMove.from}"]`);
+    const toSquare = document.querySelector(`[data-square="${ultimateLastMove.to}"]`);
 
     if (fromSquare) fromSquare.classList.add('last-move-from');
     if (toSquare) toSquare.classList.add('last-move-to');

@@ -1,61 +1,68 @@
 // script.js - Enhanced Version
 // Main game logic with improved functionality and error handling
 
-// Load call notification system
-const callNotificationScript = document.createElement('script');
-callNotificationScript.src = 'call-notification.js';
-document.head.appendChild(callNotificationScript);
-
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
-const boardElement = document.getElementById("chessboard");
-const movesList = document.getElementById("moves-list");
-const turnIndicator = document.getElementById("turn-indicator");
-const resetBtn = document.getElementById("reset-btn");
-const themeToggle = document.getElementById("theme-toggle");
-const modeButtons = document.querySelectorAll("[data-mode]");
-const lobbyBtn = document.getElementById("lobby-btn");
-const lobbyModal = document.getElementById("lobby-modal");
-const roomList = document.getElementById("room-list");
-const roomSearchInput = document.getElementById("room-search");
-const createRoomBtn = document.getElementById("create-room-btn");
-const lobbyFriendsList = document.getElementById("lobby-friends-list");
-const tabButtons = document.querySelectorAll(".tab-btn");
-const profileBtn = document.getElementById("profile-btn");
-const saveGameBtn = document.getElementById("save-game-btn");
-const themeBtn = document.getElementById("theme-btn");
-const loginBtn = document.getElementById("login-btn");
-const registerBtn = document.getElementById("register-btn");
-const manageBansBtn = document.getElementById("manage-bans-btn");
-const friendsBtn = document.getElementById("friends-btn");
-const themeModal = document.getElementById("theme-modal");
-const menuBtn = document.getElementById("menu-btn");
-const dropdown = document.querySelector(".dropdown");
-const closeThemeBtn = document.getElementById("close-theme-btn");
-const closeLobbyBtn = document.getElementById("close-lobby-btn");
-const botModeBtn = document.getElementById("bot-mode");
-const onlineModeBtn = document.getElementById("online-mode");
-const checkersModeBtn = document.getElementById("checkers-mode");
-const serverStatusBtn = document.getElementById("server-status-btn");
-const moveSound = document.getElementById("move-sound");
-const captureSound = document.getElementById("capture-sound");
-const connectionLostSound = document.getElementById("connection-lost-sound");
-const reconnectedSound = document.getElementById("reconnected-sound");
-const drawBtn = document.getElementById("draw-btn");
-const resignBtn = document.getElementById("resign-btn");
-const toggleChatBtn = document.getElementById("toggle-chat-btn");
+let boardElement, movesList, turnIndicator, resetBtn, themeToggle, modeButtons;
+let lobbyBtn, lobbyModal, roomList, roomSearchInput, createRoomBtn, lobbyFriendsList, tabButtons;
+let profileBtn, saveGameBtn, themeBtn, loginBtn, registerBtn, manageBansBtn, friendsBtn;
+let themeModal, menuBtn, dropdown, closeThemeBtn, closeLobbyBtn, botModeBtn, onlineModeBtn, checkersModeBtn;
+let serverStatusBtn, moveSound, captureSound, connectionLostSound, reconnectedSound, drawBtn, resignBtn, toggleChatBtn;
+let sendChatBtn, chatInput, chatMessages, chatContainer;
 
-// Connection quality elements
-const connectionQuality = document.getElementById("connection-quality");
-const latencyGraph = document.getElementById("latency-graph");
-const latencyValue = document.getElementById("latency-value");
+// Initialize DOM elements when DOM is ready
+function initializeDOMElements() {
+  boardElement = document.getElementById("chessboard");
+  movesList = document.getElementById("moves-list");
+  turnIndicator = document.getElementById("turn-indicator");
+  resetBtn = document.getElementById("reset-btn");
+  themeToggle = document.getElementById("theme-toggle");
+  modeButtons = document.querySelectorAll("[data-mode]");
+  lobbyBtn = document.getElementById("lobby-btn");
+  lobbyModal = document.getElementById("lobby-modal");
+  roomList = document.getElementById("room-list");
+  roomSearchInput = document.getElementById("room-search");
+  createRoomBtn = document.getElementById("create-room-btn");
+  lobbyFriendsList = document.getElementById("lobby-friends-list");
+  tabButtons = document.querySelectorAll(".tab-btn");
+  profileBtn = document.getElementById("profile-btn");
+  saveGameBtn = document.getElementById("save-game-btn");
+  themeBtn = document.getElementById("theme-btn");
+  loginBtn = document.getElementById("login-btn");
+  registerBtn = document.getElementById("register-btn");
+  manageBansBtn = document.getElementById("manage-bans-btn");
+  friendsBtn = document.getElementById("friends-btn");
+  themeModal = document.getElementById("theme-modal");
+  menuBtn = document.getElementById("menu-btn");
+  dropdown = document.querySelector(".dropdown");
+  closeThemeBtn = document.getElementById("close-theme-btn");
+  closeLobbyBtn = document.getElementById("close-lobby-btn");
+  botModeBtn = document.getElementById("bot-mode");
+  onlineModeBtn = document.getElementById("online-mode");
+  checkersModeBtn = document.getElementById("checkers-mode");
+  serverStatusBtn = document.getElementById("server-status-btn");
+  moveSound = document.getElementById("move-sound");
+  captureSound = document.getElementById("capture-sound");
+  connectionLostSound = document.getElementById("connection-lost-sound");
+  reconnectedSound = document.getElementById("reconnected-sound");
+  drawBtn = document.getElementById("draw-btn");
+  resignBtn = document.getElementById("resign-btn");
+  toggleChatBtn = document.getElementById("toggle-chat-btn");
 
-// Chat elements
-const chatContainer = document.getElementById("chat-container");
-const chatMessages = document.getElementById("chat-messages");
-const chatInput = document.getElementById("chat-input");
-const sendChatBtn = document.getElementById("send-chat-btn");
+  // Connection quality elements
+  const connectionQuality = document.getElementById("connection-quality");
+  const latencyGraph = document.getElementById("latency-graph");
+  const latencyValue = document.getElementById("latency-value");
+
+  // Chat elements
+  chatContainer = document.getElementById("chat-container");
+  chatMessages = document.getElementById("chat-messages");
+  chatInput = document.getElementById("chat-input");
+  sendChatBtn = document.getElementById("send-chat-btn");
+
+  console.log("DOM elements initialized");
+}
 
 // Sound initialization flag
 let audioInitialized = false;
@@ -143,7 +150,6 @@ let currentBoardTheme = "classic"; // Current board theme
 let currentPieceTheme = "classic"; // Current piece theme
 window.moveCount = 0; // Track total moves
 window.captureCount = 0; // Track total captures
-let moveHistory = []; // Store move history for navigation
 let currentMoveIndex = -1; // Current position in move history
 
 const pieceToUnicode = {
@@ -1048,4 +1054,20 @@ function popup(message, color = 'blue') {
   setTimeout(() => {
     popupElement.remove();
   }, 3000);
+}
+
+// Initialize when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeDOMElements();
+    initializeTheme();
+    loadSettings();
+    console.log("script-enhanced.js: DOM loaded and initialized");
+  });
+} else {
+  // DOM is already loaded
+  initializeDOMElements();
+  initializeTheme();
+  loadSettings();
+  console.log("script-enhanced.js: DOM already loaded, initialized immediately");
 }

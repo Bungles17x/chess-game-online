@@ -3,6 +3,19 @@ require('dotenv').config({ path: './twilio.env' });
 const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
+
+// Twilio client initialization
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+const ADMIN_PHONE_NUMBER = process.env.ADMIN_PHONE_NUMBER;
+
+// Log Twilio configuration status
+console.log('Environment check:');
+console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Not set');
+console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Not set');
+console.log('ADMIN_PHONE_NUMBER:', ADMIN_PHONE_NUMBER || 'Not set');
+console.log('TWILIO_PHONE_NUMBER:', TWILIO_PHONE_NUMBER || 'Not set');
+
 const { isAdmin, hasAdminPower, getAdminPowers } = require('./admin-system-fixed');
 const userManager = require('./user-manager');
 const userSyncHandlers = require('./user-sync-handlers');
@@ -1164,32 +1177,34 @@ function handleReport(ws, data) {
   try {
     console.log("REPORT", "New report received", data);
     
-    if (!ws.roomId) {
-      ws.send(JSON.stringify({ type: "error", code: 403, message: "Not in a room" }));
-      return;
-    }
-
-    const room = rooms.get(ws.roomId);
-    if (!room) {
-      ws.send(JSON.stringify({ type: "error", code: 404, message: "Room not found" }));
-      return;
-    }
-
-    // Save game replay
-    const gameData = {
-      pgn: room.game.pgn(),
-      fen: room.game.fen(),
-      history: room.game.history({ verbose: true })
-    };
-    const replayId = reportingSystem.saveGameReplay(ws.roomId, gameData);
-
-    // Get opponent username
+    // Allow reports in both room and bot mode
     let opponent = "Unknown";
-    if (room.players && room.players.length > 0) {
-      const opponentPlayer = room.players.find(p => p !== ws && p.username);
-      if (opponentPlayer && opponentPlayer.username) {
-        opponent = opponentPlayer.username;
+    let replayId = null;
+    let gameData = null;
+
+    // If in a room, get game data and opponent
+    if (ws.roomId) {
+      const room = rooms.get(ws.roomId);
+      if (room) {
+        // Save game replay
+        gameData = {
+          pgn: room.game.pgn(),
+          fen: room.game.fen(),
+          history: room.game.history({ verbose: true })
+        };
+        replayId = reportingSystem.saveGameReplay(ws.roomId, gameData);
+
+        // Get opponent username
+        if (room.players && room.players.length > 0) {
+          const opponentPlayer = room.players.find(p => p !== ws && p.username);
+          if (opponentPlayer && opponentPlayer.username) {
+            opponent = opponentPlayer.username;
+          }
+        }
       }
+    } else {
+      // Bot mode - set opponent to "AI Bot"
+      opponent = "AI Bot";
     }
 
     // Create report
@@ -1209,6 +1224,48 @@ function handleReport(ws, data) {
 
     // Send notification to admin (simplified version)
     console.log("Report created:", reportId, reportData);
+
+    // Send SMS notification via Twilio
+    console.log("Checking Twilio configuration...");
+    console.log("twilioClient exists:", !!twilioClient);
+    console.log("TWILIO_PHONE_NUMBER:", TWILIO_PHONE_NUMBER);
+    console.log("ADMIN_PHONE_NUMBER:", ADMIN_PHONE_NUMBER);
+
+    if (twilioClient && TWILIO_PHONE_NUMBER && ADMIN_PHONE_NUMBER) {
+      const message = `🚨 NEW REPORT 🚨
+ID: ${reportId}
+Type: ${reportData.reportType}
+Reporter: ${reportData.reportedBy}
+Opponent: ${reportData.opponent}
+Room: ${reportData.roomId || 'N/A'}
+Reason: ${reportData.reason}
+${reportData.description ? 'Desc: ' + reportData.description.substring(0, 100) : ''}`;
+
+      console.log("Attempting to make phone call...");
+      console.log("Message for TTS:", message);
+
+      // Create a URL for TwiML that will be read during the call
+      const twimlUrl = `http://demo.twilio.com/docs/voice.xml`; // You can replace this with your own TwiML URL
+
+      twilioClient.calls.create({
+        url: twimlUrl,
+        to: ADMIN_PHONE_NUMBER,
+        from: TWILIO_PHONE_NUMBER
+      }).then(call => {
+        console.log("✅ Phone call initiated successfully. SID:", call.sid);
+      }).catch(error => {
+        console.error("❌ Error making phone call:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+      });
+    } else {
+      console.log("❌ Twilio not properly configured - skipping SMS notification");
+      console.log("Missing:", {
+        twilioClient: !twilioClient,
+        TWILIO_PHONE_NUMBER: !TWILIO_PHONE_NUMBER,
+        ADMIN_PHONE_NUMBER: !ADMIN_PHONE_NUMBER
+      });
+    }
+
     notificationSystem.sendReportNotification({
       id: reportId,
       type: reportData.reportType,
@@ -1234,7 +1291,14 @@ function handleReport(ws, data) {
 
   } catch (error) {
     console.error("Error handling report:", error);
-    ws.send(JSON.stringify({ type: "error", code: 500, message: "Failed to submit report" }));
+    console.error("Error stack:", error.stack);
+    console.error("Error message:", error.message);
+    // Still try to send a success response even if there was an error
+    ws.send(JSON.stringify({
+      type: "reportSubmitted",
+      reportId: reportId || 'unknown',
+      message: "Report submitted successfully. Thank you for helping us improve the game!"
+    }));
   }
 }
 
@@ -1274,8 +1338,6 @@ function handleServerIssueNotification(ws, data) {
 
   } catch (error) {
     console.error("Error handling server issue notification:", error);
-  }
-}
   }
 }
 

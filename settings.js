@@ -1,5 +1,38 @@
 // Settings Page JavaScript
 
+// Initialize secureStorage if not available
+if (typeof secureStorage === 'undefined') {
+  window.secureStorage = {
+    getItem: function(key) {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : null;
+      } catch (e) {
+        console.error('Error reading from secureStorage:', e);
+        return null;
+      }
+    },
+    setItem: function(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (e) {
+        console.error('Error writing to secureStorage:', e);
+        return false;
+      }
+    },
+    removeItem: function(key) {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (e) {
+        console.error('Error removing from secureStorage:', e);
+        return false;
+      }
+    }
+  };
+}
+
 // DOM Elements
 const backToGameBtn = document.getElementById('back-to-game-btn');
 
@@ -194,49 +227,55 @@ function setupEventListeners() {
 function handleLogin(e) {
   e.preventDefault();
 
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  try {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
 
-  // Validate inputs
-  if (!email || !password) {
-    showNotification('Please enter email and password');
-    return;
+    // Validate inputs
+    if (!email || !password) {
+      showNotification('Please enter email and password');
+      return;
+    }
+
+    // Get users from localStorage
+    const users = secureStorage.getItem('chessUsers') || [];
+
+    // Find user by email or username
+    const user = users.find(u => u.email === email || u.username === email);
+
+    if (!user) {
+      showNotification('User not found');
+      return;
+    }
+
+    if (user.password !== password) {
+      showNotification('Incorrect password');
+      return;
+    }
+
+    // Set current user
+    localStorage.setItem('currentUser', JSON.stringify(user));
+
+    // Dispatch login event
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+
+    // Show notification
+    showNotification('Logged in successfully');
+
+    // Update UI
+    checkLoginStatus();
+  } catch (error) {
+    console.error('Login error:', error);
+    showNotification('An error occurred during login. Please try again.');
   }
-
-  // Get users from localStorage
-  const users = secureStorage.getItem('chessUsers') || [];
-
-  // Find user by email or username
-  const user = users.find(u => u.email === email || u.username === email);
-
-  if (!user) {
-    showNotification('User not found');
-    return;
-  }
-
-  if (user.password !== password) {
-    showNotification('Incorrect password');
-    return;
-  }
-
-  // Set current user
-  localStorage.setItem('currentUser', JSON.stringify(user));
-
-  // Dispatch login event
-  window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
-
-  // Show notification
-  showNotification('Logged in successfully');
-
-  // Update UI
-  checkLoginStatus();
 }
 
 // Handle Register
 function handleRegister(e) {
   e.preventDefault();
 
-  const username = document.getElementById('reg-username').value.trim();
+  try {
+    const username = document.getElementById('reg-username').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const confirmPassword = document.getElementById('reg-confirm-password').value;
@@ -304,6 +343,10 @@ function handleRegister(e) {
 
   // Update UI
   checkLoginStatus();
+  } catch (error) {
+    console.error('Registration error:', error);
+    showNotification('An error occurred during registration. Please try again.');
+  }
 }
 
 // Check Login Status
@@ -1404,13 +1447,20 @@ function loadAchievements() {
 }
 
 function updateXPProgress() {
-  const totalXP = parseInt(localStorage.getItem('playerXP') || '0');
-  const currentLevel = calculateLevel(totalXP);
-  const xpForCurrentLevel = getXPForLevel(currentLevel);
-  const xpForNextLevel = getXPForLevel(currentLevel + 1);
+  // Get the current user data
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) {
+    console.warn('[XP Progress] No current user found');
+    return;
+  }
+
+  const totalXP = currentUser.xp || 0;
+  const currentLevel = currentUser.level || 1;
+  const xpForCurrentLevel = (currentLevel - 1) * 1000;
+  const xpForNextLevel = currentLevel * 1000;
   const xpInCurrentLevel = totalXP - xpForCurrentLevel;
-  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
-  const progress = (xpInCurrentLevel / xpNeeded) * 100;
+  const xpNeeded = 1000;
+  const progress = Math.min((xpInCurrentLevel / xpNeeded) * 100, 100);
   
   // Update DOM elements
   const totalXPElement = document.getElementById('settings-total-xp');
@@ -1570,7 +1620,16 @@ function renderRewards() {
           shouldShow = window.achievementsSystem.achievements.perfectGame && window.achievementsSystem.achievements.perfectGame.unlocked;
           break;
         case 'quick_win_reward':
-          shouldShow = window.achievementsSystem.achievements.fourMoveMate && window.achievementsSystem.achievements.fourMoveMate.unlocked;
+          shouldShow = window.achievementsSystem.achievements.perfectGame && window.achievementsSystem.achievements.perfectGame.unlocked;
+          break;
+        case 'scholar_reward':
+          shouldShow = window.achievementsSystem.achievements.comeback && window.achievementsSystem.achievements.comeback.unlocked;
+          break;
+        case 'queen_gambit_reward':
+          shouldShow = window.achievementsSystem.achievements.comeback && window.achievementsSystem.achievements.comeback.unlocked;
+          break;
+        case 'comeback_king_reward':
+          shouldShow = window.achievementsSystem.achievements.comeback && window.achievementsSystem.achievements.comeback.unlocked;
           break;
         default:
           shouldShow = false;

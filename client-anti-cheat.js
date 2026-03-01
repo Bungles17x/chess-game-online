@@ -283,9 +283,22 @@ function detectCheatExtensions() {
   // Check for suspicious intervals
   const originalSetInterval = window.setInterval;
   window.setInterval = function(callback, delay) {
-    if (delay < 100) {
-      debugLog("ANTI-CHEAT", "Suspicious interval detected", { delay });
-      trackSuspiciousActivity('cheat_extension_detected');
+    // Only flag as suspicious if delay is extremely short (< 20ms) and not a known legitimate interval
+    // Exclude common legitimate intervals used by various libraries
+    if (delay < 20 && delay > 0) {
+      // Check if this is a known legitimate interval pattern
+      const callbackStr = callback.toString();
+      const isLegitimate = callbackStr.includes('checkForm') || 
+                          callbackStr.includes('checkElement') ||
+                          callbackStr.includes('poll') ||
+                          callbackStr.includes('retry') ||
+                          callbackStr.includes('animate') ||
+                          callbackStr.includes('update');
+
+      if (!isLegitimate) {
+        debugLog("ANTI-CHEAT", "Suspicious interval detected", { delay });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
     }
     return originalSetInterval.apply(this, arguments);
   };
@@ -293,9 +306,20 @@ function detectCheatExtensions() {
   // Check for suspicious timeouts
   const originalSetTimeout = window.setTimeout;
   window.setTimeout = function(callback, delay) {
-    if (delay < 50) {
-      debugLog("ANTI-CHEAT", "Suspicious timeout detected", { delay });
-      trackSuspiciousActivity('cheat_extension_detected');
+    // Only flag as suspicious if delay is extremely short (< 10ms) and not a known legitimate timeout
+    // Exclude common legitimate timeouts like 0ms, 1ms, etc. used by various libraries
+    if (delay < 10 && delay > 0) {
+      // Check if this is a known legitimate timeout pattern
+      const callbackStr = callback.toString();
+      const isLegitimate = callbackStr.includes('checkForm') || 
+                          callbackStr.includes('checkElement') ||
+                          callbackStr.includes('poll') ||
+                          callbackStr.includes('retry');
+
+      if (!isLegitimate) {
+        debugLog("ANTI-CHEAT", "Suspicious timeout detected", { delay });
+        trackSuspiciousActivity('cheat_extension_detected');
+      }
     }
     return originalSetTimeout.apply(this, arguments);
   };

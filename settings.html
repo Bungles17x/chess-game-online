@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="achievements-system.css" />
   <link rel="stylesheet" href="enhanced-rewards.css" />
   <link rel="stylesheet" href="enhanced-achievements.css" />
+  <link rel="stylesheet" href="tutorial-mode.css" />
+  <link rel="stylesheet" href="practice-tutorial.css" />
+  <link rel="stylesheet" href="interactive-practice.css" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -266,6 +269,27 @@
         </div>
       </section>
 
+      <!-- Tutorial Mode Section -->
+      <section class="settings-section" id="tutorial-section">
+        <h2>Tutorial Mode</h2>
+        <div class="tutorial-options">
+          <button id="tutorial-basics-btn" class="tutorial-btn">
+            <span class="tutorial-icon">📚</span>
+            <span>Learn Basics</span>
+          </button>
+          <button id="tutorial-strategies-btn" class="tutorial-btn">
+            <span class="tutorial-icon">🎯</span>
+            <span>Learn Strategies</span>
+          </button>
+        </div>
+        <div class="tutorial-progress">
+          <div class="progress-label">Progress</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="tutorial-progress"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- Game Settings Section -->
       <section class="settings-section" id="game-section">
         <h2>Game Settings</h2>
@@ -377,25 +401,12 @@
   <!-- Scripts -->
   <script src="encryption.js"></script>
   <script src="comprehensive-fix.js"></script>
-  <script src="reset-season-to-one.js"></script>
   <script src="settings-socket.js"></script>
   <script src="auth.js"></script>
   <script src="user-sync-client.js"></script>
   <script src="achievements-system.js"></script>
-  <script src="xp-level-fix.js"></script>
-  <script src="xp-display-fix.js"></script>
-  <script src="xp-debugger.js"></script>
-  <script src="xp-progress-fix.js"></script>
-  <script src="achievements-xp-fix.js"></script>
-  <script src="xp-reset.js"></script>
   <script src="season-countdown.js"></script>
   <script src="season-end-auto-commit-fixed.js"></script>
-  <script src="achievements-fix.js"></script>
-  <script src="game-integration-fix.js"></script>
-  <script src="achievements-display-fix.js"></script>
-  <script src="achievements-xp-display-fix.js"></script>
-  <script src="achievements-init.js"></script>
-  <script src="test-achievements.js"></script>
   <script src="settings.js"></script>
   <script src="tts-system.js"></script>
   <script src="screen-reader-simple.js"></script>
@@ -404,5 +415,12 @@
   <script src="enhanced-ui-components-v2.js"></script>
   <script src="extreme-ai-analysis.js"></script>
   <script src="extreme-visual-effects.js"></script>
+  <script src="tutorial-mode-fixed.js"></script>
+  <script src="practice-tutorial.js"></script>
+  <script src="interactive-practice.js"></script>
+  <script src="report-debug.js"></script>
+  <script src="report-debug-init.js"></script>
+  <script src="report-form-fix.js"></script>
+  <script src="comprehensive-report-fix.js"></script>
 </body>
 </html>

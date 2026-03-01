@@ -469,7 +469,9 @@ function updateStats(result) {
   xpNotificationScript.onload = () => {
     if (typeof showXPNotification === 'function') {
       const xpGained = result === 'win' ? 100 : result === 'loss' ? 25 : 50;
-      showXPNotification(xpGained, result, playerData.xp, xpNeeded, playerData.level);
+      // Calculate XP in current level for the notification
+      const xpInCurrentLevel = playerData.xp - ((playerData.level - 1) * 1000);
+      showXPNotification(xpGained, result, xpInCurrentLevel, 1000, playerData.level);
     }
   };
 

@@ -254,11 +254,16 @@ function analyzeAndShowFeedback(game, move) {
       // Show feedback popup
       showMoveFeedback(feedback, quality);
 
-      // Award XP for the move
+      // Award XP for the move (only for player, not bot)
       const xpReward = XP_REWARDS[quality];
       console.log('XP reward:', xpReward);
 
-      if (xpReward > 0) {
+      // Only award XP for the player's moves (white in bot mode)
+      const gameMode = window.gameMode || 'bot';
+      const playerColor = gameMode === 'bot' ? 'w' : 'w'; // Default to white for now
+      const movedColor = game.turn() === 'w' ? 'b' : 'w';
+      
+      if (xpReward > 0 && movedColor === playerColor) {
         awardMoveXP(xpReward, quality);
       }
     });
@@ -362,12 +367,9 @@ function awardMoveXP(amount, quality) {
     const oldLevel = playerData.level;
     playerData.xp += amount;
 
-    // Check for level up
-    const xpNeeded = 1000 * playerData.level + 500 * Math.max(0, playerData.level - 1);
-    while (playerData.xp >= xpNeeded) {
-      playerData.level++;
-      playerData.xp -= xpNeeded;
-    }
+    // Check for level up - simple formula: 1000 XP per level
+    const newLevel = Math.floor(playerData.xp / 1000) + 1;
+    playerData.level = newLevel;
 
     // Save player data
     localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
@@ -384,12 +386,9 @@ function awardMoveXP(amount, quality) {
       // Add XP to currentUser
       currentUser.xp += amount;
 
-      // Check for level up
-      const xpNeeded = 1000 * currentUser.level + 500 * Math.max(0, currentUser.level - 1);
-      while (currentUser.xp >= xpNeeded) {
-        currentUser.level++;
-        currentUser.xp -= xpNeeded;
-      }
+      // Check for level up - simple formula: 1000 XP per level
+      const newLevel = Math.floor(currentUser.xp / 1000) + 1;
+      currentUser.level = newLevel;
 
       // Update stats
       if (currentUser.stats.movesPlayed === undefined) {
@@ -402,7 +401,25 @@ function awardMoveXP(amount, quality) {
       console.log('Current user updated:', currentUser);
 
       // Also update in chessUsers array
-      const users = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+      let users = [];
+      try {
+        const chessUsersData = localStorage.getItem("chessUsers");
+        if (chessUsersData) {
+          // Validate that it's valid JSON before parsing
+          if (chessUsersData.trim().startsWith('[') || chessUsersData.trim().startsWith('{')) {
+            users = JSON.parse(chessUsersData);
+          } else {
+            console.warn('Invalid chessUsers data in localStorage, resetting to empty array');
+            localStorage.setItem("chessUsers", JSON.stringify([]));
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing chessUsers:', error);
+        // Reset to empty array if there's an error
+        localStorage.setItem("chessUsers", JSON.stringify([]));
+        users = [];
+      }
+
       const userIndex = users.findIndex(u => u.username === currentUser.username);
       if (userIndex !== -1) {
         users[userIndex] = currentUser;
@@ -445,24 +462,40 @@ function awardMoveXP(amount, quality) {
           notificationType = 'loss';
         }
 
-        showXPNotification(amount, notificationType, playerData.xp, xpNeeded, playerData.level);
+        // Use currentUser for the notification since that's what's displayed
+        const xpInCurrentLevel = currentUser.xp - ((currentUser.level - 1) * 1000);
+        showXPNotification(amount, notificationType, xpInCurrentLevel, 1000, currentUser.level);
       } else {
         console.log('showXPNotification not available');
       }
     }, 100);
 
     // If level changed, show animation
-    if (playerData.level > oldLevel) {
+    if (currentUser.level > oldLevel) {
       setTimeout(() => {
-        if (typeof showLevelUpAnimation === 'function') {
-          showLevelUpAnimation(oldLevel, playerData.level);
+        // Load level-up.js if not available
+        if (typeof showLevelUpAnimation !== 'function') {
+          const levelUpScript = document.createElement('script');
+          levelUpScript.src = 'level-up.js';
+          document.head.appendChild(levelUpScript);
+          levelUpScript.onload = () => {
+            if (typeof showLevelUpAnimation === 'function') {
+              showLevelUpAnimation(oldLevel, currentUser.level);
+            }
+          };
         } else {
-          console.log('showLevelUpAnimation not available');
+          showLevelUpAnimation(oldLevel, currentUser.level);
         }
       }, 200);
     }
   } catch (error) {
-    console.error('Error in awardMoveXP:', error);
+    console.error('Error in awardMoveXP:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      amount: amount,
+      quality: quality
+    });
   }
 }
 
