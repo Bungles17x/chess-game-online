@@ -131,14 +131,19 @@ function checkRateLimit(ws, username) {
 
 // Validate message structure
 function validateMessage(message) {
+  console.log('[Validate Message] Received:', message);
+  
   if (!message || typeof message !== 'object') {
+    console.log('[Validate Message] Failed: not an object');
     return false;
   }
 
   if (!message.type || typeof message.type !== 'string') {
+    console.log('[Validate Message] Failed: invalid type');
     return false;
   }
 
+  console.log('[Validate Message] Passed for type:', message.type);
   return true;
 }
 
@@ -195,7 +200,9 @@ wss.on('connection', (ws) => {
   // Handle incoming messages
   ws.on('message', (message) => {
     try {
+      console.log('[Message Handler] Raw message:', message.toString());
       const data = JSON.parse(message);
+      console.log('[Message Handler] Parsed data:', data);
 
       // Validate message structure
       if (!validateMessage(data)) {
@@ -223,8 +230,10 @@ wss.on('connection', (ws) => {
       }
 
       // Handle different message types
+      console.log('[Switch] Processing message type:', data.type);
       switch (data.type) {
         case 'login':
+          console.log('[Switch] Handling login');
           handleLogin(ws, clientId, data);
           break;
         case 'register':
