@@ -237,33 +237,55 @@ function handleLogin(e) {
       return;
     }
 
-    // Get users from localStorage
-    const users = secureStorage.getItem('chessUsers') || [];
-
-    // Find user by email or username
-    const user = users.find(u => u.email === email || u.username === email);
-
-    if (!user) {
-      showNotification('User not found');
+    // Check if WebSocket is connected
+    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+      showNotification('Not connected to server. Please check your connection.');
       return;
     }
 
-    if (user.password !== password) {
-      showNotification('Incorrect password');
-      return;
-    }
+    // Send login request to server
+    window.socket.send(JSON.stringify({
+      type: 'login',
+      email: email,
+      password: password
+    }));
 
-    // Set current user
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    // Listen for login response
+    const handleLoginResponse = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'loginSuccess') {
+        // Use user data from server response
+        const user = data.userData || {
+          username: data.username,
+          email: email
+        };
+        
+        // Set current user
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // Dispatch login event
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+        
+        // Show notification
+        showNotification('Logged in successfully');
+        
+        // Update UI
+        checkLoginStatus();
+      } else if (data.type === 'error') {
+        showNotification(data.message || 'Login failed');
+      }
+      
+      // Remove the event listener
+      window.socket.removeEventListener('message', handleLoginResponse);
+    };
 
-    // Dispatch login event
-    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
-
-    // Show notification
-    showNotification('Logged in successfully');
-
-    // Update UI
-    checkLoginStatus();
+    window.socket.addEventListener('message', handleLoginResponse);
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      window.socket.removeEventListener('message', handleLoginResponse);
+    }, 10000);
   } catch (error) {
     console.error('Login error:', error);
     showNotification('An error occurred during login. Please try again.');

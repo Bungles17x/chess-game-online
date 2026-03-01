@@ -323,8 +323,77 @@ wss.on('connection', (ws) => {
 
 // Handle login
 function handleLogin(ws, clientId, data) {
-  const { username } = data;
+  const { username, email, password } = data;
 
+  // Support both username-only and email/password login
+  if (email && password) {
+    // Email/password login
+    const user = userManager.getUserByEmail(email);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'User not found'
+      }));
+      return;
+    }
+
+    if (user.password !== password) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Incorrect password'
+      }));
+      return;
+    }
+
+    // Check if user is banned
+    const bannedUser = bannedUsers.get(user.username.toLowerCase());
+    if (bannedUser) {
+      // Check if ban is permanent or not expired
+      let isBanned = false;
+      if (!bannedUser.duration) {
+        isBanned = true;
+      } else {
+        let expiryTime;
+        if (bannedUser.unit === 'hours') {
+          expiryTime = bannedUser.bannedAt + (bannedUser.duration * 60 * 60 * 1000);
+        } else {
+          expiryTime = bannedUser.bannedAt + (bannedUser.duration * 24 * 60 * 60 * 1000);
+        }
+        isBanned = Date.now() <= expiryTime;
+      }
+
+      if (isBanned) {
+        ws.send(JSON.stringify({
+          type: 'userBanned',
+          username: bannedUser.username,
+          reason: bannedUser.reason,
+          duration: bannedUser.duration,
+          unit: bannedUser.unit,
+          bannedAt: bannedUser.bannedAt
+        }));
+        return;
+      } else {
+        // Ban has expired, remove it
+        bannedUsers.delete(user.username.toLowerCase());
+      }
+    }
+
+    // Update client
+    const client = clients.get(clientId);
+    if (client) {
+      client.username = user.username;
+    }
+
+    // Send success message with user data
+    ws.send(JSON.stringify({
+      type: 'loginSuccess',
+      username: user.username,
+      userData: user
+    }));
+    return;
+  }
+
+  // Username-only login (original behavior)
   if (!username || username.length < 3) {
     ws.send(JSON.stringify({
       type: 'error',
