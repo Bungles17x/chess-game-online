@@ -158,7 +158,7 @@ let reconnectAttempts = 0;
 // Removed MAX_RECONNECT_ATTEMPTS to allow continuous reconnection
 const RECONNECT_INTERVAL = 2000;
 let roomUpdateInterval = null;
-let isDisconnected = localStorage.getItem('isDisconnected') === 'true'; // Flag to track if we're disconnected, persisted across page refreshes
+let isDisconnected = false; // Flag to track if we're disconnected, will be checked on page load
 let noConnectionTimeout = null; // Store the timeout ID so we can cancel it
 
 // WebSocket configuration
@@ -2469,11 +2469,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (lobbyBtn) lobbyBtn.disabled = false;
   }
 
-  // Show no connection screen if user was disconnected
-  if (isDisconnected) {
-    debugLog("INIT", "User was disconnected, showing no connection screen");
-    showNoConnectionScreen();
-  }
+  // Check actual internet connection on page load
+  checkInternetConnection().then(isOnline => {
+    if (isOnline) {
+      debugLog("INIT", "Internet connection detected");
+      isDisconnected = false;
+      localStorage.setItem('isDisconnected', 'false');
+      updateConnectionStatus(true);
+      hideNoConnectionScreen();
+    } else {
+      debugLog("INIT", "No internet connection detected");
+      isDisconnected = true;
+      localStorage.setItem('isDisconnected', 'true');
+      updateConnectionStatus(false);
+      showNoConnectionScreen();
+    }
+  });
   
   // Check if there's a loaded game to replay
   const loadedGame = JSON.parse(localStorage.getItem("loadedGame") || "null");
