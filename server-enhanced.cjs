@@ -232,6 +232,10 @@ wss.on('connection', (ws) => {
       // Handle different message types
       console.log('[Switch] Processing message type:', data.type);
       switch (data.type) {
+        case 'authenticate':
+          console.log('[Switch] Handling authenticate');
+          handleAuthenticate(ws, clientId, data);
+          break;
         case 'login':
           console.log('[Switch] Handling login');
           handleLogin(ws, clientId, data);
@@ -298,6 +302,22 @@ wss.on('connection', (ws) => {
           break;
         case 'ping':
           handlePing(ws);
+          break;
+        case 'syncUserData':
+          console.log('[Switch] Handling syncUserData');
+          handleSyncUserData(ws, clientId, data);
+          break;
+        case 'syncFriends':
+          console.log('[Switch] Handling syncFriends');
+          handleSyncFriends(ws, clientId);
+          break;
+        case 'syncSavedGames':
+          console.log('[Switch] Handling syncSavedGames');
+          handleSyncSavedGames(ws, clientId);
+          break;
+        case 'reportSystemFix':
+          console.log('[Switch] Handling reportSystemFix');
+          handleReportSystemFix(ws, data);
           break;
         default:
           console.warn('Unknown message type:', data.type);
@@ -862,6 +882,113 @@ function handleGetRooms(ws) {
 function handlePing(ws) {
   ws.send(JSON.stringify({
     type: 'pong'
+  }));
+}
+
+// Handle authenticate
+function handleAuthenticate(ws, clientId, data) {
+  const { username } = data;
+  
+  // Check if user exists
+  const user = userManager.getUser(username);
+  if (!user) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'User not found'
+    }));
+    return;
+  }
+  
+  // Update client
+  const client = clients.get(clientId);
+  if (client) {
+    client.username = user.username;
+  }
+  
+  // Send success message
+  ws.send(JSON.stringify({
+    type: 'authenticated',
+    username: user.username,
+    userData: user
+  }));
+  
+  console.log('User authenticated:', username);
+}
+
+// Handle syncUserData
+function handleSyncUserData(ws, clientId, data) {
+  const { userData } = data;
+  
+  if (!userData || !userData.username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Invalid user data'
+    }));
+    return;
+  }
+  
+  // Update user data
+  userManager.updateUser(userData.username, userData);
+  
+  ws.send(JSON.stringify({
+    type: 'userDataSynced',
+    userData: userData
+  }));
+  
+  console.log('User data synced:', userData.username);
+}
+
+// Handle syncFriends
+function handleSyncFriends(ws, clientId) {
+  const client = clients.get(clientId);
+  if (!client || !client.username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Not authenticated'
+    }));
+    return;
+  }
+  
+  const user = userManager.getUser(client.username);
+  const friends = user.friends || [];
+  
+  ws.send(JSON.stringify({
+    type: 'friendsSynced',
+    friends: friends
+  }));
+  
+  console.log('Friends synced for:', client.username);
+}
+
+// Handle syncSavedGames
+function handleSyncSavedGames(ws, clientId) {
+  const client = clients.get(clientId);
+  if (!client || !client.username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Not authenticated'
+    }));
+    return;
+  }
+  
+  const user = userManager.getUser(client.username);
+  const savedGames = user.savedGames || [];
+  
+  ws.send(JSON.stringify({
+    type: 'savedGamesSynced',
+    savedGames: savedGames
+  }));
+  
+  console.log('Saved games synced for:', client.username);
+}
+
+// Handle reportSystemFix
+function handleReportSystemFix(ws, data) {
+  console.log('[Report System Fix] Message:', data.message);
+  
+  ws.send(JSON.stringify({
+    type: 'reportSystemFixAck',
+    message: 'Report system fix acknowledged'
   }));
 }
 
