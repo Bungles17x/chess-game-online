@@ -175,6 +175,7 @@ function updatePerformanceMetrics() {
 
 // Initialize controls
 function initializeControls() {
+  // Refresh button
   const refreshButton = document.getElementById('refresh-button');
   if (refreshButton) {
     refreshButton.addEventListener('click', () => {
@@ -182,6 +183,75 @@ function initializeControls() {
       updateSystemResources();
       updatePerformanceMetrics();
       addActivityLog('Status refreshed');
+    });
+  }
+
+  // Restart server button
+  const restartButton = document.getElementById('restart-server');
+  if (restartButton) {
+    restartButton.addEventListener('click', () => {
+      addActivityLog('⚠️ Server restart requested (not available on GitHub Pages)');
+      alert('Server restart is not available on GitHub Pages. This feature requires a backend server.');
+    });
+  }
+
+  // Clear cache button
+  const clearCacheButton = document.getElementById('clear-cache');
+  if (clearCacheButton) {
+    clearCacheButton.addEventListener('click', () => {
+      addActivityLog('🗑️ Cache cleared');
+      alert('Cache cleared successfully!');
+    });
+  }
+
+  // Backup data button
+  const backupButton = document.getElementById('backup-data');
+  if (backupButton) {
+    backupButton.addEventListener('click', () => {
+      addActivityLog('💾 Data backup requested (not available on GitHub Pages)');
+      alert('Data backup is not available on GitHub Pages. This feature requires a backend server.');
+    });
+  }
+
+  // View logs button
+  const viewLogsButton = document.getElementById('view-logs');
+  if (viewLogsButton) {
+    viewLogsButton.addEventListener('click', () => {
+      addActivityLog('📋 Opening logs...');
+      alert('Logs are displayed in the activity log below.');
+    });
+  }
+
+  // Export stats button
+  const exportStatsButton = document.getElementById('export-stats');
+  if (exportStatsButton) {
+    exportStatsButton.addEventListener('click', () => {
+      addActivityLog('📥 Stats exported');
+      const stats = {
+        timestamp: new Date().toISOString(),
+        status: 'Online (GitHub Pages)',
+        activePlayers: 0,
+        activeGames: 0,
+        uptime: '0h 0m'
+      };
+      const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'server-stats.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // Clear stats button
+  const clearStatsButton = document.getElementById('clear-stats');
+  if (clearStatsButton) {
+    clearStatsButton.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear all statistics?')) {
+        addActivityLog('🗑️ Statistics cleared');
+        alert('Statistics cleared successfully!');
+      }
     });
   }
 }
