@@ -72,7 +72,12 @@ function setupPhoneForm() {
     }
 
     // Check if phone matches user's phone (if stored)
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    let users = [];
+    if (typeof secureStorage !== 'undefined') {
+      users = secureStorage.getItem('chessUsers') || [];
+    } else {
+      users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    }
     const user = users.find(u => u.email === userEmail);
 
     if (user && user.phone && user.phone !== phone) {
@@ -151,12 +156,21 @@ function setupResetForm() {
     }
 
     // Update user password
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    let users = [];
+    if (typeof secureStorage !== 'undefined') {
+      users = secureStorage.getItem('chessUsers') || [];
+    } else {
+      users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    }
     const userIndex = users.findIndex(u => u.email === userEmail);
 
     if (userIndex !== -1) {
       users[userIndex].password = newPassword;
-      secureStorage.setItem('chessUsers', users);
+      if (typeof secureStorage !== 'undefined') {
+        secureStorage.setItem('chessUsers', users);
+      } else {
+        localStorage.setItem('chessUsers', JSON.stringify(users));
+      }
     }
 
     // Clear reset data
@@ -242,7 +256,12 @@ function trackPasswordResetRequest(email, phone, code) {
     const requests = JSON.parse(localStorage.getItem('passwordResetRequests') || '[]');
     
     // Get user info
-    const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    let users = [];
+    if (typeof secureStorage !== 'undefined') {
+      users = secureStorage.getItem('chessUsers') || [];
+    } else {
+      users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+    }
     const user = users.find(u => u.email === email);
     
     // Create new request

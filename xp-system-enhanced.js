@@ -173,28 +173,37 @@ if (window.xpSystemLoaded) {
   // Save user data to localStorage
   function saveUserData(user) {
     try {
-      // Save to currentUser
+      // Save to currentUser (unencrypted for easy access)
       localStorage.setItem("currentUser", JSON.stringify(user));
 
-      // Also save to chessUsers array - handle encrypted/corrupted data
+      // Also save to chessUsers array using secureStorage
       let users = [];
       try {
-        const chessUsersData = localStorage.getItem("chessUsers");
-        if (chessUsersData) {
-          users = JSON.parse(chessUsersData);
+        if (typeof secureStorage !== 'undefined') {
+          users = secureStorage.getItem("chessUsers") || [];
+        } else {
+          // Fallback to regular localStorage if secureStorage not available
+          const chessUsersData = localStorage.getItem("chessUsers");
+          if (chessUsersData) {
+            users = JSON.parse(chessUsersData);
+          }
         }
       } catch (e) {
-        console.warn('[XP System] Failed to parse chessUsers, using empty array:', e.message);
+        console.warn('[XP System] Failed to get chessUsers, using empty array:', e.message);
         users = [];
       }
       
       const userIndex = users.findIndex(u => u.id === user.id);
       if (userIndex !== -1) {
         users[userIndex] = user;
-        localStorage.setItem("chessUsers", JSON.stringify(users));
+        if (typeof secureStorage !== 'undefined') {
+          secureStorage.setItem("chessUsers", users);
+        } else {
+          localStorage.setItem("chessUsers", JSON.stringify(users));
+        }
       }
 
-      // Also save to chessPlayerData for backward compatibility
+      // Also save to chessPlayerData for backward compatibility (unencrypted)
       let playerData = {};
       try {
         const playerDataStr = localStorage.getItem("chessPlayerData");

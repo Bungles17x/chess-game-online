@@ -10,7 +10,12 @@ function clearOldEncryptedData() {
     const chessUsers = localStorage.getItem('chessUsers');
     if (chessUsers) {
       try {
-        JSON.parse(chessUsers);
+        // Check if it's encrypted (contains salt separator)
+        if (!chessUsers.includes('.')) {
+          // Not encrypted, try to parse as JSON
+          JSON.parse(chessUsers);
+        }
+        // If it's encrypted or valid JSON, keep it
       } catch (error) {
         console.log('[User Sync] Found corrupted chessUsers data, clearing it...');
         localStorage.removeItem('chessUsers');
@@ -347,20 +352,32 @@ class UserSyncManager {
 
     // Update in chessUsers array
     try {
-      const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+      let users = [];
+      if (typeof secureStorage !== 'undefined') {
+        users = secureStorage.getItem('chessUsers') || [];
+      } else {
+        users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+      }
       const userIndex = users.findIndex(u => u.username === userData.username);
       if (userIndex !== -1) {
         users[userIndex] = userData;
-        localStorage.setItem('chessUsers', JSON.stringify(users));
       } else {
         // Add user if not found
         users.push(userData);
+      }
+      if (typeof secureStorage !== 'undefined') {
+        secureStorage.setItem('chessUsers', users);
+      } else {
         localStorage.setItem('chessUsers', JSON.stringify(users));
       }
     } catch (error) {
       console.error('[User Sync] Error updating chessUsers:', error);
       // Clear corrupted data and start fresh
-      localStorage.setItem('chessUsers', JSON.stringify([userData]));
+      if (typeof secureStorage !== 'undefined') {
+        secureStorage.setItem('chessUsers', [userData]);
+      } else {
+        localStorage.setItem('chessUsers', JSON.stringify([userData]));
+      }
     }
 
     // Only trigger profile updated event if not syncing
@@ -378,11 +395,20 @@ class UserSyncManager {
 
         // Update in chessUsers array
         try {
-          const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          let users = [];
+          if (typeof secureStorage !== 'undefined') {
+            users = secureStorage.getItem('chessUsers') || [];
+          } else {
+            users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          }
           const userIndex = users.findIndex(u => u.username === currentUser.username);
           if (userIndex !== -1) {
             users[userIndex].friends = friends;
-            localStorage.setItem('chessUsers', JSON.stringify(users));
+            if (typeof secureStorage !== 'undefined') {
+              secureStorage.setItem('chessUsers', users);
+            } else {
+              localStorage.setItem('chessUsers', JSON.stringify(users));
+            }
           }
         } catch (error) {
           console.error('[User Sync] Error updating chessUsers for friends:', error);
@@ -405,11 +431,20 @@ class UserSyncManager {
 
         // Update in chessUsers array
         try {
-          const users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          let users = [];
+          if (typeof secureStorage !== 'undefined') {
+            users = secureStorage.getItem('chessUsers') || [];
+          } else {
+            users = JSON.parse(localStorage.getItem('chessUsers') || '[]');
+          }
           const userIndex = users.findIndex(u => u.username === currentUser.username);
           if (userIndex !== -1) {
             users[userIndex].savedGames = savedGames;
-            localStorage.setItem('chessUsers', JSON.stringify(users));
+            if (typeof secureStorage !== 'undefined') {
+              secureStorage.setItem('chessUsers', users);
+            } else {
+              localStorage.setItem('chessUsers', JSON.stringify(users));
+            }
           }
         } catch (error) {
           console.error('[User Sync] Error updating chessUsers for saved games:', error);

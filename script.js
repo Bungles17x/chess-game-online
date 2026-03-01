@@ -4756,7 +4756,11 @@ function updateGameStatistics() {
       
       // Save updated user data
       users[userIndex] = user;
-      localStorage.setItem("chessUsers", JSON.stringify(users));
+      if (typeof secureStorage !== 'undefined') {
+        secureStorage.setItem("chessUsers", users);
+      } else {
+        localStorage.setItem("chessUsers", JSON.stringify(users));
+      }
       localStorage.setItem("currentUser", JSON.stringify(user));
     }
   } else {

@@ -596,7 +596,12 @@ function addFriend(username) {
     }
 
     // Get friend's avatar from registered users
-    const allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+    let allUsers = [];
+    if (typeof secureStorage !== 'undefined') {
+      allUsers = secureStorage.getItem("chessUsers") || [];
+    } else {
+      allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+    }
     const friendUser = allUsers.find(user => user.username === username);
     const friendAvatar = friendUser ? friendUser.avatar : '♟';
 
@@ -677,7 +682,12 @@ function validateUsername(username, callback) {
   }
 
   // Check against all registered users in localStorage
-  const allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+  let allUsers = [];
+  if (typeof secureStorage !== 'undefined') {
+    allUsers = secureStorage.getItem("chessUsers") || [];
+  } else {
+    allUsers = JSON.parse(localStorage.getItem("chessUsers") || "[]");
+  }
   const userExists = allUsers.some(user => user.username === username);
   
   if (userExists) {
