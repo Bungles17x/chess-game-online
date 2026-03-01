@@ -283,6 +283,12 @@ function updateServerStatus(customData = null) {
   if (statusElement) {
     statusElement.textContent = statusData.status;
     statusElement.className = statusData.status === 'Online' ? 'status-online' : 'status-offline';
+    
+    // Update debugger state based on server status
+    if (debuggerState) {
+      debuggerState.isOffline = statusData.status !== 'Online';
+      updateDebuggerStatus();
+    }
   }
 
   if (errorElement) {
@@ -626,7 +632,34 @@ const debuggerState = {
   showTimestamp: true,
   showCategory: true,
   filter: 'all',
-  maxLogs: 1000
+  maxLogs: 1000,
+  bookmarks: [],
+  selectedLogId: null,
+  searchTerm: '',
+  highlightedLogs: new Set(),
+  logLevels: {
+    info: true,
+    warning: true,
+    error: true,
+    success: true
+  },
+  timeRange: {
+    enabled: false,
+    start: null,
+    end: null
+  },
+  statistics: {
+    totalLogs: 0,
+    errors: 0,
+    warnings: 0,
+    info: 0,
+    success: 0,
+    avgResponseTime: 0,
+    maxResponseTime: 0,
+    minResponseTime: 0
+  },
+  hasError: false,
+  isOffline: false
 };
 
 // Log categories
@@ -644,6 +677,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeDebugger() {
   console.log('[Debugger] Initializing...');
+
+  // Monitor online/offline status
+  window.addEventListener('online', () => {
+    debuggerState.isOffline = false;
+    addDebuggerLog('Connection restored - Online', LogCategory.SUCCESS);
+    updateDebuggerStatus();
+  });
+
+  window.addEventListener('offline', () => {
+    debuggerState.isOffline = true;
+    addDebuggerLog('Connection lost - Offline', LogCategory.ERROR);
+    updateDebuggerStatus();
+  });
   
   // Get debugger elements
   const pauseBtn = document.getElementById('debugger-pause');
@@ -663,10 +709,12 @@ function initializeDebugger() {
     pauseBtn.addEventListener('click', () => {
       debuggerState.paused = !debuggerState.paused;
       pauseBtn.textContent = debuggerState.paused ? '▶️' : '⏸️';
-      addDebuggerLog(
-        debuggerState.paused ? 'Debugger paused' : 'Debugger resumed',
-        LogCategory.INFO
-      );
+      
+      // Only log if resuming (not pausing)
+      if (!debuggerState.paused) {
+        addDebuggerLog('Debugger resumed', LogCategory.INFO);
+      }
+      
       updateDebuggerStatus();
     });
   }
@@ -689,6 +737,7 @@ function initializeDebugger() {
       searchInput.value = '';
       renderDebuggerLogs();
     });
+  }
   
   // Search input
   if (searchInput) {
@@ -757,27 +806,63 @@ function initializeDebugger() {
   console.log('[Debugger] Initialized');
 }
 
-function addDebuggerLog(message, category = LogCategory.INFO) {
+function addDebuggerLog(message, category = LogCategory.INFO, metadata = {}) {
   if (debuggerState.paused) {
     return;
   }
   
+  const timestamp = new Date();
   const log = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
+    id: Date.now() + Math.random(),
+    timestamp: timestamp.toISOString(),
+    timestampMs: timestamp.getTime(),
     message: message,
-    category: category
+    category: category,
+    metadata: metadata,
+    bookmarked: false,
+    highlighted: false,
+    responseTime: metadata.responseTime || null,
+    source: metadata.source || 'system'
   };
   
   debuggerState.logs.push(log);
   
+  // Update statistics
+  debuggerState.statistics.totalLogs++;
+  if (category === LogCategory.ERROR) {
+    debuggerState.statistics.errors++;
+    debuggerState.hasError = true;
+  }
+  if (category === LogCategory.WARNING) debuggerState.statistics.warnings++;
+  if (category === LogCategory.INFO) debuggerState.statistics.info++;
+  if (category === LogCategory.SUCCESS) debuggerState.statistics.success++;
+  
+  if (metadata.responseTime) {
+    debuggerState.statistics.avgResponseTime = 
+      (debuggerState.statistics.avgResponseTime * (debuggerState.statistics.totalLogs - 1) + metadata.responseTime) / 
+      debuggerState.statistics.totalLogs;
+    debuggerState.statistics.maxResponseTime = 
+      Math.max(debuggerState.statistics.maxResponseTime, metadata.responseTime);
+    debuggerState.statistics.minResponseTime = 
+      debuggerState.statistics.minResponseTime === 0 
+        ? metadata.responseTime 
+        : Math.min(debuggerState.statistics.minResponseTime, metadata.responseTime);
+  }
+  
   // Keep only maxLogs
   if (debuggerState.logs.length > debuggerState.maxLogs) {
-    debuggerState.logs.shift();
+    const removedLog = debuggerState.logs.shift();
+    // Remove bookmark if it existed
+    debuggerState.bookmarks = debuggerState.bookmarks.filter(id => id !== removedLog.id);
   }
   
   renderDebuggerLogs();
   updateDebuggerStats();
+  
+  // Auto-highlight if search term matches
+  if (debuggerState.searchTerm && message.toLowerCase().includes(debuggerState.searchTerm.toLowerCase())) {
+    highlightLog(log.id);
+  }
 }
 
 function renderDebuggerLogs() {
@@ -787,35 +872,126 @@ function renderDebuggerLogs() {
   // Get filter and search values
   const filter = debuggerState.filter;
   const searchTerm = document.getElementById('debugger-search-input')?.value.toLowerCase() || '';
+  debuggerState.searchTerm = searchTerm;
   
   // Filter logs
   let filteredLogs = debuggerState.logs.filter(log => {
+    // Filter by category
     if (filter !== 'all' && log.category !== filter) {
       return false;
     }
+    
+    // Filter by log levels
+    if (!debuggerState.logLevels[log.category]) {
+      return false;
+    }
+    
+    // Filter by search term
     if (searchTerm && !log.message.toLowerCase().includes(searchTerm)) {
       return false;
     }
+    
+    // Filter by time range
+    if (debuggerState.timeRange.enabled) {
+      if (debuggerState.timeRange.start && log.timestampMs < debuggerState.timeRange.start) {
+        return false;
+      }
+      if (debuggerState.timeRange.end && log.timestampMs > debuggerState.timeRange.end) {
+        return false;
+      }
+    }
+    
     return true;
   });
+  
+  // Sort logs by timestamp (oldest first so newest at bottom)
+  filteredLogs.sort((a, b) => a.timestampMs - b.timestampMs);
   
   // Render logs
   logsContainer.innerHTML = filteredLogs.map(log => {
     const timestamp = new Date(log.timestamp);
     const timeStr = timestamp.toLocaleTimeString();
     const dateStr = timestamp.toLocaleDateString();
+    const isSelected = debuggerState.selectedLogId === log.id;
+    const isBookmarked = debuggerState.bookmarks.includes(log.id);
+    const isHighlighted = debuggerState.highlightedLogs.has(log.id);
     
-    let logHTML = `<div class="debugger-log-entry" data-category="${log.category}">`;
+    // Determine log color based on category and response time
+    let logColorClass = '';
+    if (log.category === LogCategory.ERROR) {
+      logColorClass = 'error';
+    } else if (log.category === LogCategory.WARNING) {
+      logColorClass = 'warning';
+    } else if (log.category === LogCategory.SUCCESS) {
+      logColorClass = 'success';
+    } else {
+      logColorClass = 'info';
+    }
     
+    // Add response time color
+    let responseTimeClass = '';
+    if (log.responseTime) {
+      if (log.responseTime > 5000) {
+        responseTimeClass = 'response-slow';
+      } else if (log.responseTime > 2000) {
+        responseTimeClass = 'response-medium';
+      } else {
+        responseTimeClass = 'response-fast';
+      }
+    }
+    
+    let logHTML = `<div class="debugger-log-entry ${logColorClass} ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}" data-category="${log.category}" data-log-id="${log.id}">`;
+    
+    // Bookmark icon
+    logHTML += `<button class="debugger-bookmark-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('${log.id}')" title="Toggle bookmark">${isBookmarked ? '⭐' : '☆'}</button>`;
+    
+    // Timestamp
     if (debuggerState.showTimestamp) {
       logHTML += `<span class="debugger-timestamp">${dateStr} ${timeStr}</span>`;
     }
     
+    // Category with color
     if (debuggerState.showCategory) {
-      logHTML += `<span class="debugger-category debugger-${log.category}">[${log.category.toUpperCase()}]</span>`;
+      const categoryColors = {
+        error: '#ff4757',
+        warning: '#ffa502',
+        info: '#2ed573',
+        success: '#1e90ff'
+      };
+      const bgColor = categoryColors[log.category] || '#747d8c';
+      logHTML += `<span class="debugger-category debugger-${log.category}" style="background-color: ${bgColor};">[${log.category.toUpperCase()}]</span>`;
     }
     
-    logHTML += `<span class="debugger-message">${escapeHtml(log.message)}</span>`;
+    // Response time with color
+    if (log.responseTime) {
+      logHTML += `<span class="debugger-response-time ${responseTimeClass}">${log.responseTime}ms</span>`;
+    }
+    
+    // Source with color
+    if (log.source) {
+      const sourceColors = {
+        system: '#747d8c',
+        network: '#3742fa',
+        server: '#2ed573',
+        client: '#ff6b81'
+      };
+      const sourceColor = sourceColors[log.source] || '#747d8c';
+      logHTML += `<span class="debugger-source" style="color: ${sourceColor};">[${log.source}]</span>`;
+    }
+    
+    // Message with highlighting
+    let message = escapeHtml(log.message);
+    if (searchTerm) {
+      const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+      message = message.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+    logHTML += `<span class="debugger-message">${message}</span>`;
+    
+    // Metadata
+    if (log.metadata && Object.keys(log.metadata).length > 0) {
+      logHTML += `<button class="debugger-metadata-btn" onclick="showMetadata('${log.id}')" title="Show metadata">ℹ️</button>`;
+    }
+    
     logHTML += `</div>`;
     
     return logHTML;
@@ -824,10 +1000,10 @@ function renderDebuggerLogs() {
   // Update log count
   const logCount = document.getElementById('debugger-log-count');
   if (logCount) {
-    logCount.textContent = `${filteredLogs.length} logs`;
+    logCount.textContent = `${filteredLogs.length} of ${debuggerState.logs.length} logs`;
   }
   
-  // Auto scroll
+  // Auto scroll to bottom (newest logs are at bottom)
   if (debuggerState.autoScroll) {
     logsContainer.scrollTop = logsContainer.scrollHeight;
   }
@@ -852,9 +1028,15 @@ function updateDebuggerStatus() {
   const statusDot = statusIndicator.querySelector('.status-dot');
   const statusText = statusIndicator.querySelector('.status-text');
   
-  if (debuggerState.paused) {
+  if (debuggerState.isOffline) {
+    statusDot.className = 'status-dot offline';
+    statusText.textContent = 'Offline';
+  } else if (debuggerState.paused) {
     statusDot.className = 'status-dot paused';
     statusText.textContent = 'Paused';
+  } else if (debuggerState.hasError) {
+    statusDot.className = 'status-dot error';
+    statusText.textContent = 'Error';
   } else {
     statusDot.className = 'status-dot active';
     statusText.textContent = 'Active';
