@@ -172,27 +172,51 @@ if (window.xpSystemLoaded) {
 
   // Save user data to localStorage
   function saveUserData(user) {
-    // Save to currentUser
-    localStorage.setItem("currentUser", JSON.stringify(user));
+    try {
+      // Save to currentUser
+      localStorage.setItem("currentUser", JSON.stringify(user));
 
-    // Also save to chessUsers array
-    const users = JSON.parse(localStorage.getItem("chessUsers") || "[]");
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = user;
-      localStorage.setItem("chessUsers", JSON.stringify(users));
+      // Also save to chessUsers array - handle encrypted/corrupted data
+      let users = [];
+      try {
+        const chessUsersData = localStorage.getItem("chessUsers");
+        if (chessUsersData) {
+          users = JSON.parse(chessUsersData);
+        }
+      } catch (e) {
+        console.warn('[XP System] Failed to parse chessUsers, using empty array:', e.message);
+        users = [];
+      }
+      
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = user;
+        localStorage.setItem("chessUsers", JSON.stringify(users));
+      }
+
+      // Also save to chessPlayerData for backward compatibility
+      let playerData = {};
+      try {
+        const playerDataStr = localStorage.getItem("chessPlayerData");
+        if (playerDataStr) {
+          playerData = JSON.parse(playerDataStr);
+        }
+      } catch (e) {
+        console.warn('[XP System] Failed to parse chessPlayerData, using empty object:', e.message);
+        playerData = {};
+      }
+      
+      playerData.xp = user.xp;
+      playerData.level = user.level;
+      if (user.stats) {
+        playerData.stats = user.stats;
+      }
+      localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
+
+      console.log('[XP System] User data saved:', user);
+    } catch (error) {
+      console.error('[XP System] Error saving user data:', error);
     }
-
-    // Also save to chessPlayerData for backward compatibility
-    const playerData = JSON.parse(localStorage.getItem("chessPlayerData") || "{}");
-    playerData.xp = user.xp;
-    playerData.level = user.level;
-    if (user.stats) {
-      playerData.stats = user.stats;
-    }
-    localStorage.setItem("chessPlayerData", JSON.stringify(playerData));
-
-    console.log('[XP System] User data saved:', user);
   }
 
   // Handle XP notification and level up animation
