@@ -169,15 +169,34 @@ let noConnectionTimeout = null; // Store timeout ID so we can cancel it
 
 // WebSocket configuration
 const WS_CONFIG = {
-  // Use localhost for development, Render for production
-  PRODUCTION_URL: 'wss://chess-game-online-u34h.onrender.com',
+  // WebSocket server URLs
+  RENDER_URL: 'wss://chess-game-online-u34h.onrender.com',
   DEVELOPMENT_URL: 'ws://localhost:8080',
-  // Set to true when deploying to production
-  isProduction: true,
+  
+  // Get WebSocket URL based on environment
+  getWebSocketUrl: function() {
+    // Check if running on GitHub Pages
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    // Check if running on Render
+    const isRender = window.location.hostname.includes('onrender.com');
+    // Check if running locally
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+    
+    // Use Render server for GitHub Pages and Render deployments
+    // Use localhost for local development
+    if (isGitHubPages || isRender) {
+      return this.RENDER_URL;
+    } else if (isLocalhost) {
+      return this.DEVELOPMENT_URL;
+    } else {
+      // Default to Render server
+      return this.RENDER_URL;
+    }
+  }
 };
 
 function getWebSocketUrl() {
-  return WS_CONFIG.isProduction ? WS_CONFIG.PRODUCTION_URL : WS_CONFIG.DEVELOPMENT_URL;
+  return WS_CONFIG.getWebSocketUrl();
 }
 
 // -----------------------------------------------------

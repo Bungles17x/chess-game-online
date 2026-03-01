@@ -227,6 +227,9 @@ wss.on('connection', (ws) => {
         case 'login':
           handleLogin(ws, clientId, data);
           break;
+        case 'register':
+          handleRegister(ws, clientId, data);
+          break;
         case 'createRoom':
           handleCreateRoom(ws, clientId, data);
           break;
@@ -448,6 +451,99 @@ function handleLogin(ws, clientId, data) {
   }));
 
   console.log('User logged in:', username);
+}
+
+// Handle registration
+function handleRegister(ws, clientId, data) {
+  const { username, email, password } = data;
+
+  // Validate inputs
+  if (!username || username.length < 3) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Username must be at least 3 characters'
+    }));
+    return;
+  }
+
+  if (!email || !email.includes('@')) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Please enter a valid email'
+    }));
+    return;
+  }
+
+  if (!password || password.length < 6) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Password must be at least 6 characters'
+    }));
+    return;
+  }
+
+  // Check if username already exists
+  const existingUserByUsername = userManager.getUser(username);
+  if (existingUserByUsername) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Username already taken'
+    }));
+    return;
+  }
+
+  // Check if email already exists
+  const existingUserByEmail = userManager.getUserByEmail(email);
+  if (existingUserByEmail) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Email already registered'
+    }));
+    return;
+  }
+
+  // Create new user
+  const newUser = {
+    username,
+    email,
+    password,
+    avatar: '♟',
+    level: 1,
+    xp: 0,
+    stats: {
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      currentStreak: 0
+    },
+    savedGames: [],
+    createdAt: new Date().toISOString()
+  };
+
+  // Save user to server
+  const saved = userManager.saveUser(newUser);
+  if (!saved) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Failed to create account. Please try again.'
+    }));
+    return;
+  }
+
+  // Update client
+  const client = clients.get(clientId);
+  if (client) {
+    client.username = username;
+  }
+
+  // Send success message with user data
+  ws.send(JSON.stringify({
+    type: 'registerSuccess',
+    userData: newUser
+  }));
+
+  console.log('User registered:', username);
 }
 
 // Handle room creation

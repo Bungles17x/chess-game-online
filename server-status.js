@@ -95,7 +95,17 @@ function isAdminUser() {
 
 // Connect to server
 function connectToServer() {
-  const wsUrl = 'wss://chess-game-online-u34h.onrender.com';
+  // Check if running on GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  // Check if running on Render
+  const isRender = window.location.hostname.includes('onrender.com');
+  // Check if running locally
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+  
+  // Use Render server for GitHub Pages and Render deployments
+  // Use localhost for local development
+  const wsUrl = (isGitHubPages || isRender) ? 'wss://chess-game-online-u34h.onrender.com' : 
+                (isLocalhost ? 'ws://localhost:8080' : 'wss://chess-game-online-u34h.onrender.com');
   
   try {
     statusSocket = new WebSocket(wsUrl);

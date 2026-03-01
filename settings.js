@@ -298,73 +298,72 @@ function handleRegister(e) {
 
   try {
     const username = document.getElementById('reg-username').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
-  const confirmPassword = document.getElementById('reg-confirm-password').value;
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirmPassword = document.getElementById('reg-confirm-password').value;
 
-  // Validate inputs
-  if (!username || !email || !password || !confirmPassword) {
-    showNotification('Please fill in all fields');
-    return;
-  }
+    // Validate inputs
+    if (!username || !email || !password || !confirmPassword) {
+      showNotification('Please fill in all fields');
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    showNotification('Passwords do not match');
-    return;
-  }
+    if (password !== confirmPassword) {
+      showNotification('Passwords do not match');
+      return;
+    }
 
-  if (password.length < 6) {
-    showNotification('Password must be at least 6 characters');
-    return;
-  }
+    if (password.length < 6) {
+      showNotification('Password must be at least 6 characters');
+      return;
+    }
 
-  // Get users from localStorage
-  const users = secureStorage.getItem('chessUsers') || [];
+    // Check if WebSocket is connected
+    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+      showNotification('Not connected to server. Please check your connection.');
+      return;
+    }
 
-  // Check if email or username already exists
-  if (users.find(u => u.email === email)) {
-    showNotification('Email already registered');
-    return;
-  }
+    // Send registration request to server
+    window.socket.send(JSON.stringify({
+      type: 'register',
+      username: username,
+      email: email,
+      password: password
+    }));
 
-  if (users.find(u => u.username === username)) {
-    showNotification('Username already taken');
-    return;
-  }
+    // Listen for registration response
+    const handleRegisterResponse = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'registerSuccess') {
+        const user = data.userData;
+        
+        // Set current user
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // Dispatch login event
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+        
+        // Show notification
+        showNotification('Registered successfully');
+        
+        // Update UI
+        checkLoginStatus();
+      } else if (data.type === 'error') {
+        showNotification(data.message || 'Registration failed');
+      }
+      
+      // Remove the event listener
+      window.socket.removeEventListener('message', handleRegisterResponse);
+    };
 
-  // Create new user
-  const newUser = {
-    id: Date.now(),
-    username,
-    email,
-    password,
-    avatar: '♟',
-    level: 1,
-    xp: 0,
-    stats: {
-      gamesPlayed: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      currentStreak: 0
-    },
-    savedGames: [],
-    createdAt: new Date().toISOString()
-  };
-
-  // Save user
-  users.push(newUser);
-  secureStorage.setItem('chessUsers', users);
-  localStorage.setItem('currentUser', JSON.stringify(newUser));
-
-  // Dispatch login event
-  window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: newUser }));
-
-  // Show notification
-  showNotification('Registered successfully');
-
-  // Update UI
-  checkLoginStatus();
+    window.socket.addEventListener('message', handleRegisterResponse);
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      window.socket.removeEventListener('message', handleRegisterResponse);
+    }, 10000);
   } catch (error) {
     console.error('Registration error:', error);
     showNotification('An error occurred during registration. Please try again.');
