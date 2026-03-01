@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeControls();
   initializeActivityLog();
   startAutoRefresh();
+  
+  // Initialize debugger before starting health check
+  if (typeof initializeDebugger === 'function') {
+    initializeDebugger();
+  }
+  
   startServerHealthCheck();
 
   // Add event listeners for online/offline events
