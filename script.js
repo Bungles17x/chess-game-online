@@ -163,21 +163,10 @@ let noConnectionTimeout = null; // Store the timeout ID so we can cancel it
 
 // WebSocket configuration
 const WS_CONFIG = {
-  // Use public WebSocket server for GitHub Pages, local server for development
+  // Always use Render server
   getWebSocketUrl: function() {
-    // Check if running on GitHub Pages
-    const isGitHubPages = window.location.hostname.includes('github.io');
-
-    if (isGitHubPages) {
-      // Use a public WebSocket server for GitHub Pages
-      // Replace with your own public WebSocket server URL
-      return 'wss://chess-game-online-u34h.onrender.com';
-    } else {
-      // Use local server for development
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.hostname;
-      return `${protocol}//${host}:8080`;
-    }
+    // Use Render server for all environments
+    return 'wss://chess-game-online-u34h.onrender.com';
   }
 };
 

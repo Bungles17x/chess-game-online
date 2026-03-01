@@ -9,11 +9,8 @@ const maxReconnectAttempts = 5;
 
 // Get WebSocket URL
 function getWebSocketUrl() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.hostname;
-
-  // Always use port 8080 for WebSocket connections
-  return `${protocol}//${host}:8080`;
+  // Always use Render server
+  return 'wss://chess-game-online-u34h.onrender.com';
 }
 
 // Debug function to check connection status

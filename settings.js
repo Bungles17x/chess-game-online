@@ -375,6 +375,9 @@ function checkLoginStatus() {
     if (typeof loadAchievements === 'function') {
       loadAchievements();
     }
+
+    // Update sync status when user logs in
+    updateSyncStatus();
   } else {
     // User is not logged in
     loginFormContainer.classList.remove('hidden');
@@ -733,6 +736,10 @@ function handleSyncNow() {
   console.log('[Settings Sync] Starting sync...');
   syncNowBtn.disabled = true;
   syncNowBtn.textContent = 'Syncing...';
+  if (syncStatus) {
+    syncStatus.textContent = 'Syncing...';
+    syncStatus.style.color = 'var(--warning)';
+  }
   isSyncing = true; // Set syncing flag
 
   // Listen for sync completion
@@ -750,9 +757,15 @@ function handleSyncNow() {
       syncNowBtn.disabled = false;
       syncNowBtn.textContent = 'Sync Now';
 
-      // Don't call updateSyncStatus here to prevent refresh
-      // The sync status will be updated on next page load
-      // updateSyncStatus();
+      // Update sync status display
+      if (syncStatus) {
+        syncStatus.textContent = 'Synced';
+        syncStatus.style.color = 'var(--success)';
+      }
+      if (lastSyncTime) {
+        const date = new Date();
+        lastSyncTime.textContent = date.toLocaleString();
+      }
 
       console.log('[Settings Sync Debug] Calling showNotification()');
       showNotification('Profile synced successfully');
@@ -779,6 +792,11 @@ function handleSyncNow() {
       console.error('[Settings Sync] Sync timed out');
       syncNowBtn.disabled = false;
       syncNowBtn.textContent = 'Sync Now';
+      // Reset sync status display
+      if (syncStatus) {
+        syncStatus.textContent = 'Sync failed';
+        syncStatus.style.color = 'var(--error)';
+      }
       window.removeEventListener('syncComplete', handleSyncComplete);
       isSyncing = false; // Clear syncing flag on timeout
       showNotification('Sync timed out. Please try again.');
