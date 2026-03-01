@@ -4,10 +4,26 @@ const WebSocket = require('ws');
 const { Chess } = require('chess.js');
 const twilio = require('twilio');
 
-// Twilio client initialization
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
-const ADMIN_PHONE_NUMBER = process.env.ADMIN_PHONE_NUMBER;
+// Twilio client initialization (optional)
+let twilioClient = null;
+let TWILIO_PHONE_NUMBER = null;
+let ADMIN_PHONE_NUMBER = null;
+let twilioEnabled = false;
+
+// Only initialize Twilio if credentials are available
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  try {
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+    ADMIN_PHONE_NUMBER = process.env.ADMIN_PHONE_NUMBER;
+    twilioEnabled = true;
+    console.log('Twilio initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Twilio:', error.message);
+  }
+} else {
+  console.log('Twilio not configured - SMS features disabled');
+}
 
 // Log Twilio configuration status
 console.log('Environment check:');
@@ -15,6 +31,7 @@ console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Not
 console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Not set');
 console.log('ADMIN_PHONE_NUMBER:', ADMIN_PHONE_NUMBER || 'Not set');
 console.log('TWILIO_PHONE_NUMBER:', TWILIO_PHONE_NUMBER || 'Not set');
+console.log('Twilio Enabled:', twilioEnabled);
 
 const { isAdmin, hasAdminPower, getAdminPowers } = require('./admin-system-fixed');
 const userManager = require('./user-manager');
@@ -95,33 +112,17 @@ function handleProfanityOffense(ws, username, message) {
   }
 }
 
-// Twilio configuration
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-// Debug: Log environment variables (without sensitive values)
-console.log('Environment check:');
-console.log('TWILIO_ACCOUNT_SID:', accountSid ? 'Set' : 'Not set');
-console.log('TWILIO_AUTH_TOKEN:', authToken ? 'Set' : 'Not set');
-console.log('ADMIN_PHONE_NUMBER:', process.env.ADMIN_PHONE_NUMBER || 'Not set');
-console.log('TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'Not set');
-
-// Only initialize Twilio client if credentials are available
-let client;
-if (accountSid && authToken) {
-  client = twilio(accountSid, authToken);
-} else {
-  console.warn('Twilio credentials not configured. Phone call notifications will be disabled.');
-}
-
-const yourPhoneNumber = process.env.ADMIN_PHONE_NUMBER; // Your personal phone number
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone number
+// Twilio configuration (already initialized above)
+// Reuse the twilioClient from the initialization at the top of the file
+const client = twilioClient;
+const yourPhoneNumber = ADMIN_PHONE_NUMBER;
+const twilioPhoneNumber = TWILIO_PHONE_NUMBER;
 
 // Function to make a call when a report is submitted
 async function makeReportCall(reportData, reportId) {
   // Check if Twilio is configured before making call
-  if (!client) {
-    console.warn('Twilio client not initialized. Skipping phone call notification.');
+  if (!client || !twilioEnabled) {
+    console.warn('Twilio client not initialized or not enabled. Skipping phone call notification.');
     return;
   }
   
