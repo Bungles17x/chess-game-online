@@ -61,7 +61,65 @@ function setupLoginForm(loginForm) {
       return;
     }
 
-    // Check if user exists in secureStorage
+    // Always try to authenticate with server first
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      const isEmail = email.includes('@');
+      
+      window.socket.send(JSON.stringify({
+        type: 'login',
+        email: isEmail ? email : undefined,
+        username: isEmail ? undefined : email,
+        password: password
+      }));
+      console.log('[Auth] Login request sent to server');
+      
+      // Listen for login response
+      const handleLoginResponse = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'loggedIn' || data.type === 'loginSuccess') {
+          console.log('[Auth] Login successful on server:', data);
+          
+          // Set current user
+          const user = data.userData || {
+            username: data.username,
+            email: data.email
+          };
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          window.currentUser = user;
+          
+          // Dispatch login event
+          window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+          
+          // Show notification
+          if (window.showNotification) {
+            window.showNotification('Logged in successfully', 'success');
+          }
+          
+          // Redirect to game
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 500);
+        } else if (data.type === 'error') {
+          console.error('[Auth] Login failed on server:', data.message);
+          showError(data.message || 'Login failed');
+        }
+        
+        // Remove the event listener
+        window.socket.removeEventListener('message', handleLoginResponse);
+      };
+      
+      window.socket.addEventListener('message', handleLoginResponse);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        window.socket.removeEventListener('message', handleLoginResponse);
+      }, 10000);
+      
+      return; // Don't proceed with local login
+    }
+    
+    // Fallback to local storage if server is not available
     const users = secureStorage.getItem('chessUsers') || [];
     
     // Allow login with either email or username
@@ -287,17 +345,42 @@ function setupRegisterForm(registerForm) {
     };
     localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
-    // Sync user data to server if connected
+    // Register user on server if connected
     if (window.socket && window.socket.readyState === WebSocket.OPEN) {
       try {
         window.socket.send(JSON.stringify({
-          type: 'syncUserData',
-          userData: safeUser
+          type: 'register',
+          username: username,
+          email: email,
+          password: password
         }));
-        console.log('[Auth] Registration data synced to server');
+        console.log('[Auth] Registration request sent to server');
+        
+        // Listen for registration response
+        const handleRegisterResponse = (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'registered' || data.type === 'registerSuccess') {
+            console.log('[Auth] Registration successful on server:', data);
+            // User is already logged in locally, no action needed
+          } else if (data.type === 'error') {
+            console.error('[Auth] Registration failed on server:', data.message);
+            // Don't block registration if server registration fails
+          }
+          
+          // Remove the event listener
+          window.socket.removeEventListener('message', handleRegisterResponse);
+        };
+        
+        window.socket.addEventListener('message', handleRegisterResponse);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          window.socket.removeEventListener('message', handleRegisterResponse);
+        }, 10000);
       } catch (error) {
-        console.error('[Auth] Failed to sync registration data to server:', error);
-        // Don't block registration if sync fails
+        console.error('[Auth] Failed to send registration to server:', error);
+        // Don't block registration if server communication fails
       }
     }
 
