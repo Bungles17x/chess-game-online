@@ -39,6 +39,14 @@ const userSyncHandlers = require('./user-sync-handlers');
 const reportingSystem = require('./reporting-system');
 const notificationSystem = require('./notification-system');
 
+// Initialize user storage
+try {
+  userManager.initializeUserStorage();
+  console.log('[Server] User storage initialized successfully');
+} catch (error) {
+  console.error('[Server] Failed to initialize user storage:', error);
+}
+
 // Profanity filter system
 const profanityKeywords = [
   'fuck', 'shit', 'ass', 'bitch', 'damn', 'hell',
