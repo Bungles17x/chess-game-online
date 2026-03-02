@@ -411,4 +411,110 @@ window.clearOldEncryptedData = function() {
 };
 
 // Make clearOldEncryptedData available globally
+
+// Global WebSocket message handlers
+if (window.socket) {
+  window.socket.addEventListener('message', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('[Auth] Received message from server:', data.type);
+
+      // Handle login confirmation
+      if (data.type === 'loggedIn') {
+        console.log('[Auth] Login confirmation received:', data);
+        
+        // Set current user
+        const user = data.userData || {
+          username: data.username,
+          email: data.email
+        };
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        window.currentUser = user;
+
+        // Dispatch login event
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+
+        // Show notification
+        if (window.showNotification) {
+          window.showNotification('Logged in successfully', 'success');
+        }
+
+        // Update UI
+        if (window.checkLoginStatus) {
+          window.checkLoginStatus();
+        }
+      }
+
+      // Handle registration confirmation
+      if (data.type === 'registered') {
+        console.log('[Auth] Registration confirmation received:', data);
+        
+        // Set current user
+        const user = data.userData || {
+          username: data.username,
+          email: data.email
+        };
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        window.currentUser = user;
+
+        // Dispatch login event
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+
+        // Show notification
+        if (window.showNotification) {
+          window.showNotification('Registered successfully', 'success');
+        }
+
+        // Update UI
+        if (window.checkLoginStatus) {
+          window.checkLoginStatus();
+        }
+      }
+
+      // Handle account deletion notification
+      if (data.type === 'accountDeleted') {
+        console.log('[Auth] Account deleted notification received:', data);
+        
+        // Clear ALL local data
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+          localStorage.removeItem(key);
+          console.log('[Auth] Removed local storage key:', key);
+        });
+
+        // Clear session storage
+        sessionStorage.clear();
+
+        // Clear current user
+        window.currentUser = null;
+
+        // Dispatch logout event
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
+        // Show notification
+        if (window.showNotification) {
+          window.showNotification(data.message || 'Your account has been deleted', 'error');
+        }
+
+        // Update UI
+        if (window.checkLoginStatus) {
+          window.checkLoginStatus();
+        }
+
+        // Redirect to home after delay
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 2000);
+      }
+
+      // Handle report system fix acknowledgment
+      if (data.type === 'reportSystemFixAck') {
+        console.log('[Auth] Report system fix acknowledged:', data.message);
+        // This is just an acknowledgment, no action needed
+      }
+    } catch (error) {
+      console.error('[Auth] Error processing message:', error);
+    }
+  });
+}
 console.log('To clear old encrypted data, run: clearOldEncryptedData()');
