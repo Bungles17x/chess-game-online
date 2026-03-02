@@ -19,18 +19,21 @@ function handleSyncUserData(ws, data, userManager, wss) {
     const existingUser = userManager.getUser(ws.username);
 
     if (existingUser) {
-      // Merge data - server data takes precedence for critical fields
+      // Merge data - CLIENT DATA takes precedence for most fields
       const mergedData = {
-        ...userData,
+        ...existingUser,  // Start with existing server data
+        ...userData,  // Then overlay with client data (client data takes precedence)
+        // Ensure username and email stay consistent
         username: existingUser.username,
         email: existingUser.email,
         password: existingUser.password,
-        // Keep server-side stats if they exist
-        stats: existingUser.stats || userData.stats,
-        // Merge friends lists
-        friends: [...new Set([...(existingUser.friends || []), ...(userData.friends || [])])],
-        // Merge saved games - use client's saved games (most recent)
-        savedGames: userData.savedGames || existingUser.savedGames || []
+        // Client data takes precedence for stats, friends, games
+        stats: userData.stats || existingUser.stats,
+        friends: userData.friends || existingUser.friends || [],
+        savedGames: userData.savedGames || existingUser.savedGames || [],
+        // Keep server-side timestamps
+        createdAt: existingUser.createdAt,
+        updatedAt: new Date().toISOString()
       };
 
       userManager.saveUser(mergedData);

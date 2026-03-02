@@ -223,6 +223,48 @@ function setupEventListeners() {
     checkLoginStatus();
   });
 
+  // Listen for WebSocket messages from server
+  if (window.socket) {
+    window.socket.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[Settings] Received message from server:', data.type);
+
+        // Handle user profile data from server
+        if (data.type === 'userProfile') {
+          console.log('[Settings] Received user profile from server:', data.userData);
+          updateProfileDisplay(data.userData);
+        }
+
+        // Handle user data synced confirmation
+        if (data.type === 'userDataSynced') {
+          console.log('[Settings] User data synced to server:', data.userData);
+          updateProfileDisplay(data.userData);
+        }
+
+        // Handle user profile updated
+        if (data.type === 'userProfileUpdated') {
+          console.log('[Settings] User profile updated on server:', data.userData);
+          updateProfileDisplay(data.userData);
+        }
+
+        // Handle friends synced
+        if (data.type === 'friendsSynced') {
+          console.log('[Settings] Friends synced from server:', data.friends);
+          loadFriendsList();
+        }
+
+        // Handle saved games synced
+        if (data.type === 'savedGamesSynced') {
+          console.log('[Settings] Saved games synced from server:', data.savedGames);
+          loadSavedGames();
+        }
+      } catch (error) {
+        console.error('[Settings] Error handling WebSocket message:', error);
+      }
+    });
+  }
+
   // Listen for sync events
   // Disabled to prevent automatic refresh
   // window.addEventListener('profileUpdated', () => {
@@ -598,12 +640,39 @@ function checkLoginStatus() {
 // Load Profile Data
 function loadProfileData() {
   console.log('[Settings Debug] loadProfileData() called');
+  
+  // Request user data from server
+  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    window.socket.send(JSON.stringify({
+      type: 'getUserProfile',
+      username: window.currentUsername
+    }));
+    console.log('[Settings Debug] Requested user profile from server');
+    return;
+  }
+  
+  // Fallback to localStorage only if server not available
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-  console.log('[Settings Debug] currentUser:', currentUser);
+  console.log('[Settings Debug] currentUser from localStorage:', currentUser);
   if (!currentUser) {
     console.log('[Settings Debug] No currentUser found, returning');
     return;
   }
+
+  // Update display with fallback data
+  updateProfileDisplay(currentUser);
+}
+
+// Update profile display with server data
+function updateProfileDisplay(currentUser) {
+  console.log('[Settings Debug] updateProfileDisplay() called with:', currentUser);
+  if (!currentUser) {
+    console.log('[Settings Debug] No user data provided');
+    return;
+  }
+
+  // Save to localStorage as cache
+  localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
   // Update display
   const playerName = document.getElementById('player-name');
@@ -660,8 +729,101 @@ function loadProfileData() {
   if (currentStreak) currentStreak.textContent = stats.currentStreak || 0;
 }
 
+// Load Friends List
+function loadFriendsList() {
+  // Request friends from server
+  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    window.socket.send(JSON.stringify({
+      type: 'syncFriends'
+    }));
+    console.log('[Settings] Requested friends from server');
+    return;
+  }
+
+  // Fallback to localStorage only if server not available
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) return;
+
+  const friends = currentUser.friends || [];
+  const friendsList = document.getElementById('friends-list');
+  const noFriends = document.getElementById('no-friends');
+
+  if (!friendsList || !noFriends) return;
+  
+  displayFriendsList(friends, friendsList, noFriends);
+}
+
+// Display friends list
+function displayFriendsList(friends, friendsList, noFriends) {
+  // Clear existing friends
+  friendsList.innerHTML = '';
+
+  if (friends.length === 0) {
+    // Show no friends message
+    noFriends.classList.remove('hidden');
+    return;
+  }
+
+  // Hide no friends message
+  noFriends.classList.add('hidden');
+
+  // Display each friend
+  friends.forEach(friend => {
+    const friendItem = createFriendItem(friend);
+    friendsList.appendChild(friendItem);
+  });
+}
+
+// Create friend item
+function createFriendItem(friend) {
+  const friendItem = document.createElement('div');
+  friendItem.className = 'friend-item';
+  friendItem.innerHTML = `
+    <div class="friend-avatar">${friend.avatar || '♟'}</div>
+    <div class="friend-info">
+      <div class="friend-name">${friend.username}</div>
+      <div class="friend-level">Level ${friend.level || 1}</div>
+    </div>
+    <div class="friend-actions">
+      <button class="friend-btn remove" data-username="${friend.username}">Remove</button>
+    </div>
+  `;
+
+  // Add event listener for remove button
+  const removeBtn = friendItem.querySelector('.remove');
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => removeFriend(friend.username));
+  }
+
+  return friendItem;
+}
+
+// Remove friend
+function removeFriend(username) {
+  if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+    showNotification('Not connected to server');
+    return;
+  }
+
+  window.socket.send(JSON.stringify({
+    type: 'removeFriend',
+    friendUsername: username
+  }));
+  console.log('[Settings] Sent remove friend request:', username);
+}
+
 // Load Saved Games
 function loadSavedGames() {
+  // Request saved games from server
+  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    window.socket.send(JSON.stringify({
+      type: 'syncSavedGames'
+    }));
+    console.log('[Settings] Requested saved games from server');
+    return;
+  }
+
+  // Fallback to localStorage only if server not available
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
   if (!currentUser) return;
 
@@ -670,6 +832,12 @@ function loadSavedGames() {
   const noSavedGames = document.getElementById('no-saved-games');
 
   if (!savedGamesList || !noSavedGames) return;
+  
+  displaySavedGames(savedGames, savedGamesList, noSavedGames);
+}
+
+// Display saved games
+function displaySavedGames(savedGames, savedGamesList, noSavedGames) {
 
   // Clear existing games
   savedGamesList.innerHTML = '';
@@ -744,6 +912,17 @@ function createSavedGameItem(game, index) {
 
 // Load Game
 function loadGame(index) {
+  // Request saved games from server to get latest data
+  if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    window.socket.send(JSON.stringify({
+      type: 'syncSavedGames'
+    }));
+    console.log('[Settings] Requesting saved games from server before loading');
+    // Load will happen after server responds
+    return;
+  }
+
+  // Fallback to localStorage only if server not available
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
   if (!currentUser) return;
 

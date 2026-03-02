@@ -3,7 +3,7 @@
     "username": "bungles17x",
     "email": "lildclaycomb@gmail.com",
     "password": "Claycomb_17x",
-    "avatar": "♟",
+    "avatar": "♛",
     "level": 1,
     "xp": 0,
     "stats": {
@@ -15,7 +15,7 @@
     },
     "savedGames": [],
     "createdAt": "2026-03-01T18:39:20.049Z",
-    "updatedAt": "2026-03-01T23:33:33.952Z",
+    "updatedAt": "2026-03-02T00:42:44.043Z",
     "settings": {
       "theme": "dark",
       "boardTheme": "green",
@@ -26,6 +26,7 @@
       "autoPromote": false,
       "showCoordinates": false,
       "showBanAfterLogin": false
-    }
+    },
+    "friends": []
   }
 }
