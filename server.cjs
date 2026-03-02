@@ -920,33 +920,22 @@ function handleAuthenticate(ws, data) {
     return;
   }
 
-  // Check if user is already connected
-  if (connectedUsers.has(username)) {
-    console.log("AUTH", "User already connected, disconnecting old connection", { username });
-    const existingConnection = connectedUsers.get(username);
-
-    // Disconnect the existing connection
-    if (existingConnection.readyState === WebSocket.OPEN) {
-      existingConnection.send(JSON.stringify({
-        type: "accountConflict",
-        message: "Another user is using this account"
-      }));
-      existingConnection.close();
-    }
-
-    // Remove old connection from tracking
-    connectedUsers.delete(username);
+  // Allow multiple devices to be logged in simultaneously
+  // Track this connection as well (using an array to support multiple connections)
+  if (!connectedUsers.has(username)) {
+    connectedUsers.set(username, []);
   }
+  const userConnections = connectedUsers.get(username);
+  userConnections.push(ws);
+  console.log("AUTH", "User logged in on device", { username, totalConnections: userConnections.length });
 
   // Set username on the new connection
   ws.username = username;
 
-  // Track the new connection
-  connectedUsers.set(username, ws);
-
   console.log("AUTH", "Authentication successful", {
     username,
-    totalConnected: connectedUsers.size
+    totalConnections: userConnections.length,
+    totalConnectedUsers: connectedUsers.size
   });
 
   // Send success response
@@ -998,9 +987,20 @@ function handleDisconnect(ws) {
     leaveRoom(ws);
   }
 
-  // Remove user from connected users tracking
+  // Remove this specific connection from user's connections
   if (ws.username && connectedUsers.has(ws.username)) {
-    connectedUsers.delete(ws.username);
+    const userConnections = connectedUsers.get(ws.username);
+    const index = userConnections.indexOf(ws);
+    if (index > -1) {
+      userConnections.splice(index, 1);
+      console.log("DISCONNECT", "Device disconnected", { username: ws.username, remainingConnections: userConnections.length });
+    }
+    
+    // If no more connections for this user, remove the user entirely
+    if (userConnections.length === 0) {
+      connectedUsers.delete(ws.username);
+      console.log("DISCONNECT", "All devices disconnected", { username: ws.username });
+    }
   }
   
   // Clean up anti-cheat data
@@ -1878,8 +1878,12 @@ function handleDeleteAccount(ws, data) {
       }
     });
 
-    // Remove from connected users tracking
-    connectedUsers.delete(username);
+    // Remove from connected users tracking (all devices)
+    if (connectedUsers.has(username)) {
+      const userConnections = connectedUsers.get(username);
+      console.log('[Delete Account] Disconnecting', userConnections.length, 'devices');
+      connectedUsers.delete(username);
+    }
 
     // Send confirmation to current device
     ws.send(JSON.stringify({
@@ -2086,23 +2090,14 @@ function handleLogin(ws, data) {
     }
   }
 
-  // Check if user is already connected
-  if (connectedUsers.has(user.username)) {
-    console.log("LOGIN", "User already connected, disconnecting old connection", { username: user.username });
-    const existingConnection = connectedUsers.get(user.username);
-
-    // Disconnect the existing connection
-    if (existingConnection.readyState === WebSocket.OPEN) {
-      existingConnection.send(JSON.stringify({
-        type: "accountConflict",
-        message: "Another user is using this account"
-      }));
-      existingConnection.close();
-    }
-
-    // Remove old connection from tracking
-    connectedUsers.delete(user.username);
+  // Allow multiple devices to be logged in simultaneously
+  // Track this connection as well (using an array to support multiple connections)
+  if (!connectedUsers.has(user.username)) {
+    connectedUsers.set(user.username, []);
   }
+  const userConnections = connectedUsers.get(user.username);
+  userConnections.push(ws);
+  console.log("LOGIN", "User logged in on device", { username: user.username, totalConnections: userConnections.length });
 
   // Set username on the new connection
   ws.username = user.username;
