@@ -1038,12 +1038,16 @@ function isBanActive(username) {
     bannedUsers.delete(username);
     
     // Notify the user if they're currently connected
-    const userConnection = connectedUsers.get(username);
-    if (userConnection && userConnection.readyState === WebSocket.OPEN) {
-      userConnection.send(JSON.stringify({
-        type: "banExpired",
-        message: "Your ban has expired. You can now use the chat again."
-      }));
+    const userConnections = connectedUsers.get(username);
+    if (userConnections && userConnections.length > 0) {
+      userConnections.forEach(conn => {
+        if (conn.readyState === WebSocket.OPEN) {
+          conn.send(JSON.stringify({
+            type: "banExpired",
+            message: "Your ban has expired. You can now use the chat again."
+          }));
+        }
+      });
     }
     
     return false;
@@ -1151,18 +1155,22 @@ function handleBanUser(ws, data) {
   console.log("BAN", "User banned", { username, reason, duration, unit, expiresAt });
 
   // Disconnect the user if they're currently connected
-  const userConnection = connectedUsers.get(username);
-  if (userConnection && userConnection.readyState === WebSocket.OPEN) {
-    userConnection.send(JSON.stringify({
-      type: "error",
-      code: 403,
-      message: "Your account has been banned",
-      reason: reason,
-      duration: duration,
-      unit: unit,
-      expiresAt: expiresAt
-    }));
-    userConnection.close();
+  const userConnections = connectedUsers.get(username);
+  if (userConnections && userConnections.length > 0) {
+    userConnections.forEach(conn => {
+      if (conn.readyState === WebSocket.OPEN) {
+        conn.send(JSON.stringify({
+          type: "error",
+          code: 403,
+          message: "Your account has been banned",
+          reason: reason,
+          duration: duration,
+          unit: unit,
+          expiresAt: expiresAt
+        }));
+        conn.close();
+      }
+    });
   }
 
   ws.send(JSON.stringify({
@@ -1702,18 +1710,22 @@ function handleAutoBanSuspiciousPlayer(username) {
     });
 
     // Disconnect the user if they're currently connected
-    const userConnection = connectedUsers.get(username);
-    if (userConnection && userConnection.readyState === WebSocket.OPEN) {
-      userConnection.send(JSON.stringify({
-        type: "error",
-        code: 403,
-        message: "Your account has been banned for suspicious activity",
-        reason: bannedUsers.get(username).reason,
-        duration: banDuration,
-        unit: banUnit,
-        expiresAt: expiresAt
-      }));
-      userConnection.close();
+    const userConnections = connectedUsers.get(username);
+    if (userConnections && userConnections.length > 0) {
+      userConnections.forEach(conn => {
+        if (conn.readyState === WebSocket.OPEN) {
+          conn.send(JSON.stringify({
+            type: "error",
+            code: 403,
+            message: "Your account has been banned for suspicious activity",
+            reason: bannedUsers.get(username).reason,
+            duration: banDuration,
+            unit: banUnit,
+            expiresAt: expiresAt
+          }));
+          conn.close();
+        }
+      });
     }
 
     // Clean up anti-cheat data for banned user
@@ -2110,12 +2122,10 @@ function handleLogin(ws, data) {
   // Set username on the new connection
   ws.username = user.username;
 
-  // Track the new connection
-  connectedUsers.set(user.username, ws);
-
   console.log("LOGIN", "Login successful", {
     username: user.username,
-    totalConnected: connectedUsers.size
+    totalConnections: userConnections.length,
+    totalConnectedUsers: connectedUsers.size
   });
 
   // Send success response

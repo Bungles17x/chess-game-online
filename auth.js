@@ -296,6 +296,63 @@ function setupRegisterForm(registerForm) {
 
 
 
+    // Always try to register on server first
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      window.socket.send(JSON.stringify({
+        type: 'register',
+        username: username,
+        email: email,
+        password: password
+      }));
+      console.log('[Auth] Registration request sent to server');
+      
+      // Listen for registration response
+      const handleRegisterResponse = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'registered' || data.type === 'registerSuccess') {
+          console.log('[Auth] Registration successful on server:', data);
+          
+          // Set current user
+          const user = data.userData || {
+            username: data.username,
+            email: data.email
+          };
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          window.currentUser = user;
+          
+          // Dispatch login event
+          window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+          
+          // Show notification
+          if (window.showNotification) {
+            window.showNotification('Registered successfully', 'success');
+          }
+          
+          // Redirect to game
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 500);
+        } else if (data.type === 'error') {
+          console.error('[Auth] Registration failed on server:', data.message);
+          showError(data.message || 'Registration failed');
+        }
+        
+        // Remove the event listener
+        window.socket.removeEventListener('message', handleRegisterResponse);
+      };
+      
+      window.socket.addEventListener('message', handleRegisterResponse);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        window.socket.removeEventListener('message', handleRegisterResponse);
+      }, 10000);
+      
+      return; // Don't proceed with local registration
+    }
+    
+    // Fallback to local storage if server is not available
     // Check if user already exists
     const users = secureStorage.getItem('chessUsers') || [];
 
