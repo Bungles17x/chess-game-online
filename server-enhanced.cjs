@@ -319,6 +319,10 @@ wss.on('connection', (ws) => {
           console.log('[Switch] Handling syncAchievements');
           handleSyncAchievements(ws, clientId, data);
           break;
+        case 'deleteAccount':
+          console.log('[Switch] Handling deleteAccount');
+          handleDeleteAccount(ws, clientId, data);
+          break;
         case 'reportSystemFix':
           console.log('[Switch] Handling reportSystemFix');
           handleReportSystemFix(ws, data);
@@ -1036,6 +1040,63 @@ function handleSyncAchievements(ws, clientId, data) {
   }));
   
   console.log('[Achievements] Synced for:', client.username);
+}
+
+// Handle deleteAccount
+function handleDeleteAccount(ws, clientId, data) {
+  console.log('[Delete Account] Request received:', { clientId, data });
+  const client = clients.get(clientId);
+  if (!client || !client.username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Not authenticated'
+    }));
+    return;
+  }
+  
+  const username = data.username;
+  if (!username) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Username is required'
+    }));
+    return;
+  }
+  
+  // Verify the user is deleting their own account
+  if (client.username.toLowerCase() !== username.toLowerCase()) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'You can only delete your own account'
+    }));
+    return;
+  }
+  
+  // Delete user from server
+  console.log('[Delete Account] Attempting to delete user:', username);
+  const success = userManager.deleteUser(username);
+  console.log('[Delete Account] Delete result:', success);
+  
+  if (success) {
+    console.log('[Account Deletion] Account deleted:', username);
+    
+    // Send confirmation
+    ws.send(JSON.stringify({
+      type: 'accountDeleted',
+      username: username
+    }));
+    
+    // Close the connection
+    setTimeout(() => {
+      ws.close();
+    }, 1000);
+  } else {
+    console.log('[Delete Account] Failed to delete user:', username);
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Failed to delete account'
+    }));
+  }
 }
 
 // Clean up inactive clients periodically

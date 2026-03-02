@@ -25,9 +25,19 @@ function setupLoginForm(loginForm) {
   loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const rememberMe = document.getElementById('remember-me').checked;
+    const emailElement = document.getElementById('email');
+    const passwordElement = document.getElementById('password');
+    const rememberMeElement = document.getElementById('remember-me');
+    
+    // Check if elements exist before accessing their properties
+    if (!emailElement || !passwordElement || !rememberMeElement) {
+      showError('Form elements not found. Please refresh the page.');
+      return;
+    }
+    
+    const email = emailElement.value.trim();
+    const password = passwordElement.value;
+    const rememberMe = rememberMeElement.checked;
 
     // Validate inputs
     if (!email) {
@@ -130,6 +140,20 @@ function setupLoginForm(loginForm) {
     };
     localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
+    // Sync user data to server if connected
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      try {
+        window.socket.send(JSON.stringify({
+          type: 'syncUserData',
+          userData: safeUser
+        }));
+        console.log('[Auth] User data synced to server');
+      } catch (error) {
+        console.error('[Auth] Failed to sync user data to server:', error);
+        // Don't block login if sync fails
+      }
+    }
+
     if (rememberMe) {
       localStorage.setItem('rememberedUser', email);
     } else {
@@ -155,10 +179,21 @@ function setupRegisterForm(registerForm) {
   registerForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const username = document.getElementById('reg-username').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const confirmPassword = document.getElementById('reg-confirm-password').value;
+    const usernameElement = document.getElementById('reg-username');
+    const emailElement = document.getElementById('reg-email');
+    const passwordElement = document.getElementById('reg-password');
+    const confirmPasswordElement = document.getElementById('reg-confirm-password');
+    
+    // Check if elements exist before accessing their properties
+    if (!usernameElement || !emailElement || !passwordElement || !confirmPasswordElement) {
+      showError('Form elements not found. Please refresh the page.');
+      return;
+    }
+    
+    const username = usernameElement.value.trim();
+    const email = emailElement.value.trim();
+    const password = passwordElement.value;
+    const confirmPassword = confirmPasswordElement.value;
 
     // Validate inputs
     if (!username) {
@@ -252,6 +287,20 @@ function setupRegisterForm(registerForm) {
     };
     localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
+    // Sync user data to server if connected
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      try {
+        window.socket.send(JSON.stringify({
+          type: 'syncUserData',
+          userData: safeUser
+        }));
+        console.log('[Auth] Registration data synced to server');
+      } catch (error) {
+        console.error('[Auth] Failed to sync registration data to server:', error);
+        // Don't block registration if sync fails
+      }
+    }
+
     // Redirect to game
     window.location.href = 'index.html';
   });
@@ -291,19 +340,32 @@ function showError(message) {
   const alertDiv = document.createElement('div');
   alertDiv.className = 'auth-alert error';
   alertDiv.textContent = message;
+  
+  // Position at top center
+  alertDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 99999;
+    animation: slideInTop 0.3s ease-out;
+    max-width: 400px;
+    text-align: center;
+  `;
 
-  // Insert after form header
-  const authHeader = document.querySelector('.auth-header');
-  if (authHeader) {
-    authHeader.insertAdjacentElement('afterend', alertDiv);
-  } else {
-    // If authHeader doesn't exist, append to body
-    document.body.appendChild(alertDiv);
-  }
+  document.body.appendChild(alertDiv);
 
   // Remove after 3 seconds
   setTimeout(() => {
-    alertDiv.remove();
+    alertDiv.style.animation = 'slideOutTop 0.3s ease-out';
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 300);
   }, 3000);
 }
 

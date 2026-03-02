@@ -35,9 +35,40 @@ if (typeof secureStorage === 'undefined') {
 
 // DOM Elements
 const backToGameBtn = document.getElementById('back-to-game-btn');
+const serverStatus = document.getElementById('server-status');
+const statusIndicator = document.getElementById('status-indicator');
 
 // Track unsaved changes
 let hasUnsavedChanges = false;
+
+// Update connection status
+function updateConnectionStatus(status) {
+  if (!serverStatus || !statusIndicator) return;
+  
+  statusIndicator.classList.remove('connected', 'disconnected');
+  
+  switch (status) {
+    case 'connected':
+      serverStatus.textContent = 'Connected';
+      statusIndicator.classList.add('connected');
+      break;
+    case 'disconnected':
+      serverStatus.textContent = 'Disconnected';
+      statusIndicator.classList.add('disconnected');
+      break;
+    case 'connecting':
+      serverStatus.textContent = 'Connecting...';
+      break;
+    default:
+      serverStatus.textContent = status;
+  }
+}
+
+// Validate email format
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
 let initialSettings = {};
 let isSyncing = false; // Flag to prevent unsaved changes check during sync
 const loginFormContainer = document.getElementById('login-form-container');
@@ -75,6 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupThemeSelection();
   setupAvatarSelection();
   setupAchievementsDisplay();
+  
+  // Initialize server data manager
+  if (window.serverDataManager) {
+    console.log('[Settings] Server data manager initialized');
+  } else {
+    console.warn('[Settings] Server data manager not available');
+  }
 
   // Don't call updateSyncStatus on initial load to prevent refresh
   // updateSyncStatus();
@@ -94,8 +132,7 @@ function setupEventListeners() {
   // Back to Game button
   if (backToGameBtn) {
     backToGameBtn.addEventListener('click', () => {
-      // Directly go back to game without checking for unsaved changes
-      window.location.href = 'index.html';
+      checkUnsavedChanges();
     });
   }
 
@@ -131,6 +168,12 @@ function setupEventListeners() {
   // Logout button
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // Delete account button
+  const deleteAccountBtn = document.getElementById('delete-account-btn');
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', handleDeleteAccount);
   }
 
   // Sync Now button
@@ -233,20 +276,75 @@ function handleLogin(e) {
 
     // Validate inputs
     if (!email || !password) {
-      showNotification('Please enter email and password');
+      showNotification('Please enter email and password', 'error', true);
       return;
     }
 
-    // Check if WebSocket is connected
-    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
-      showNotification('Not connected to server. Please check your connection.');
-      return;
-    }
-
-    // Send login request to server
     // Check if input is an email or username
     const isEmail = email.includes('@');
-    console.log('[Login] Attempting to login with:', { isEmail, email, password: '***' });
+
+    // Only validate as email if it contains @ symbol
+    if (isEmail && !validateEmail(email)) {
+      showNotification('Please enter a valid email address', 'error', true);
+      return;
+    }
+
+    if (password.length < 6) {
+      showNotification('Password must be at least 6 characters', 'error', true);
+      return;
+    }
+
+    // Check if user exists in secureStorage (local authentication)
+    const users = secureStorage.getItem('chessUsers') || [];
+
+    // Allow login with either email or username
+    const user = users.find(u =>
+      (u.email === email || u.username === email) &&
+      u.password === password
+    );
+
+    if (user) {
+      // Login successful - create a safe user object without password
+      const safeUser = {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        level: user.level,
+        xp: user.xp,
+        stats: user.stats,
+        savedGames: user.savedGames,
+        createdAt: user.createdAt
+      };
+      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+
+      // Sync user data to server if connected
+      if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+        try {
+          window.socket.send(JSON.stringify({
+            type: 'syncUserData',
+            userData: safeUser
+          }));
+          console.log('[Login] User data synced to server');
+        } catch (error) {
+          console.error('[Login] Failed to sync user data to server:', error);
+          // Don't block login if sync fails
+        }
+      }
+
+      // Dispatch login event
+      window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: safeUser }));
+
+      // Show notification
+      showNotification('Logged in successfully');
+
+      // Update UI
+      checkLoginStatus();
+      return;
+    }
+
+    // If not found locally, try server authentication
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      console.log('[Login] Attempting to login with:', { isEmail, email, password: '***' });
     
     window.socket.send(JSON.stringify({
       type: 'login',
@@ -292,6 +390,9 @@ function handleLogin(e) {
     setTimeout(() => {
       window.socket.removeEventListener('message', handleLoginResponse);
     }, 10000);
+    } else {
+      showNotification('Invalid email/username or password', 'error', true);
+    }
   } catch (error) {
     console.error('Login error:', error);
     showNotification('An error occurred during login. Please try again.');
@@ -310,33 +411,106 @@ function handleRegister(e) {
 
     // Validate inputs
     if (!username || !email || !password || !confirmPassword) {
-      showNotification('Please fill in all fields');
+      showNotification('Please fill in all fields', 'error', true);
+      return;
+    }
+
+    if (username.length < 3) {
+      showNotification('Username must be at least 3 characters', 'error', true);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showNotification('Please enter a valid email address', 'error', true);
       return;
     }
 
     if (password !== confirmPassword) {
-      showNotification('Passwords do not match');
+      showNotification('Passwords do not match', 'error', true);
       return;
     }
 
     if (password.length < 6) {
-      showNotification('Password must be at least 6 characters');
+      showNotification('Password must be at least 6 characters', 'error', true);
       return;
     }
 
-    // Check if WebSocket is connected
-    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
-      showNotification('Not connected to server. Please check your connection.');
+    // Check if user already exists in secureStorage (local registration)
+    const users = secureStorage.getItem('chessUsers') || [];
+
+    if (users.find(u => u.email === email)) {
+      showNotification('An account with this email already exists', 'error', true);
       return;
     }
 
-    // Send registration request to server
-    window.socket.send(JSON.stringify({
-      type: 'register',
-      username: username,
-      email: email,
-      password: password
-    }));
+    if (users.find(u => u.username === username)) {
+      showNotification('This username is already taken', 'error', true);
+      return;
+    }
+
+    // Create new user
+    const newUser = {
+      id: Date.now(),
+      username,
+      email,
+      password,
+      avatar: '♟',
+      level: 1,
+      xp: 0,
+      stats: {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        currentStreak: 0
+      },
+      savedGames: [],
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    secureStorage.setItem('chessUsers', users);
+
+    // Create a safe user object without password and email for localStorage
+    const safeUser = {
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      avatar: newUser.avatar,
+      level: newUser.level,
+      xp: newUser.xp,
+      stats: newUser.stats,
+      savedGames: newUser.savedGames,
+      createdAt: newUser.createdAt
+    };
+    localStorage.setItem('currentUser', JSON.stringify(safeUser));
+
+    // Sync user data to server if connected
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      try {
+        window.socket.send(JSON.stringify({
+          type: 'syncUserData',
+          userData: safeUser
+        }));
+        console.log('[Register] User data synced to server');
+      } catch (error) {
+        console.error('[Register] Failed to sync user data to server:', error);
+        // Don't block registration if sync fails
+      }
+    }
+
+    // Dispatch login event
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: safeUser }));
+
+    // Show notification
+    showNotification('Registered successfully');
+
+    // Update UI
+    checkLoginStatus();
+    return;
+
+    // Server registration is disabled - using local registration only
+    // Server registration is disabled - using local registration only
 
     // Listen for registration response
     const handleRegisterResponse = (event) => {
@@ -727,6 +901,83 @@ function handleLogout() {
   checkLoginStatus();
 }
 
+// Handle Delete Account
+function handleDeleteAccount() {
+  // Show confirmation dialog
+  const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone!');
+  if (!confirmed) return;
+
+  // Double confirmation
+  const confirmedAgain = confirm('This will permanently delete your account and all your data. Are you absolutely sure?');
+  if (!confirmedAgain) return;
+
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (!currentUser || !currentUser.username) {
+      showNotification('No user logged in');
+      return;
+    }
+
+    // Check if WebSocket is connected
+    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+      showNotification('Not connected to server. Please check your connection.');
+      return;
+    }
+
+    // Send delete account request to server
+    console.log('[Delete Account] Sending delete request for:', currentUser.username);
+    window.socket.send(JSON.stringify({
+      type: 'deleteAccount',
+      username: currentUser.username
+    }));
+    console.log('[Delete Account] Request sent successfully');
+
+    // Listen for delete account response
+    const handleDeleteResponse = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('[Delete Account] Response received:', data);
+
+      if (data.type === 'accountDeleted') {
+        // Clear all local data
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('chessUsers');
+        localStorage.removeItem('chessPlayerData');
+        localStorage.removeItem('chessAchievements');
+        localStorage.removeItem('chessRewards');
+        localStorage.removeItem('savedGames');
+        localStorage.removeItem('chessSavedGames');
+        localStorage.removeItem('allFriends');
+        localStorage.removeItem('onlineFriends');
+        localStorage.removeItem('blockedUsers');
+
+        // Dispatch logout event
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
+        // Show notification
+        showNotification('Account deleted successfully');
+
+        // Update UI
+        checkLoginStatus();
+      } else if (data.type === 'error') {
+        showNotification(data.message || 'Failed to delete account');
+      }
+
+      // Remove the event listener
+      window.socket.removeEventListener('message', handleDeleteResponse);
+    };
+
+    window.socket.addEventListener('message', handleDeleteResponse);
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      window.socket.removeEventListener('message', handleDeleteResponse);
+    }, 10000);
+  } catch (error) {
+    console.error('Delete account error:', error);
+    showNotification('An error occurred. Please try again.');
+  }
+}
+
 // Handle Sync Now
 function handleSyncNow() {
   console.log('[Settings Sync] Sync button clicked');
@@ -880,6 +1131,9 @@ function setupThemeSelection() {
 
       // Save preference
       localStorage.setItem('theme', theme);
+      
+      // Mark as unsaved changes
+      hasUnsavedChanges = true;
     });
   });
 
@@ -898,6 +1152,9 @@ function setupThemeSelection() {
 
       // Apply theme
       document.documentElement.style.setProperty('--board-theme', theme);
+      
+      // Mark as unsaved changes
+      hasUnsavedChanges = true;
     });
   });
 
@@ -957,6 +1214,9 @@ function setupAvatarSelection() {
           window.userSyncManager.updateProfile({ avatar });
         }
 
+        // Mark as unsaved changes
+        hasUnsavedChanges = true;
+
         // Dispatch event
         window.dispatchEvent(new CustomEvent('profileUpdated', { detail: currentUser }));
       }
@@ -983,28 +1243,58 @@ function setupAvatarSelection() {
 }
 
 // Show Notification
-function showNotification(message) {
+function showNotification(message, type = 'info', centered = false) {
   const notification = document.createElement('div');
   notification.className = 'notification';
+  
+  // Set background color based on type
+  let background = 'linear-gradient(135deg, var(--accent), var(--accent-strong))';
+  if (type === 'error') {
+    background = 'linear-gradient(135deg, var(--danger), #dc2626)';
+  } else if (type === 'success') {
+    background = 'linear-gradient(135deg, var(--success), #16a34a)';
+  } else if (type === 'warning') {
+    background = 'linear-gradient(135deg, var(--warning), #d97706)';
+  }
+  
   notification.textContent = message;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    animation: slideIn 0.3s ease-out;
-  `;
+  
+  if (centered) {
+    notification.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 16px 24px;
+      background: ${background};
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 99999;
+      animation: slideInCenter 0.3s ease-out;
+      max-width: 400px;
+      text-align: center;
+    `;
+  } else {
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: ${background};
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      animation: slideIn 0.3s ease-out;
+    `;
+  }
 
   document.body.appendChild(notification);
 
   // Remove after 3 seconds
   setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
+    notification.style.animation = centered ? 'slideOutCenter 0.3s ease-out' : 'slideOut 0.3s ease-out';
     setTimeout(() => {
       document.body.removeChild(notification);
     }, 300);
@@ -1265,6 +1555,8 @@ function trackInitialSettings() {
 
 // Check for Unsaved Changes
 function checkUnsavedChanges() {
+  console.log('[Settings] checkUnsavedChanges called, hasUnsavedChanges:', hasUnsavedChanges);
+  
   // If syncing, don't check for unsaved changes
   if (isSyncing) {
     console.log('[Settings] Skipping unsaved changes check during sync');
@@ -1278,6 +1570,7 @@ function checkUnsavedChanges() {
     return;
   }
 
+  console.log('[Settings] Showing unsaved changes dialog');
   // Show unsaved changes dialog
   showUnsavedChangesDialog();
 }

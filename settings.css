@@ -6,6 +6,26 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.6); }
+}
+
 /* XP Progress Bar Styles */
 .xp-progress-container {
   margin-top: 16px;
@@ -57,44 +77,108 @@
   display: grid;
   gap: var(--space-lg);
   padding: var(--space-lg);
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  animation: fadeIn var(--transition-normal) ease-out;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .settings-section {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-normal) ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .settings-section:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+  transform: translateY(-4px);
 }
 
-.settings-section {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 24px;
-  animation: fadeIn 0.3s ease-out;
+.settings-section:hover::before {
+  opacity: 1;
 }
 
 .settings-section h2 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  margin-bottom: 20px;
-  color: var(--text-main);
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 12px;
+  margin-bottom: 24px;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  padding-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.settings-section h2::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), #818cf8);
+  border-radius: 2px;
 }
 
 .settings-subsection {
   margin-bottom: 24px;
+}
+
+/* Connection Status Styles */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 15px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connected {
+  background: #10b981;
+  animation: none;
+}
+
+.status-indicator.disconnected {
+  background: #ef4444;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .settings-subsection:last-child {

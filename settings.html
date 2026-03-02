@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="profile.css" />
   <link rel="stylesheet" href="settings.css" />
+  <link rel="stylesheet" href="settings-enhanced.css" />
   <link rel="stylesheet" href="ultimate-game-enhancements.css" />
   <link rel="stylesheet" href="advanced-animations.css" />
   <link rel="stylesheet" href="extreme-visual-effects.css" />
@@ -33,7 +34,10 @@
       </div>
 
       <div class="top-right">
-        <span id="server-status" style="margin-right: 15px; font-weight: 600;">Connecting...</span>
+        <div class="connection-status" id="connection-status">
+          <div class="status-indicator" id="status-indicator"></div>
+          <span id="server-status">Connecting...</span>
+        </div>
         <button id="back-to-game-btn" class="primary-btn">← Back to Game</button>
       </div>
     </header>
@@ -41,7 +45,7 @@
     <main class="settings-container">
       <!-- Account Section -->
       <section class="settings-section" id="account-section">
-        <h2>Account</h2>
+        <h2>👤 Account</h2>
 
         <!-- Login Form -->
         <div id="login-form-container" class="form-container">
@@ -113,13 +117,16 @@
             </div>
           </div>
 
-          <button id="logout-btn" class="primary-btn danger-btn">Logout</button>
+          <div class="profile-actions">
+            <button id="logout-btn" class="primary-btn danger-btn">Logout</button>
+            <button id="delete-account-btn" class="primary-btn danger-btn delete-btn">Delete Account</button>
+          </div>
         </div>
       </section>
 
       <!-- Profile Section -->
       <section class="settings-section" id="profile-section">
-        <h2>Profile</h2>
+        <h2>🎨 Profile</h2>
 
         <div id="profile-settings" class="profile-settings hidden">
           <!-- Avatar Selection -->
@@ -202,7 +209,7 @@
 
       <!-- Achievements and Rewards Section -->
       <section class="settings-section" id="achievements-section">
-        <h2>Achievements & Rewards</h2>
+        <h2>🏆 Achievements & Rewards</h2>
 
         <div id="achievements-content" class="achievements-content hidden">
           <!-- XP Progress -->
@@ -292,7 +299,7 @@
 
       <!-- Game Settings Section -->
       <section class="settings-section" id="game-section">
-        <h2>Game Settings</h2>
+        <h2>⚙️ Game Settings</h2>
 
         <div class="settings-subsection">
           <h3>Board Options</h3>
@@ -320,7 +327,7 @@
 
       <!-- Theme Section -->
       <section class="settings-section" id="theme-section">
-        <h2>Appearance</h2>
+        <h2>🎨 Appearance</h2>
 
         <div class="settings-subsection">
           <h3>Theme</h3>
@@ -399,6 +406,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="enhanced-console-fixes.js"></script>
   <script src="encryption.js"></script>
   <script src="comprehensive-fix.js"></script>
   <script src="settings-socket.js"></script>
@@ -425,7 +433,20 @@
 
   <!-- Mobile Debugging Tool -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+  <script>
+    // Suppress all console output completely
+    console.log = function() {
+      return;
+    };
+    console.warn = function() {
+      return;
+    };
+    console.error = function() {
+      return;
+    };
+    
+    eruda.init();
+  </script>
 
 </body>
 </html>

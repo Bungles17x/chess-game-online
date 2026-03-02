@@ -13,7 +13,7 @@ Get your chess game online in minutes!
    - **Name**: `chess-game-online`
    - **Environment**: `Node`
    - **Build Command**: `npm install`
-   - **Start Command**: `node server-enhanced.cjs`
+   - **Start Command**: `node server.cjs`
    - **Instance Type**: Free
 5. Click **"Create Web Service"**
 6. Wait for deployment (2-3 minutes)

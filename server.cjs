@@ -170,9 +170,29 @@ wss.on('error', (error) => {
   console.error('WebSocket server error:', error);
 });
 
-// Log when a client connects
+// Log when a client connects with enhanced error handling
 wss.on('connection', (ws, req) => {
-  console.log('New client connected from:', req.socket.remoteAddress);
+  try {
+    const clientAddress = req.socket.remoteAddress || 'unknown';
+    console.log('New client connected from:', clientAddress);
+    
+    // Set up error handler for this specific connection
+    ws.on('error', (error) => {
+      console.error('Client connection error:', {
+        address: clientAddress,
+        error: error.message
+      });
+    });
+    
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connection',
+      status: 'connected',
+      message: 'Successfully connected to server'
+    }));
+  } catch (error) {
+    console.error('Error handling new connection:', error);
+  }
 });
 
 // TEMPORARY: Unban bungles17x account on server start
@@ -308,7 +328,7 @@ function validateGameState(roomId, clientState) {
   return { valid: true };
 }
 
-console.log('WebSocket Server is running on ws://localhost:8081');
+console.log('WebSocket Server is running on ws://localhost:8080');
 
 // Periodic cleanup of expired anti-cheat data
 setInterval(() => {

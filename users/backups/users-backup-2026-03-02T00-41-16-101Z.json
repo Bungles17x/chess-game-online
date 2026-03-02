@@ -1,6 +1,5 @@
 {
   "bungles17x": {
-    "id": 1772312838876,
     "username": "bungles17x",
     "email": "lildclaycomb@gmail.com",
     "password": "Claycomb_17x",
@@ -15,19 +14,18 @@
       "currentStreak": 0
     },
     "savedGames": [],
-    "createdAt": "2026-02-28T21:07:18.876Z",
+    "createdAt": "2026-03-01T18:39:20.049Z",
+    "updatedAt": "2026-03-02T00:17:02.455Z",
     "settings": {
       "theme": "dark",
-      "boardTheme": "blue",
-      "chessBoardTheme": "blue",
+      "boardTheme": "green",
+      "chessBoardTheme": "green",
       "chessPieceTheme": "classic",
       "soundEnabled": true,
       "moveHints": true,
       "autoPromote": false,
-      "showCoordinates": true,
+      "showCoordinates": false,
       "showBanAfterLogin": false
-    },
-    "updatedAt": "2026-02-28T21:08:00.758Z",
-    "friends": []
+    }
   }
 }

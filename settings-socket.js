@@ -72,10 +72,17 @@ function initWebSocket() {
       reconnectAttempts = 0;
 
       // Update server status indicator
-      const serverStatus = document.getElementById('server-status');
-      if (serverStatus) {
-        serverStatus.textContent = 'Connected';
-        serverStatus.style.color = '#4CAF50';
+      if (typeof updateConnectionStatus === 'function') {
+        updateConnectionStatus('connected');
+      } else {
+        const serverStatus = document.getElementById('server-status');
+        const statusIndicator = document.getElementById('status-indicator');
+        if (serverStatus) {
+          serverStatus.textContent = 'Connected';
+        }
+        if (statusIndicator) {
+          statusIndicator.classList.add('connected');
+        }
       }
 
       // Send authentication with username
@@ -136,10 +143,17 @@ function initWebSocket() {
       debugConnectionStatus();
 
       // Update server status indicator
-      const serverStatus = document.getElementById('server-status');
-      if (serverStatus) {
-        serverStatus.textContent = 'Connection Error';
-        serverStatus.style.color = '#f44336';
+      if (typeof updateConnectionStatus === 'function') {
+        updateConnectionStatus('disconnected');
+      } else {
+        const serverStatus = document.getElementById('server-status');
+        const statusIndicator = document.getElementById('status-indicator');
+        if (serverStatus) {
+          serverStatus.textContent = 'Connection Error';
+        }
+        if (statusIndicator) {
+          statusIndicator.classList.add('disconnected');
+        }
       }
     };
 
@@ -154,10 +168,17 @@ function initWebSocket() {
       debugConnectionStatus();
 
       // Update server status indicator
-      const serverStatus = document.getElementById('server-status');
-      if (serverStatus) {
-        serverStatus.textContent = 'Disconnected';
-        serverStatus.style.color = '#f44336';
+      if (typeof updateConnectionStatus === 'function') {
+        updateConnectionStatus('disconnected');
+      } else {
+        const serverStatus = document.getElementById('server-status');
+        const statusIndicator = document.getElementById('status-indicator');
+        if (serverStatus) {
+          serverStatus.textContent = 'Disconnected';
+        }
+        if (statusIndicator) {
+          statusIndicator.classList.add('disconnected');
+        }
       }
 
       // Attempt to reconnect

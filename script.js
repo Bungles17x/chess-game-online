@@ -8,43 +8,105 @@ document.head.appendChild(callNotificationScript);
 // -----------------------------------------------------
 // DOM ELEMENTS
 // -----------------------------------------------------
-const boardElement = document.getElementById("chessboard");
-const movesList = document.getElementById("moves-list");
-const turnIndicator = document.getElementById("turn-indicator");
-const resetBtn = document.getElementById("reset-btn");
-const themeToggle = document.getElementById("theme-toggle");
+// Helper function to safely get DOM elements
+function getElement(id) {
+  const element = document.getElementById(id);
+  if (!element) {
+    console.warn(`Element with id "${id}" not found`);
+    // Return a safe placeholder to prevent errors
+    return { 
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      classList: { add: () => {}, remove: () => {}, contains: () => false },
+      style: {},
+      textContent: '',
+      value: '',
+      checked: false,
+      disabled: true,
+      focus: () => {},
+      blur: () => {},
+      click: () => {}
+    };
+  }
+  return element;
+}
+
+// Enhanced error handling
+function handleError(error, context = '') {
+  const errorMessage = error?.message || 'An unexpected error occurred';
+  const fullMessage = context ? `${context}: ${errorMessage}` : errorMessage;
+  console.error(fullMessage, error);
+  
+  // Show user-friendly error notification
+  if (typeof showNotification === 'function') {
+    showNotification(fullMessage, 'error', true);
+  } else {
+    alert(fullMessage);
+  }
+}
+
+// Performance monitoring
+const performanceMetrics = {
+  moveCount: 0,
+  renderTime: 0,
+  lastFrameTime: performance.now(),
+  frameCount: 0
+};
+
+function updatePerformanceMetrics() {
+  const now = performance.now();
+  const deltaTime = now - performanceMetrics.lastFrameTime;
+  performanceMetrics.renderTime += deltaTime;
+  performanceMetrics.frameCount++;
+  performanceMetrics.lastFrameTime = now;
+  
+  // Log performance every 60 frames (approximately 1 second)
+  if (performanceMetrics.frameCount % 60 === 0) {
+    const avgRenderTime = performanceMetrics.renderTime / 60;
+    if (avgRenderTime > 16.67) { // 60fps = 16.67ms per frame
+      console.warn(`Performance warning: Average render time ${avgRenderTime.toFixed(2)}ms (target: <16.67ms for 60fps)`);
+    }
+    performanceMetrics.renderTime = 0;
+  }
+}
+
+const boardElement = getElement("chessboard");
+const movesList = getElement("moves-list");
+const turnIndicator = getElement("turn-indicator");
+const resetBtn = getElement("reset-btn");
+const themeToggle = getElement("theme-toggle");
 const modeButtons = document.querySelectorAll("[data-mode]");
-const lobbyBtn = document.getElementById("lobby-btn");
-const lobbyModal = document.getElementById("lobby-modal");
-const roomList = document.getElementById("room-list");
-const roomSearchInput = document.getElementById("room-search");
-const createRoomBtn = document.getElementById("create-room-btn");
-const lobbyFriendsList = document.getElementById("lobby-friends-list");
+const lobbyBtn = getElement("lobby-btn");
+const lobbyModal = getElement("lobby-modal");
+const roomList = getElement("room-list");
+const roomSearchInput = getElement("room-search");
+const createRoomBtn = getElement("create-room-btn");
+const lobbyFriendsList = getElement("lobby-friends-list");
 const tabButtons = document.querySelectorAll(".tab-btn");
-const profileBtn = document.getElementById("profile-btn");
-const saveGameBtn = document.getElementById("save-game-btn");
-const themeBtn = document.getElementById("theme-btn");
-const loginBtn = document.getElementById("login-btn");
-const registerBtn = document.getElementById("register-btn");
-const manageBansBtn = document.getElementById("manage-bans-btn");
-const friendsBtn = document.getElementById("friends-btn");
-const themeModal = document.getElementById("theme-modal");
-const menuBtn = document.getElementById("menu-btn");
+const profileBtn = getElement("profile-btn");
+const saveGameBtn = getElement("save-game-btn");
+const themeBtn = getElement("theme-btn");
+const loginBtn = getElement("login-btn");
+const registerBtn = getElement("register-btn");
+const manageBansBtn = getElement("manage-bans-btn");
+const friendsBtn = getElement("friends-btn");
+const themeModal = getElement("theme-modal");
+const menuBtn = getElement("menu-btn");
 const dropdown = document.querySelector(".dropdown");
-const closeThemeBtn = document.getElementById("close-theme-btn");
-const closeLobbyBtn = document.getElementById("close-lobby-btn");
-const botModeBtn = document.getElementById("bot-mode");
-const localModeBtn = document.getElementById("local-mode");
-const onlineModeBtn = document.getElementById("online-mode");
-const checkersModeBtn = document.getElementById("checkers-mode");
-const serverStatusBtn = document.getElementById("server-status-btn");
-const moveSound = document.getElementById("move-sound");
-const captureSound = document.getElementById("capture-sound");
-const connectionLostSound = document.getElementById("connection-lost-sound");
-const reconnectedSound = document.getElementById("reconnected-sound");
-const drawBtn = document.getElementById("draw-btn");
-const resignBtn = document.getElementById("resign-btn");
-const toggleChatBtn = document.getElementById("toggle-chat-btn");
+const closeThemeBtn = getElement("close-theme-btn");
+const closeLobbyBtn = getElement("close-lobby-btn");
+const botModeBtn = getElement("bot-mode");
+const localModeBtn = getElement("local-mode");
+const onlineModeBtn = getElement("online-mode");
+const checkersModeBtn = getElement("checkers-mode");
+const serverStatusBtn = getElement("server-status-btn");
+const moveSound = getElement("move-sound");
+const captureSound = getElement("capture-sound");
+const connectionLostSound = getElement("connection-lost-sound");
+const reconnectedSound = getElement("reconnected-sound");
+const drawBtn = getElement("draw-btn");
+const resignBtn = getElement("resign-btn");
+const toggleChatBtn = getElement("toggle-chat-btn");
 
 // Sound initialization flag
 let audioInitialized = false;
@@ -91,24 +153,24 @@ function initializeAudio() {
 document.addEventListener("click", initializeAudio, { once: true });
 document.addEventListener("touchstart", initializeAudio, { once: true });
 
-const loadingScreen = document.getElementById("loading-screen");
-const noConnectionScreen = document.getElementById("no-connection-screen");
-const retryConnectionBtn = document.getElementById("retry-connection-btn");
-const backToBotBtn = document.getElementById("back-to-bot-btn");
-const connectionParticles = document.getElementById("connection-particles");
-const connectionDot = document.getElementById("connection-dot");
-const connectionText = document.getElementById("connection-text");
-const serverIssueModal = document.getElementById("server-issue-modal");
-const serverIssueOkBtn = document.getElementById("server-issue-ok-btn");
-const connectionQuality = document.getElementById("connection-quality");
-const latencyGraph = document.getElementById("latency-graph");
-const latencyValue = document.getElementById("latency-value");
+const loadingScreen = getElement("loading-screen");
+const noConnectionScreen = getElement("no-connection-screen");
+const retryConnectionBtn = getElement("retry-connection-btn");
+const backToBotBtn = getElement("back-to-bot-btn");
+const connectionParticles = getElement("connection-particles");
+const connectionDot = getElement("connection-dot");
+const connectionText = getElement("connection-text");
+const serverIssueModal = getElement("server-issue-modal");
+const serverIssueOkBtn = getElement("server-issue-ok-btn");
+const connectionQuality = getElement("connection-quality");
+const latencyGraph = getElement("latency-graph");
+const latencyValue = getElement("latency-value");
 
 // Chat elements
-const chatContainer = document.getElementById("chat-container");
-const chatMessages = document.getElementById("chat-messages");
-const chatInput = document.getElementById("chat-input");
-const sendChatBtn = document.getElementById("send-chat-btn");
+const chatContainer = getElement("chat-container");
+const chatMessages = getElement("chat-messages");
+const chatInput = getElement("chat-input");
+const sendChatBtn = getElement("send-chat-btn");
 
 // Connection quality tracking
 window.connectionLatency = 0;
@@ -180,8 +242,8 @@ const WS_CONFIG = {
     if (isGitHubPages || isRender) {
       return this.RENDER_URL;
     } else if (isLocalhost) {
-      // For local development, use localhost
-      return 'ws://localhost:8080';
+      // Always use Render server
+      return this.RENDER_URL;
     } else {
       // Default to Render server
       return this.RENDER_URL;
@@ -396,7 +458,29 @@ function ensureSocket() {
     };
 
     socket.onerror = function(error) {
-      debugLog("SOCKET", "WebSocket error", {
+      const errorDetails = {
+        type: error.type || 'unknown',
+        message: error.message || 'Unknown WebSocket error',
+        timestamp: new Date().toISOString(),
+        url: wsUrl,
+        readyState: socket?.readyState
+      };
+      
+      debugLog("SOCKET", "WebSocket error occurred", errorDetails);
+      
+      // Update connection status to show error
+      updateConnectionStatus(false, errorDetails.message);
+      
+      // Show user-friendly error message - only if notification system is available
+      if (typeof showNotification === 'function') {
+        showNotification('Connection Error', 'Unable to connect to server. Please check your internet connection.', 'error');
+      } else {
+        // Fallback to console if notification system not ready
+        console.warn('Connection Error: Unable to connect to server. Please check your internet connection.');
+      }
+      
+      // Log additional error context
+      console.error('WebSocket Error Details:', {
         error: error.message || "Unknown error",
         socketState: socket ? socket.readyState : "No socket"
       });

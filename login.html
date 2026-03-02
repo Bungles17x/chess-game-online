@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sign in to your Modern Chess account to play online with friends." />
+  <meta name="keywords" content="chess login, sign in, chess account, online chess" />
   <title>Login - Modern Chess</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="settings-enhanced.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -21,7 +24,7 @@
       <form id="login-form" class="auth-form">
         <div class="form-group">
           <label for="email">Email or Username</label>
-          <input type="text" id="email" name="email" required placeholder="Enter your email or username">
+          <input type="text" id="email" name="email" required placeholder="Enter your email or username" autocomplete="username">
         </div>
 
         <div class="form-group">
@@ -31,7 +34,7 @@
 
         <div class="form-options">
           <label class="checkbox-label">
-            <input type="checkbox" id="remember-me" name="remember-me">
+            <input type="checkbox" id="remember-me" name="remember-me" autocomplete="off">
             <span>Remember me </span>
           </label>
           <a href="forgot-password.html" class="forgot-password"> Forgot password?</a>
