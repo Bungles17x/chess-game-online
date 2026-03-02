@@ -419,6 +419,15 @@ if (window.socket) {
       const data = JSON.parse(event.data);
       console.log('[Auth] Received message from server:', data.type);
 
+      // Handle authentication confirmation (from handleAuthenticate)
+      if (data.type === 'authenticated') {
+        console.log('[Auth] Authentication confirmation received:', data);
+        // Just store username on socket, no action needed
+        if (window.socket) {
+          window.socket.username = data.username;
+        }
+      }
+
       // Handle login confirmation
       if (data.type === 'loggedIn') {
         console.log('[Auth] Login confirmation received:', data);

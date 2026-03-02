@@ -737,9 +737,10 @@ function loadProfileData() {
   
   // Request user data from server
   if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     window.socket.send(JSON.stringify({
       type: 'getUserProfile',
-      username: window.currentUsername
+      username: currentUser ? currentUser.username : undefined
     }));
     console.log('[Settings Debug] Requested user profile from server');
     return;
