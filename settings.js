@@ -248,6 +248,94 @@ function setupEventListeners() {
           updateProfileDisplay(data.userData);
         }
 
+        // Handle login confirmation
+        if (data.type === 'loggedIn') {
+          console.log('[Settings] Login confirmation received:', data);
+          
+          // Set current user
+          const user = data.userData || {
+            username: data.username,
+            email: data.email
+          };
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          window.currentUser = user;
+
+          // Dispatch login event
+          window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+
+          // Show notification
+          if (window.showNotification) {
+            window.showNotification('Logged in successfully', 'success');
+          }
+
+          // Update UI
+          checkLoginStatus();
+        }
+
+        // Handle registration confirmation
+        if (data.type === 'registered') {
+          console.log('[Settings] Registration confirmation received:', data);
+          
+          // Set current user
+          const user = data.userData || {
+            username: data.username,
+            email: data.email
+          };
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          window.currentUser = user;
+
+          // Dispatch login event
+          window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+
+          // Show notification
+          if (window.showNotification) {
+            window.showNotification('Registered successfully', 'success');
+          }
+
+          // Update UI
+          checkLoginStatus();
+        }
+
+        // Handle report system fix acknowledgment
+        if (data.type === 'reportSystemFixAck') {
+          console.log('[Settings] Report system fix acknowledged:', data.message);
+          // This is just an acknowledgment, no action needed
+        }
+
+        // Handle account deletion notification
+        if (data.type === 'accountDeleted') {
+          console.log('[Settings] Account deleted notification received:', data);
+          
+          // Clear ALL local data
+          const allKeys = Object.keys(localStorage);
+          allKeys.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('[Settings] Removed local storage key:', key);
+          });
+
+          // Clear session storage
+          sessionStorage.clear();
+
+          // Clear current user
+          window.currentUser = null;
+
+          // Dispatch logout event
+          window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
+          // Show notification
+          if (window.showNotification) {
+            window.showNotification(data.message || 'Your account has been deleted', 'error');
+          }
+
+          // Update UI
+          checkLoginStatus();
+
+          // Redirect to home after delay
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        }
+
         // Handle user profile updated
         if (data.type === 'userProfileUpdated') {
           console.log('[Settings] User profile updated on server:', data.userData);
@@ -406,7 +494,7 @@ function handleLogin(e) {
     const handleLoginResponse = (event) => {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'loginSuccess') {
+      if (data.type === 'loggedIn' || data.type === 'loginSuccess') {
         // Use user data from server response
         const user = data.userData || {
           username: data.username,
@@ -564,7 +652,7 @@ function handleRegister(e) {
     const handleRegisterResponse = (event) => {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'registerSuccess') {
+      if (data.type === 'registered' || data.type === 'registerSuccess') {
         const user = data.userData;
         
         // Set current user

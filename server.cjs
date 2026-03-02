@@ -398,6 +398,15 @@ function handleMessage(ws, data) {
     case "authenticate":
       handleAuthenticate(ws, data);
       break;
+    case "register":
+      handleRegister(ws, data);
+      break;
+    case "login":
+      handleLogin(ws, data);
+      break;
+    case "reportSystemFix":
+      handleReportSystemFix(ws, data);
+      break;
     case "listRooms":
       listRooms(ws);
       break;
@@ -1894,6 +1903,234 @@ function handleDeleteAccount(ws, data) {
       message: "Failed to delete account"
     }));
   }
+}
+
+// Handle user registration
+function handleRegister(ws, data) {
+  const { username, email, password } = data;
+
+  // Validate inputs
+  if (!username || username.length < 3) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Username must be at least 3 characters'
+    }));
+    return;
+  }
+
+  if (!email || !email.includes('@')) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Please enter a valid email'
+    }));
+    return;
+  }
+
+  if (!password || password.length < 6) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Password must be at least 6 characters'
+    }));
+    return;
+  }
+
+  // Check if username already exists
+  const existingUserByUsername = userManager.getUser(username);
+  if (existingUserByUsername) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Username already taken'
+    }));
+    return;
+  }
+
+  // Check if email already exists
+  const existingUserByEmail = userManager.getUserByEmail(email);
+  if (existingUserByEmail) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Email already registered'
+    }));
+    return;
+  }
+
+  // Create new user
+  const newUser = {
+    username,
+    email,
+    password,
+    avatar: '♟',
+    level: 1,
+    xp: 0,
+    stats: {
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      currentStreak: 0
+    },
+    savedGames: [],
+    createdAt: new Date().toISOString(),
+    friends: [],
+    friendRequests: [],
+    achievements: [],
+    rewards: [],
+    settings: {
+      theme: 'light',
+      notifications: true
+    }
+  };
+
+  // Save user
+  const saved = userManager.saveUser(newUser);
+  if (saved) {
+    console.log('[Register] New user created:', username);
+    // Create safe user object without password
+    const safeUser = {
+      username: newUser.username,
+      email: newUser.email,
+      avatar: newUser.avatar,
+      level: newUser.level,
+      xp: newUser.xp,
+      stats: newUser.stats,
+      savedGames: newUser.savedGames,
+      createdAt: newUser.createdAt
+    };
+    ws.send(JSON.stringify({
+      type: 'registered',
+      username: username,
+      userData: safeUser,
+      message: 'Registration successful'
+    }));
+  } else {
+    console.error('[Register] Failed to save user:', username);
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Failed to create account'
+    }));
+  }
+}
+
+// Handle user login
+function handleLogin(ws, data) {
+  const { username, email, password } = data;
+
+  // Support both username-only and email/password login
+  let user;
+  if (email && password) {
+    // Email/password login
+    user = userManager.getUserByEmail(email);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'User not found'
+      }));
+      return;
+    }
+
+    if (user.password !== password) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Incorrect password'
+      }));
+      return;
+    }
+  } else if (username) {
+    // Username-only login (for existing sessions)
+    user = userManager.getUser(username);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'User not found'
+      }));
+      return;
+    }
+  } else {
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Invalid login credentials'
+    }));
+    return;
+  }
+
+  // Check if user is banned
+  const bannedUser = bannedUsers.get(user.username.toLowerCase());
+  if (bannedUser) {
+    // Check if ban is permanent or not expired
+    let isBanned = false;
+    if (!bannedUser.duration) {
+      isBanned = true;
+    } else {
+      let expiryTime;
+      if (bannedUser.unit === 'hours') {
+        expiryTime = bannedUser.bannedAt + (bannedUser.duration * 60 * 60 * 1000);
+      } else {
+        expiryTime = bannedUser.bannedAt + (bannedUser.duration * 24 * 60 * 60 * 1000);
+      }
+      isBanned = Date.now() <= expiryTime;
+    }
+
+    if (isBanned) {
+      ws.send(JSON.stringify({
+        type: 'userBanned',
+        username: bannedUser.username,
+        reason: bannedUser.reason,
+        duration: bannedUser.duration,
+        unit: bannedUser.unit,
+        bannedAt: bannedUser.bannedAt
+      }));
+      return;
+    } else {
+      // Ban has expired, remove it
+      bannedUsers.delete(user.username.toLowerCase());
+    }
+  }
+
+  // Check if user is already connected
+  if (connectedUsers.has(user.username)) {
+    console.log("LOGIN", "User already connected, disconnecting old connection", { username: user.username });
+    const existingConnection = connectedUsers.get(user.username);
+
+    // Disconnect the existing connection
+    if (existingConnection.readyState === WebSocket.OPEN) {
+      existingConnection.send(JSON.stringify({
+        type: "accountConflict",
+        message: "Another user is using this account"
+      }));
+      existingConnection.close();
+    }
+
+    // Remove old connection from tracking
+    connectedUsers.delete(user.username);
+  }
+
+  // Set username on the new connection
+  ws.username = user.username;
+
+  // Track the new connection
+  connectedUsers.set(user.username, ws);
+
+  console.log("LOGIN", "Login successful", {
+    username: user.username,
+    totalConnected: connectedUsers.size
+  });
+
+  // Send success response
+  ws.send(JSON.stringify({
+    type: "loggedIn",
+    username: user.username,
+    userData: user
+  }));
+}
+
+// Handle report system fix message
+function handleReportSystemFix(ws, data) {
+  console.log('[Report System Fix] Message:', data.message);
+
+  ws.send(JSON.stringify({
+    type: 'reportSystemFixAck',
+    message: 'Report system fix acknowledged'
+  }));
 }
 
 // Admin Functions
