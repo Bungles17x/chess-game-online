@@ -506,6 +506,9 @@ function handleMessage(ws, data) {
     case "banSuspiciousPlayer":
       handleBanSuspiciousPlayer(ws, data);
       break;
+    case "deleteAccount":
+      handleDeleteAccount(ws, data);
+      break;
     default:
       console.error("Unknown message type received:", data.type, "Full data:", data);
       ws.send(JSON.stringify({ type: "error", code: 400, message: "Unknown message type" }));
@@ -1788,6 +1791,109 @@ function handleRemoveFriend(ws, data) {
 function handleAddFriend(ws, data) {
   // This function is deprecated, use handleSendFriendRequest instead
   handleSendFriendRequest(ws, data);
+}
+
+function handleDeleteAccount(ws, data) {
+  console.log('[Delete Account] Request received:', data);
+  
+  const username = data.username;
+  if (!username) {
+    console.log('[Delete Account] No username provided');
+    ws.send(JSON.stringify({
+      type: "error",
+      code: 400,
+      message: "Username is required"
+    }));
+    return;
+  }
+
+  // Check if user is authenticated
+  if (ws.username) {
+    // Verify the user is deleting their own account
+    if (ws.username.toLowerCase() !== username.toLowerCase()) {
+      console.log('[Delete Account] Username mismatch:', ws.username, 'vs', username);
+      ws.send(JSON.stringify({
+        type: "error",
+        code: 403,
+        message: "You can only delete your own account"
+      }));
+      return;
+    }
+    console.log('[Delete Account] Authenticated user deleting account:', username);
+  } else {
+    console.log('[Delete Account] Unauthenticated delete request for:', username);
+  }
+
+  // Check if user exists
+  const user = userManager.getUser(username);
+  console.log('[Delete Account] User exists before deletion:', !!user);
+  
+  if (!user) {
+    console.log('[Delete Account] User not found:', username);
+    ws.send(JSON.stringify({
+      type: "error",
+      code: 404,
+      message: "User not found"
+    }));
+    return;
+  }
+
+  // Delete user using userManager
+  console.log('[Delete Account] Attempting to delete user:', username);
+  const success = userManager.deleteUser(username);
+  console.log('[Delete Account] Delete result:', success);
+
+  if (success) {
+    console.log('[Account Deletion] Account deleted:', username);
+
+    // Disconnect all other devices connected with this username
+    wss.clients.forEach(client => {
+      if (client.username && client.username.toLowerCase() === username.toLowerCase() && client !== ws) {
+        console.log('[Delete Account] Disconnecting other device:', client.username);
+        try {
+          client.send(JSON.stringify({
+            type: "accountDeleted",
+            username: username,
+            message: "Your account has been deleted"
+          }));
+          setTimeout(() => {
+            try {
+              client.close();
+            } catch (error) {
+              console.error('[Delete Account] Error closing other connection:', error);
+            }
+          }, 500);
+        } catch (error) {
+          console.error('[Delete Account] Error sending deletion notice to other device:', error);
+        }
+      }
+    });
+
+    // Remove from connected users tracking
+    connectedUsers.delete(username);
+
+    // Send confirmation to current device
+    ws.send(JSON.stringify({
+      type: "accountDeleted",
+      username: username
+    }));
+
+    // Close the connection after sending response
+    setTimeout(() => {
+      try {
+        ws.close();
+      } catch (error) {
+        console.error('[Delete Account] Error closing connection:', error);
+      }
+    }, 1000);
+  } else {
+    console.log('[Delete Account] Failed to delete user:', username);
+    ws.send(JSON.stringify({
+      type: "error",
+      code: 500,
+      message: "Failed to delete account"
+    }));
+  }
 }
 
 // Admin Functions

@@ -1045,14 +1045,12 @@ function handleSyncAchievements(ws, clientId, data) {
 // Handle deleteAccount
 function handleDeleteAccount(ws, clientId, data) {
   console.log('[Delete Account] Request received:', { clientId, data });
+  console.log('[Delete Account] Client info:', {
+    hasClient: !!clients.get(clientId),
+    clientUsername: clients.get(clientId)?.username,
+    requestedUsername: data.username
+  });
   const client = clients.get(clientId);
-  if (!client || !client.username) {
-    ws.send(JSON.stringify({
-      type: 'error',
-      message: 'Not authenticated'
-    }));
-    return;
-  }
   
   const username = data.username;
   if (!username) {
@@ -1064,7 +1062,17 @@ function handleDeleteAccount(ws, clientId, data) {
   }
   
   // Verify the user is deleting their own account
-  if (client.username.toLowerCase() !== username.toLowerCase()) {
+  // If client is not authenticated, check if user exists
+  if (!client.username) {
+    const user = userManager.getUser(username);
+    if (!user) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'User not found'
+      }));
+      return;
+    }
+  } else if (client.username.toLowerCase() !== username.toLowerCase()) {
     ws.send(JSON.stringify({
       type: 'error',
       message: 'You can only delete your own account'
@@ -1074,8 +1082,11 @@ function handleDeleteAccount(ws, clientId, data) {
   
   // Delete user from server
   console.log('[Delete Account] Attempting to delete user:', username);
+  console.log('[Delete Account] User exists before deletion:', !!userManager.getUser(username));
+  
   const success = userManager.deleteUser(username);
   console.log('[Delete Account] Delete result:', success);
+  console.log('[Delete Account] User exists after deletion:', !!userManager.getUser(username));
   
   if (success) {
     console.log('[Account Deletion] Account deleted:', username);

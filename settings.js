@@ -230,6 +230,12 @@ function setupEventListeners() {
         const data = JSON.parse(event.data);
         console.log('[Settings] Received message from server:', data.type);
 
+        // Store username on socket when authenticated
+        if (data.type === 'authenticated') {
+          window.socket.username = data.username;
+          console.log('[Settings] Socket authenticated as:', data.username);
+        }
+
         // Handle user profile data from server
         if (data.type === 'userProfile') {
           console.log('[Settings] Received user profile from server:', data.userData);
@@ -1082,79 +1088,240 @@ function handleLogout() {
 
 // Handle Delete Account
 function handleDeleteAccount() {
-  // Show confirmation dialog
-  const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone!');
-  if (!confirmed) return;
+  // Check if user is logged in
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser || !currentUser.username) {
+    showNotification('No user logged in');
+    return;
+  }
 
-  // Double confirmation
-  const confirmedAgain = confirm('This will permanently delete your account and all your data. Are you absolutely sure?');
-  if (!confirmedAgain) return;
+  // Check if WebSocket is connected
+  if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+    showNotification('Not connected to server. Please check your connection.');
+    return;
+  }
 
-  try {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!currentUser || !currentUser.username) {
-      showNotification('No user logged in');
+  // Create enhanced confirmation dialog
+  const dialog = document.createElement('div');
+  dialog.className = 'delete-account-dialog';
+  dialog.innerHTML = `
+    <div class="delete-account-content">
+      <h2>Delete Account</h2>
+      <div class="delete-account-warning">
+        <p>⚠️ WARNING: This action cannot be undone!</p>
+        <p>This will permanently delete:</p>
+        <ul>
+          <li>Your account and profile</li>
+          <li>All saved games (${currentUser.savedGames?.length || 0} games)</li>
+          <li>Your friends list (${currentUser.friends?.length || 0} friends)</li>
+          <li>XP and achievements</li>
+          <li>All game statistics</li>
+          <li>Settings and preferences</li>
+        </ul>
+      </div>
+      <div class="delete-account-input">
+        <label>Type your username to confirm:</label>
+        <input type="text" id="delete-username-confirm" placeholder="${currentUser.username}">
+      </div>
+      <div class="delete-account-actions">
+        <button class="cancel-btn" id="delete-cancel">Cancel</button>
+        <button class="delete-btn" id="delete-confirm">Delete Account</button>
+      </div>
+    </div>
+  `;
+
+  // Add dialog to page
+  document.body.appendChild(dialog);
+
+  // Add event listeners
+  const cancelBtn = dialog.querySelector('#delete-cancel');
+  const confirmBtn = dialog.querySelector('#delete-confirm');
+  const usernameInput = dialog.querySelector('#delete-username-confirm');
+
+  const closeDialog = () => {
+    document.body.removeChild(dialog);
+  };
+
+  cancelBtn.addEventListener('click', closeDialog);
+
+  confirmBtn.addEventListener('click', async () => {
+    const enteredUsername = usernameInput.value.trim();
+    
+    // Validate username matches
+    if (enteredUsername !== currentUser.username) {
+      showNotification('Username does not match. Please try again.');
+      usernameInput.classList.add('error');
       return;
     }
 
-    // Check if WebSocket is connected
-    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
-      showNotification('Not connected to server. Please check your connection.');
-      return;
-    }
+    // Disable buttons and show loading state
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Deleting...';
+    cancelBtn.disabled = true;
 
-    // Send delete account request to server
-    console.log('[Delete Account] Sending delete request for:', currentUser.username);
-    window.socket.send(JSON.stringify({
-      type: 'deleteAccount',
-      username: currentUser.username
-    }));
-    console.log('[Delete Account] Request sent successfully');
-
-    // Listen for delete account response
+    let deleteTimeout;
+    
+    // Set up delete response handler
     const handleDeleteResponse = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('[Delete Account] Response received:', data);
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[Delete Account] Response received:', data);
 
-      if (data.type === 'accountDeleted') {
-        // Clear all local data
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('chessUsers');
-        localStorage.removeItem('chessPlayerData');
-        localStorage.removeItem('chessAchievements');
-        localStorage.removeItem('chessRewards');
-        localStorage.removeItem('savedGames');
-        localStorage.removeItem('chessSavedGames');
-        localStorage.removeItem('allFriends');
-        localStorage.removeItem('onlineFriends');
-        localStorage.removeItem('blockedUsers');
+        if (data.type === 'accountDeleted') {
+          // Clear delete timeout
+          clearTimeout(deleteTimeout);
+          
+          // Clear ALL local data
+          const allKeys = Object.keys(localStorage);
+          allKeys.forEach(key => {
+            // Only clear chess-related keys
+            if (key.toLowerCase().includes('chess') || 
+                key.toLowerCase().includes('user') || 
+                key.toLowerCase().includes('player') ||
+                key.toLowerCase().includes('achievement') ||
+                key.toLowerCase().includes('reward') ||
+                key.toLowerCase().includes('friend') ||
+                key.toLowerCase().includes('game') ||
+                key.toLowerCase().includes('sync') ||
+                key.toLowerCase().includes('theme')) {
+              localStorage.removeItem(key);
+              console.log('[Delete Account] Removed:', key);
+            }
+          });
 
-        // Dispatch logout event
-        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+          // Clear session storage
+          sessionStorage.clear();
 
-        // Show notification
-        showNotification('Account deleted successfully');
+          // Dispatch logout event
+          window.dispatchEvent(new CustomEvent('userLoggedOut'));
 
-        // Update UI
-        checkLoginStatus();
-      } else if (data.type === 'error') {
-        showNotification(data.message || 'Failed to delete account');
+          // Show success notification
+          showNotification('Account deleted successfully', 'success');
+
+          // Update UI
+          checkLoginStatus();
+
+          // Close dialog
+          closeDialog();
+
+          // Redirect to home after delay
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        } else if (data.type === 'error') {
+          // Clear delete timeout
+          clearTimeout(deleteTimeout);
+          
+          showNotification(data.message || 'Failed to delete account', 'error');
+          
+          // Re-enable buttons
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Delete Account';
+          cancelBtn.disabled = false;
+        }
+
+        // Remove the event listener
+        window.socket.removeEventListener('message', handleDeleteResponse);
+      } catch (error) {
+        console.error('[Delete Account] Error handling delete response:', error);
+        showNotification('Error processing delete response. Please try again.', 'error');
+        
+        // Clear delete timeout
+        clearTimeout(deleteTimeout);
+        
+        // Re-enable buttons
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Delete Account';
+        cancelBtn.disabled = false;
+        
+        // Remove the event listener
+        window.socket.removeEventListener('message', handleDeleteResponse);
       }
-
-      // Remove the event listener
-      window.socket.removeEventListener('message', handleDeleteResponse);
     };
 
+    // Add delete response listener
     window.socket.addEventListener('message', handleDeleteResponse);
 
-    // Timeout after 10 seconds
-    setTimeout(() => {
-      window.socket.removeEventListener('message', handleDeleteResponse);
-    }, 10000);
-  } catch (error) {
-    console.error('Delete account error:', error);
-    showNotification('An error occurred. Please try again.');
-  }
+    try {
+      console.log('[Delete Account] Starting deletion process for:', currentUser.username);
+      console.log('[Delete Account] WebSocket state:', window.socket.readyState);
+      
+      if (window.socket.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket not connected');
+      }
+      
+      // Send delete account request
+      console.log('[Delete Account] Current user data:', currentUser);
+      console.log('[Delete Account] Sending delete request with:', {
+        type: 'deleteAccount',
+        username: currentUser.username,
+        userId: currentUser.id,
+        email: currentUser.email
+      });
+      
+      // Validate required fields
+      if (!currentUser.username) {
+        throw new Error('Username is required');
+      }
+      
+      window.socket.send(JSON.stringify({
+        type: 'deleteAccount',
+        username: currentUser.username
+      }));
+      console.log('[Delete Account] Delete request sent');
+      
+      // Set delete timeout
+      deleteTimeout = setTimeout(() => {
+        console.error('[Delete Account] Delete request timed out');
+        showNotification('Delete request timed out. Please try again.', 'error');
+        
+        // Re-enable buttons
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Delete Account';
+        cancelBtn.disabled = false;
+      }, 15000);
+
+      // Timeout after 15 seconds
+      setTimeout(() => {
+        window.socket.removeEventListener('message', handleDeleteResponse);
+        if (dialog.parentNode) {
+          showNotification('Delete request timed out. Please try again.', 'error');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Delete Account';
+          cancelBtn.disabled = false;
+        }
+      }, 15000);
+    } catch (error) {
+      console.error('Delete account error:', error);
+      showNotification('An error occurred. Please try again.', 'error');
+      
+      // Re-enable buttons
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Delete Account';
+      cancelBtn.disabled = false;
+    }
+  });
+
+  // Add input validation
+  usernameInput.addEventListener('input', () => {
+    usernameInput.classList.remove('error');
+  });
+
+  // Close dialog when clicking outside
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) {
+      closeDialog();
+    }
+  });
+
+  // Add escape key handler
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape' && dialog.parentNode) {
+      closeDialog();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
 }
 
 // Handle Sync Now
@@ -1794,6 +1961,284 @@ function showUnsavedChangesDialog() {
 // Add CSS for dialog
 const dialogStyle = document.createElement('style');
 dialogStyle.textContent = `
+  .delete-account-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-in;
+    backdrop-filter: blur(8px);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      backdrop-filter: blur(0px);
+    }
+    to {
+      opacity: 1;
+      backdrop-filter: blur(8px);
+    }
+  }
+
+  .delete-account-content {
+    background: var(--bg-color, #1a1a2e);
+    color: var(--text-color, #eee);
+    padding: 40px;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid rgba(255, 68, 68, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .delete-account-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff4444, #ff6666, #ff4444);
+    background-size: 200% 100%;
+    animation: gradientMove 2s linear infinite;
+  }
+
+  @keyframes gradientMove {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(40px) scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .delete-account-content.closing {
+    animation: slideDown 0.3s ease-in forwards;
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(40px) scale(0.95);
+      opacity: 0;
+    }
+  }
+
+  .delete-account-content h2 {
+    margin: 0 0 20px 0;
+    font-size: 28px;
+    color: #ff4444;
+    text-align: center;
+  }
+
+  .delete-account-warning {
+    background: rgba(255, 68, 68, 0.1);
+    border-left: 4px solid #ff4444;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    animation: pulseWarning 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseWarning {
+    0%, 100% {
+      background: rgba(255, 68, 68, 0.1);
+      border-left-color: #ff4444;
+    }
+    50% {
+      background: rgba(255, 68, 68, 0.15);
+      border-left-color: #ff6666;
+    }
+  }
+
+  .delete-account-warning p {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .delete-account-warning ul {
+    margin: 15px 0 0 0;
+    padding-left: 20px;
+  }
+
+  .delete-account-warning li {
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    animation: slideIn 0.3s ease-out forwards;
+    opacity: 0;
+  }
+
+  .delete-account-warning li:nth-child(1) { animation-delay: 0.1s; }
+  .delete-account-warning li:nth-child(2) { animation-delay: 0.2s; }
+  .delete-account-warning li:nth-child(3) { animation-delay: 0.3s; }
+  .delete-account-warning li:nth-child(4) { animation-delay: 0.4s; }
+  .delete-account-warning li:nth-child(5) { animation-delay: 0.5s; }
+  .delete-account-warning li:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .delete-account-input {
+    margin-bottom: 25px;
+  }
+
+  .delete-account-input label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color, #eee);
+  }
+
+  .delete-account-input input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid var(--border-color, #333);
+    border-radius: 8px;
+    background: var(--input-bg, #2a2a4e);
+    color: var(--text-color, #eee);
+    transition: all 0.3s ease;
+  }
+
+  .delete-account-input input:focus {
+    outline: none;
+    border-color: var(--accent, #ff9800);
+    box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+  }
+
+  .delete-account-input input.error {
+    border-color: #ff4444;
+    animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-10px);
+    }
+    75% {
+      transform: translateX(10px);
+    }
+  }
+
+  .delete-account-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .delete-account-actions button {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .delete-account-actions button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .delete-account-actions button:active::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  .delete-account-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .delete-account-actions button:disabled::before {
+    display: none;
+  }
+
+  .cancel-btn {
+    background: var(--bg-secondary, #2a2a4e);
+    color: var(--text-color, #eee);
+  }
+
+  .cancel-btn:hover:not(:disabled) {
+    background: var(--bg-tertiary, #3a3a5e);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .delete-btn {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: white;
+    animation: pulseDelete 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseDelete {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+    }
+  }
+
+  .delete-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff6666, #ee0000);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 68, 68, 0.5);
+  }
+
+  .delete-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
+
   .unsaved-changes-dialog {
     position: fixed;
     top: 0;
