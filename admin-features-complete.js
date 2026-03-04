@@ -1,4 +1,5 @@
 // Admin Features - Reports, Friends, and Cheats
+//DO NOT CHANGE THIS FILE UNDER ANY CIRCUMSTANCES
 (function() {
   "use strict";
 
