@@ -2,31 +2,32 @@
   <rect x="2" y="2" width="1196" height="256" rx="8" ry="8"
         fill="none" stroke="red" stroke-width="3"/>
 
-  <text x="20" y="40" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="20" y="40" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     NOTE: this project is allowing you to copy, modify (as long as you are not in original code),
   </text>
 
-  <text x="20" y="70" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="20" y="70" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     free of charge copyright, mess around in code (only in your desired folder, not original),
   </text>
 
-  <text x="20" y="100" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="20" y="100" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     merge, publish, distribute, sublicense, and/or sell copies of the Software.
   </text>
 
-  <text x="20" y="140" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="20" y="140" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     Conditions:
   </text>
 
-  <text x="40" y="170" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="40" y="170" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     1. You must use a different folder.
   </text>
 
-  <text x="40" y="200" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="40" y="200" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     2. You must use appropriate actions or you may get into trouble with the law.
   </text>
 
-  <text x="40" y="230" fill="red" font-size="20" font-family="Arial, sans-serif">
+  <text x="40" y="230" fill="red" font-size="20" font-family="Arial, sans-serif" font-weight="bold">
     3. DO NOT CHANGE ADMIN PERMISSIONS OR ANY FILES THAT CONTAIN ./ADMIN.
   </text>
 </svg>
+
