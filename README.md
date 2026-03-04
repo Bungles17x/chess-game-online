@@ -228,5 +228,5 @@ For issues, questions, or suggestions:
 - 1: you must use a different folder.
 - 2: you must use appropriate actions or you may get into trouble with the law based on your local law.
 - 3: DO NOT CHANGE ADMIN PERMISSIONS OR ANY FILES THAT HAVE/CONTAINS ./ADMIN.
-- GO TO NOTE.SVG TO LEARN MORE
+- GO TO NOTICE.SVG TO LEARN MORE
 ```
