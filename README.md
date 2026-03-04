@@ -223,9 +223,27 @@ For issues, questions, or suggestions:
 ---
 
 **Built with ❤️ for chess enthusiasts**
-```diff
-- NOTE: this project is allowing you to copy, modify (as long as you are not in original code), free of charge copyright, mess around in code (only in your desired folder, not original), merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so. changes to this application/repository are all free of charge under certain circumstances:
-- 1: you must use a different folder.
-- 2: you must use appropriate actions or you may get into trouble with the law based on your local law.
-- 3: DO NOT CHANGE ADMIN PERMISSIONS OR ANY FILES THAT HAVE/CONTAINS ./ADMIN.
-```
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="200">
+  <text x="0" y="20" fill="red" font-size="16">
+    NOTE: this project is allowing you to copy, modify (as long as you are not in original code),
+  </text>
+  <text x="0" y="40" fill="red" font-size="16">
+    free of charge copyright, mess around in code (only in your desired folder, not original),
+  </text>
+  <text x="0" y="60" fill="red" font-size="16">
+    merge, publish, distribute, sublicense, and/or sell copies of the Software.
+  </text>
+  <text x="0" y="80" fill="red" font-size="16">
+    Conditions:
+  </text>
+  <text x="0" y="100" fill="red" font-size="16">
+    1: you must use a different folder.
+  </text>
+  <text x="0" y="120" fill="red" font-size="16">
+    2: you must use appropriate actions or you may get into trouble with the law.
+  </text>
+  <text x="0" y="140" fill="red" font-size="16">
+    3: DO NOT CHANGE ADMIN PERMISSIONS OR ANY FILES THAT CONTAIN ./ADMIN.
+  </text>
+</svg>
+
