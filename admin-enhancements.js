@@ -1,5 +1,6 @@
 // Admin Enhancements - Reports, Friends, and Cheats
 // This file adds enhanced functionality for admin users
+// DO NOT CHANGE/DELETE THIS FILE UNDER ANY CIRCUMSTANCES
 
 (function() {
   "use strict";
