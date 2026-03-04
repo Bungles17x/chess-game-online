@@ -223,8 +223,9 @@ For issues, questions, or suggestions:
 ---
 
 **Built with ❤️ for chess enthusiasts**
-
+```diff
 NOTE: this project is allowing you to copy, modify (as long as you are not in original code), free of charge copyright, mess around in code (only in your desired folder, not original), merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so. changes to this application/repository are all free of charge under certain circumstances:
 1: you must use a different folder.
 2: you must use appropriate actions or you may get into trouble with the law based on your local law.
 3: DO NOT CHANGE ADMIN PERMISSIONS OR ANY FILES THAT HAVE/CONTAINS ./ADMIN.
+```
