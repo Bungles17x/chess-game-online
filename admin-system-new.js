@@ -1,6 +1,6 @@
 // Admin System for bungles17x and 674121bruh
 // This file contains all admin-specific functionality
-
+//DO NOT CHANGE THIS FILE UNDER ANY CIRCUMSTANCES
 // Admin configurations
 const ADMIN_CONFIG = {
   bungles17x: {
