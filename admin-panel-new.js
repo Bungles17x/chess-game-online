@@ -1,4 +1,5 @@
 // Admin Panel - Non-conflicting version
+//DO NOT CHANGE THIS FILE UNDER ANY CIRCUMSTANCES
 (function() {
   "use strict";
 
