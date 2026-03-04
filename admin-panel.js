@@ -1,6 +1,6 @@
 // Admin Panel for bungles17x and 674121bruh
 // This provides a UI for admin functions
-
+//DO NOT CHANGE THIS FILE UNDER ANY CIRCUMSTANCES
 // Check if current user is admin
 function isAdmin() {
   const currentUser = localStorage.getItem('currentUser');
