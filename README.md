@@ -223,7 +223,7 @@ For issues, questions, or suggestions:
 ---
 
 **Built with ❤️ for chess enthusiasts**
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="200">
+<svg xmlns="http://www.w3.org/2000/svg">
   <text x="0" y="20" fill="red" font-size="16">
     NOTE: this project is allowing you to copy, modify (as long as you are not in original code),
   </text>
