@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit — free online chess</title>
+<meta name="description" content="Gambit is a free chess board: play the computer or a friend, solve puzzles, analyse with an engine, full rules and clocks.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2381b64c'/%3E%3Ctext x='16' y='24' font-size='21' text-anchor='middle' fill='%23262421'%3E%E2%99%9E%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="glass.css">
+</head>
+<body data-theme="green" data-screen="play" data-pieces="classic" data-accent="green" data-glass="frosted">
+
+<div class="wall" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">&#9822;</span>
+    <span class="brand-name">Gambit</span>
+  </div>
+
+  <nav class="topnav">
+    <button class="nav-btn active" data-screen="play">Play</button>
+    <button class="nav-btn" data-screen="puzzles">Puzzles</button>
+    <button class="nav-btn" data-screen="review">Review</button>
+    <button class="nav-btn" data-screen="analysis">Analysis</button>
+    <button class="nav-btn" data-screen="learn">Learn</button>
+    <button class="nav-btn" data-screen="stats">Stats</button>
+  </nav>
+
+  <div class="topbar-right">
+    <button class="icon-btn" id="soundBtn" title="Toggle sound" aria-label="Toggle sound">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h3l4-4v14l-4-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg>
+    </button>
+    <button class="icon-btn" id="pgnBtn" title="Copy PGN">PGN</button>
+    <button class="icon-btn" id="fenBtn" title="Copy the current FEN">FEN</button>
+    <button class="icon-btn" id="linkBtn" title="Copy a link to this position">Link</button>
+    <button class="icon-btn" id="focusBtn" title="Focus mode (Z)">&#9974;</button>
+
+    <label class="switch-label" title="Turn notifications on or off (N)">
+      <span class="switch">
+        <input type="checkbox" id="notifyToggle" role="switch" aria-label="Notifications">
+        <span class="switch-track"><span class="switch-knob"></span></span>
+      </span>
+      <span class="switch-text">Alerts</span>
+    </label>
+
+    <button class="icon-btn bell-btn" id="notifyBtn" title="Notification centre">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>
+      <span class="bell-dot" id="notifyDot" hidden></span>
+    </button>
+
+    <button class="account-btn" id="accountBtn" title="Account">
+      <span class="acc-avatar" id="accAvatar">?</span>
+      <span class="acc-label" id="accLabel">Sign in</span>
+    </button>
+  </div>
+</header>
+
+<div class="notify-panel" id="notifyPanel" hidden>
+  <div class="np-head">
+    <strong>Notifications</strong>
+    <div class="np-actions">
+      <button class="mini" id="npClear" type="button">Clear</button>
+      <button class="mini" id="npClose" type="button">Close</button>
+    </div>
+  </div>
+  <p class="np-sub">Kept on this device. The switch above turns alerts on and off.</p>
+  <div class="np-list" id="npList"></div>
+</div>
+
+<div class="error-banner" id="errorBanner" hidden role="alert">
+  <span class="eb-icon" aria-hidden="true">!</span>
+  <div class="eb-text"><strong>Something went wrong</strong><span id="ebMsg"></span></div>
+  <button class="mini" id="ebOpen" type="button">Details</button>
+  <button class="mini" id="ebClose" type="button">Dismiss</button>
+</div>
+
+<main class="layout">
+  <section class="board-col">
+
+    <div class="player" id="playerTop">
+      <div class="avatar" id="avatarTop">C</div>
+      <div class="pinfo">
+        <div class="pname" id="nameTop">Computer</div>
+        <div class="pmeta" id="metaTop">Level 3 &middot; Club</div>
+      </div>
+      <div class="tray">
+        <div class="captured" id="capTop"></div>
+        <span class="adv" id="advTop"></span>
+      </div>
+      <div class="clock" id="clockTop">5:00</div>
+    </div>
+
+    <div class="board-row">
+      <div class="eval-bar" id="evalBar" aria-hidden="true">
+        <div class="eval-white" id="evalWhite"></div>
+      </div>
+
+      <div class="board-shell">
+        <div class="board" id="board" role="application" aria-label="Chess board"></div>
+
+        <div class="promo-layer" id="promoLayer" hidden>
+          <div class="promo-strip" id="promoCard"></div>
+        </div>
+
+        <div class="result-layer" id="resultLayer" hidden>
+          <div class="result-card">
+            <div class="result-score" id="resultScore">1&ndash;0</div>
+            <h2 id="resultTitle">White wins</h2>
+            <p id="resultSub">by checkmate</p>
+            <div class="result-rating" id="resultRating" hidden></div>
+            <div class="coach-summary" id="coachSummary" hidden>
+              <div class="cs-head">Coach summary<span class="cs-sub" id="csSub"></span></div>
+              <p class="cs-narrative" id="csNarrative"></p>
+              <ul class="cs-list" id="csList"></ul>
+              <button class="cs-link" id="csReview" type="button">Open the full review &rarr;</button>
+            </div>
+            <div class="result-actions">
+              <button class="primary" id="rematchBtn">Rematch</button>
+              <button class="ghost" id="watchBtn">Watch replay</button>
+              <button class="ghost" id="reviewBtn">Review</button>
+              <button class="ghost" id="newGameBtn">New game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="player" id="playerBottom">
+      <div class="avatar" id="avatarBottom">Y</div>
+      <div class="pinfo">
+        <div class="pname" id="nameBottom">You</div>
+        <div class="pmeta" id="metaBottom">Level 3 &middot; Club</div>
+      </div>
+      <div class="tray">
+        <div class="captured" id="capBottom"></div>
+        <span class="adv" id="advBottom"></span>
+      </div>
+      <div class="clock" id="clockBottom">5:00</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="tb-group">
+        <button class="tb-primary" id="newBtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          New game
+        </button>
+        <button class="tb-btn" id="flipBtn" title="Flip board">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></svg>
+          <span class="tb-label">Flip</span>
+        </button>
+        <button class="tb-btn" id="replayBtn" title="Watch this game play back">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14l11-7z"/></svg>
+          <span class="tb-label" id="replayLabel">Watch</span>
+        </button>
+        <button class="tb-btn" id="undoBtn" title="Take back a move">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a5 5 0 0 1 5 5v1"/></svg>
+          <span class="tb-label">Undo</span>
+        </button>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="drawBtn" title="Offer a draw">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 9h14M5 15h14"/></svg>
+          <span class="tb-label">Draw</span>
+        </button>
+        <button class="tb-btn danger" id="resignBtn" title="Resign">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 5h11l-2 4 2 4H6"/></svg>
+          <span class="tb-label">Resign</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="moves">Moves</button>
+      <button class="tab-btn" data-tab="new">New game</button>
+      <button class="tab-btn" data-tab="online">Online</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+
+    <div class="tabpanel" data-panel="moves">
+      <div class="room-card" id="roomCard" hidden>
+        <div class="rm-head">
+          <span class="rm-badge" id="rmSeat">White</span>
+          <span class="rm-code" id="rmCode">&mdash;</span>
+        </div>
+        <div class="rm-status" id="rmStatus">Connecting&hellip;</div>
+        <div class="rm-actions">
+          <button class="ghost" id="rmCopy">Copy invite</button>
+          <button class="ghost" id="rmLeave">Leave</button>
+        </div>
+        <div class="rm-pending" id="rmPending" hidden>
+          <span id="rmPendingText">Draw offered</span>
+          <button class="mini" id="rmAccept">Accept</button>
+          <button class="mini" id="rmDecline">Decline</button>
+        </div>
+        <div class="rm-chat" id="rmChat"></div>
+        <form class="rm-send" id="rmForm">
+          <input id="rmInput" maxlength="200" placeholder="Say something&hellip;" autocomplete="off">
+          <button class="mini" type="submit">Send</button>
+        </form>
+      </div>
+      <div class="puzzle-card" id="puzzleCard" hidden>
+        <div class="pz-top">
+          <span class="pz-badge" id="pzBadge">Mate in 2</span>
+          <span class="pz-rating" id="pzRating">1200</span>
+        </div>
+        <div class="pz-live" id="pzLive" hidden>
+          <span id="pzTime">3:00</span>
+          <span id="pzLives">3 lives</span>
+          <span id="pzScore">0 solved</span>
+        </div>
+        <div class="pz-title" id="pzTitle">White to move</div>
+        <div class="pz-sub" id="pzSub">Find the forcing move.</div>
+        <div class="pz-actions">
+          <button class="ghost" id="pzHint">Hint</button>
+          <button class="ghost" id="pzRetry">Retry</button>
+          <button class="primary" id="pzNext">Next</button>
+        </div>
+        <button class="ghost wide" id="pzDaily" type="button">Puzzle of the day</button>
+        <div class="pz-filter" id="pzFilter">
+          <button class="pz-chip on" data-pz="all" type="button">All</button>
+          <button class="pz-chip" data-pz="1" type="button">Mate in 1</button>
+          <button class="pz-chip" data-pz="2" type="button">Mate in 2</button>
+          <button class="pz-chip" data-pz="random" type="button">Random</button>
+        </div>
+        <div class="pz-top" id="pzTop"></div>
+        <button class="ghost wide rz-btn" id="pzRushBtn">Puzzle Rush &mdash; 3 min, 3 lives</button>
+      </div>
+
+      <div class="drill-card" id="drillCard" hidden>
+        <div class="dc-head">
+          <span class="rv-tag best">Drill</span>
+          <span class="dc-par" id="dcPar"></span>
+        </div>
+        <div class="dc-title" id="dcTitle"></div>
+        <div class="dc-brief" id="dcBrief"></div>
+        <div class="dc-status" id="dcStatus"></div>
+        <div class="dc-actions">
+          <button class="ghost" id="dcHint" type="button">Hint</button>
+          <button class="ghost" id="dcNext" type="button" hidden>Next drill</button>
+          <button class="ghost" id="dcRetry" type="button" hidden>Try again</button>
+          <button class="ghost" id="dcBack" type="button">Back to Learn</button>
+        </div>
+      </div>
+
+      <div class="coach-note" id="coachNote" hidden>
+        <div class="cn-head">
+          <span class="cn-badge rv-tag" id="cnBadge">Best</span>
+          <span class="cn-eval" id="cnEval"></span>
+        </div>
+        <div class="cn-title" id="cnTitle"></div>
+        <div class="cn-tip" id="cnTip"></div>
+        <div class="cn-why" id="cnWhy" hidden></div>
+        <button class="ghost cn-ask" id="cnAsk" type="button">Ask coach</button>
+        <div class="cn-actions">
+          <button class="ghost" id="cnShow" type="button">Show best</button>
+          <button class="ghost" id="cnUndo" type="button">Take back</button>
+          <button class="ghost" id="cnLearn" type="button">Learn</button>
+        </div>
+      </div>
+
+      <div class="coach-card" id="coachCard">
+        <div class="coach-head">
+          <span class="coach-badge">Coach</span>
+          <span class="coach-open" id="coachOpen">Out of book</span>
+          <button class="mini" id="coachHintBtn" title="Ask the coach for a move">Hint</button>
+        </div>
+        <ul class="coach-tips" id="coachTips"></ul>
+        <div class="coach-chat-wrap" id="coachChatWrap" hidden>
+          <div class="coach-chat" id="coachChat" role="log" aria-live="polite"></div>
+          <form class="coach-say" id="coachSayForm" autocomplete="off">
+            <input id="coachSayInput" type="text" maxlength="140" placeholder="Ask the coach…" aria-label="Ask the coach">
+            <button class="mini" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="review-card" id="reviewCard" hidden>
+        <div class="rv-head">
+          <span class="rv-title">Game review</span>
+          <span class="rv-elo" id="rvElo"></span>
+        </div>
+        <div class="rv-bar"><i id="rvBar"></i></div>
+        <div class="rv-status" id="rvStatus">Play a few moves, then review them here.</div>
+        <div class="rv-scores">
+          <div class="rv-score"><b id="rvAccW">&mdash;</b><span id="rvNameW">White accuracy</span></div>
+          <div class="rv-score"><b id="rvAccB">&mdash;</b><span id="rvNameB">Black accuracy</span></div>
+        </div>
+        <div class="rv-counts" id="rvCounts"></div>
+        <div class="rv-graph" id="rvGraph" hidden></div>
+        <div class="rv-coach" id="rvCoach">Step through the moves to read the coach notes.</div>
+        <div class="rv-actions">
+          <button class="ghost" id="rvAnalyse" type="button">Analyse from here</button>
+          <button class="ghost" id="rvPractise" type="button">Practise this move</button>
+          <button class="ghost" id="rvReport" type="button">Download report</button>
+        </div>
+      </div>
+
+      <div class="engine-strip" id="engineStrip" hidden>
+        <span class="eng-eval" id="engEval">0.00</span>
+        <span class="eng-best" id="engBest">&mdash;</span>
+        <button class="mini" id="engPlay" title="Play the engine's move">&#9654;</button>
+        <button class="mini" id="engReset" title="Reset analysis">&#8635;</button>
+      </div>
+
+      <div class="tools-card" id="toolsCard" hidden>
+        <div class="tools-row">
+          <input class="text-input" id="fenInput" placeholder="Paste a FEN&hellip;" autocomplete="off" spellcheck="false">
+          <button class="ghost" id="fenLoad" type="button">Load</button>
+        </div>
+        <textarea class="text-input pgn-area" id="pgnInput" rows="3" placeholder="Paste moves or a PGN, e.g. 1. e4 e5 2. Nf3 Nc6"></textarea>
+        <button class="ghost wide" id="pgnLoad" type="button">Load PGN moves</button>
+        <div class="tools-row">
+          <button class="ghost" id="pgnDownload" type="button">Download PGN</button>
+          <button class="ghost" id="pgnFileBtn" type="button">Open PGN file</button>
+        </div>
+        <input type="file" id="pgnFile" accept=".pgn,text/plain" hidden>
+        <button class="ghost wide" id="playFromHere" type="button">Play on from this position</button>
+      </div>
+
+      <div class="status" id="status">White to move</div>
+      <div class="moves" id="movesList"></div>
+      <div class="moves-bar">
+        <button class="mini" data-nav="start" title="Start">&#9198;</button>
+        <button class="mini" data-nav="prev" title="Previous move">&#9664;</button>
+        <button class="mini" data-nav="next" title="Next move">&#9654;</button>
+        <button class="mini" data-nav="end" title="Latest position">&#9197;</button>
+        <button class="fen" id="fenText" title="Click to copy FEN">FEN</button>
+      </div>
+    </div>
+
+    <div class="tabpanel" data-panel="new" hidden>
+      <div class="field">
+        <label class="label">Time control</label>
+        <div class="tc-grid" id="tcSeg">
+          <button class="tc-card" data-base="60" data-inc="0"><b>1 min</b><span>Bullet</span></button>
+          <button class="tc-card" data-base="180" data-inc="2"><b>3 | 2</b><span>Blitz</span></button>
+          <button class="tc-card on" data-base="300" data-inc="0"><b>5 min</b><span>Blitz</span></button>
+          <button class="tc-card" data-base="600" data-inc="0"><b>10 min</b><span>Rapid</span></button>
+          <button class="tc-card" data-base="900" data-inc="10"><b>15 | 10</b><span>Rapid</span></button>
+          <button class="tc-card" data-base="0" data-inc="0"><b>&infin;</b><span>Casual</span></button>
+        </div>
+      </div>
+
+      <div class="tc-custom">
+        <input class="text-input tc-num" id="tcBase" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="min" aria-label="Minutes">
+        <span class="tc-plus">+</span>
+        <input class="text-input tc-num" id="tcInc" type="number" min="0" max="60" step="1" inputmode="numeric" placeholder="sec" aria-label="Increment in seconds">
+        <span class="muted tc-note">custom clock</span>
+      </div>
+
+      <div class="field">
+        <label class="label">Opponent</label>
+        <div class="seg" id="modeSeg">
+          <button data-mode="ai" class="on">Computer</button>
+          <button data-mode="coach">Coach</button>
+          <button data-mode="human">2 players</button>
+        </div>
+      </div>
+
+      <div class="field" id="levelField">
+        <label class="label">Computer strength</label>
+        <div class="seg stack" id="levelSeg">
+          <button data-level="1"><b>1</b> Beginner</button>
+          <button data-level="2"><b>2</b> Easy</button>
+          <button data-level="3" class="on"><b>3</b> Club</button>
+          <button data-level="4"><b>4</b> Strong</button>
+          <button data-level="5"><b>5</b> Master</button>
+        </div>
+      </div>
+
+      <div class="field" id="colorField">
+        <label class="label">Play as</label>
+        <div class="color-seg" id="colorSeg">
+          <button data-color="w" class="on" title="White">&#9812;</button>
+          <button data-color="b" title="Black">&#9818;</button>
+          <button data-color="r" title="Random">&#9860;</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Variant</label>
+        <div class="seg stack" id="variantSeg">
+          <button data-variant="standard" class="on">Standard</button>
+          <button data-variant="koth">King of the Hill</button>
+          <button data-variant="threecheck">Three-check</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Start from FEN <small class="muted">optional</small></label>
+        <input class="text-input" id="fenStart" placeholder="8/8/8/8/2K5/8/8/7k w - - 0 1" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="ghost wide" id="openEditor" type="button">Board editor &mdash; set up a position</button>
+
+      <div class="ladder-box">
+        <div class="ladder-head"><span>Ladder</span><b id="ladderText">Step 1 of 5</b></div>
+        <p class="ladder-sub" id="ladderSub">Beat the bots in order, from Beginner to Master.</p>
+        <button class="ghost wide" id="ladderBtn" type="button">Play the ladder</button>
+      </div>
+
+      <button class="primary wide" id="startBtn">Play</button>
+      <p class="hint">No account, no downloads. Your game lives in this tab.</p>
+    </div>
+
+    <div class="tabpanel" data-panel="online" hidden>
+      <div class="field">
+        <label class="label">Your name</label>
+        <input class="text-input" id="netName" maxlength="18" value="Player" placeholder="Player" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label class="label">Time control</label>
+        <div class="tc-grid" id="netTcSeg">
+          <button class="tc-card" data-base="60" data-inc="0"><b>1 min</b><span>Bullet</span></button>
+          <button class="tc-card" data-base="180" data-inc="2"><b>3 | 2</b><span>Blitz</span></button>
+          <button class="tc-card on" data-base="300" data-inc="0"><b>5 min</b><span>Blitz</span></button>
+          <button class="tc-card" data-base="600" data-inc="0"><b>10 min</b><span>Rapid</span></button>
+          <button class="tc-card" data-base="0" data-inc="0"><b>&infin;</b><span>Casual</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Play as</label>
+        <div class="color-seg" id="netColorSeg">
+          <button data-color="w" class="on" title="White">&#9812;</button>
+          <button data-color="b" title="Black">&#9818;</button>
+          <button data-color="r" title="Random">&#9860;</button>
+        </div>
+      </div>
+
+      <button class="primary wide" id="netCreate">Create room</button>
+
+      <div class="or-line"><span>or join with a code</span></div>
+      <div class="join-row">
+        <input class="text-input code-input" id="netCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false">
+        <button class="ghost" id="netJoin">Join</button>
+      </div>
+
+      <button class="primary wide" id="netQuick">Quick match</button>
+
+      <div class="lobby-head">
+        <span>Active rooms</span>
+        <button class="mini" id="netRefresh" type="button">Refresh</button>
+      </div>
+      <div class="room-list" id="roomList"><div class="rl-empty">Loading rooms&hellip;</div></div>
+
+      <p class="hint" id="netHint">Create a room, send the link or code to a friend, or pick one from the list. Two browser windows work too.</p>
+    </div>
+
+    <div class="tabpanel" data-panel="settings" hidden>
+      <div class="field">
+        <label class="label">Accent colour</label>
+        <div class="accent-grid" id="accentGrid">
+          <button class="accent-dot" data-accent="green" type="button"><span style="--dot:#2fd158"></span>Green</button>
+          <button class="accent-dot" data-accent="blue" type="button"><span style="--dot:#0a84ff"></span>Blue</button>
+          <button class="accent-dot" data-accent="purple" type="button"><span style="--dot:#bf5af2"></span>Purple</button>
+          <button class="accent-dot" data-accent="pink" type="button"><span style="--dot:#ff375f"></span>Pink</button>
+          <button class="accent-dot" data-accent="orange" type="button"><span style="--dot:#ff9f0a"></span>Orange</button>
+          <button class="accent-dot" data-accent="teal" type="button"><span style="--dot:#32d4e8"></span>Teal</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Glass</label>
+        <div class="seg" id="glassSeg">
+          <button data-glass="frosted" class="on" type="button">Frosted</button>
+          <button data-glass="clear" type="button">Clear</button>
+          <button data-glass="solid" type="button">Solid</button>
+        </div>
+        <p class="hint">Clear shows more of the wallpaper behind the panels. Solid turns the blur off.</p>
+      </div>
+
+      <div class="field">
+        <label class="label">Board theme</label>
+        <div class="themes" id="themeGrid">
+          <button class="theme-btn" data-theme="green" title="Green"><span style="--a:#ebecd0;--b:#739552"></span>Green</button>
+          <button class="theme-btn" data-theme="walnut" title="Walnut"><span style="--a:#f3dfc8;--b:#a87a58"></span>Walnut</button>
+          <button class="theme-btn" data-theme="slate" title="Slate"><span style="--a:#e7eaf0;--b:#5d7089"></span>Slate</button>
+          <button class="theme-btn" data-theme="ink" title="Ink"><span style="--a:#dedede;--b:#4b4b4b"></span>Ink</button>
+          <button class="theme-btn" data-theme="sunset" title="Sunset"><span style="--a:#fbe6d2;--b:#bb7159"></span>Sunset</button>
+          <button class="theme-btn" data-theme="ocean" title="Ocean"><span style="--a:#dceaf4;--b:#4a7d9e"></span>Ocean</button>
+          <button class="theme-btn" data-theme="rose" title="Rose"><span style="--a:#f6e2e6;--b:#b16679"></span>Rose</button>
+          <button class="theme-btn" data-theme="paper" title="Paper"><span style="--a:#f4efe2;--b:#b8a888"></span>Paper</button>
+          <button class="theme-btn" data-theme="night" title="Night"><span style="--a:#9aa4b2;--b:#39424f"></span>Night</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Pieces</label>
+        <div class="seg" id="pieceSeg">
+          <button data-pieces="classic" class="on">Classic</button>
+          <button data-pieces="solid">Solid</button>
+        </div>
+      </div>
+
+      <label class="row"><span>Coordinates on board</span><input type="checkbox" id="optCoords" checked></label>
+      <label class="row"><span>Legal move hints</span><input type="checkbox" id="optHints" checked></label>
+      <label class="row"><span>Move animations</span><input type="checkbox" id="optAnim" checked></label>
+      <label class="row"><span>Sounds</span><input type="checkbox" id="optSound" checked></label>
+      <label class="row"><span>Auto-flip (2 players)</span><input type="checkbox" id="optAutoFlip"></label>
+      <label class="row"><span>Blindfold (hide the pieces)</span><input type="checkbox" id="optBlind"></label>
+      <label class="row"><span>Promote to queen automatically</span><input type="checkbox" id="optAutoQueen"></label>
+
+      <div class="record" id="recordLine">Record: 0W &middot; 0L &middot; 0D</div>
+      <button class="ghost wide" id="resetSettings">Reset settings</button>
+      <p class="hint">Keys: &larr; &rarr; step &middot; <b>1</b>&ndash;<b>6</b> screens &middot; <b>F</b> flip &middot; <b>U</b> undo &middot; <b>W</b> replay &middot; <b>N</b> new game &middot; <b>P</b> copy PGN &middot; <b>L</b> link &middot; <b>B</b> blindfold &middot; <b>Z</b> focus &middot; <b>T</b> theme &middot; <b>S</b> sound &middot; <b>?</b> list them. Right-drag on the board draws an arrow; Esc clears it.</p>
+    </div>
+  </aside>
+
+  <section class="page-col" id="learnPage">
+    <h1>Learn chess</h1>
+    <p class="lead">Short, plain-language lessons. Written for Gambit — no videos, no paywall.</p>
+
+    <div class="learn-summary">
+      <div class="ls-head">Coach summary</div>
+      <p id="learnSummary">Play a drill and the coach will track what you have learned.</p>
+    </div>
+
+    <h2 class="learn-h2">Drills <span>Play these short positions — the coach comments every move.</span></h2>
+    <div class="drill-grid" id="drillGrid"></div>
+
+    <h2 class="learn-h2">Endgame lab <span>Two pieces against a bare king, and pawns that must promote.</span></h2>
+    <div class="drill-grid" id="endgameGrid"></div>
+
+    <h2 class="learn-h2">Opening trainer <span>Guess the book move, then read what the idea is.</span></h2>
+    <div class="opening-grid" id="openingGrid"></div>
+
+    <div class="trainer-card" id="trainerCard" hidden>
+      <div class="tr-head">
+        <span class="rv-tag best">Trainer</span>
+        <span class="tr-count" id="trCount"></span>
+        <button class="mini" id="trClose" type="button">Close</button>
+      </div>
+      <div class="tr-name" id="trName"></div>
+      <div class="tr-body">
+        <div class="tr-mini" id="trBoard"></div>
+        <div class="tr-play">
+          <div class="tr-prompt" id="trPrompt"></div>
+          <div class="tr-options" id="trOptions"></div>
+          <div class="tr-feed" id="trFeed"></div>
+        </div>
+      </div>
+      <div class="tr-foot">
+        <span id="trScore"></span>
+        <button class="ghost" id="trHint" type="button">Hint</button>
+        <button class="ghost" id="trShow" type="button">Show the line</button>
+      </div>
+    </div>
+
+    <details class="lesson" id="lesson-board" open>
+      <summary>The board and the pieces</summary>
+      <p>Chess is played on an 8&times;8 board of light and dark squares. White starts at the bottom, and each side has eight pawns, two knights, two bishops, two rooks, a queen and a king. White always moves first.</p>
+      <p>Pawns move one square forward (two on their first move) and capture diagonally. Knights jump in an L (two squares one way, one square across). Bishops slide diagonally. Rooks slide in straight lines. The queen does both. The king moves one square in any direction.</p>
+    </details>
+
+    <details class="lesson" id="lesson-check">
+      <summary>Check, checkmate and stalemate</summary>
+      <p>A king is <b>in check</b> when an enemy piece attacks its square. You must answer it: move the king, block the attack, or capture the attacker. You may never leave your own king in check.</p>
+      <p><b>Checkmate</b> ends the game — the king is attacked and nothing legal can save it. <b>Stalemate</b> is different: the side to move is not in check but has no legal move, and the game is a draw.</p>
+    </details>
+
+    <details class="lesson" id="lesson-castling">
+      <summary>Castling and en passant</summary>
+      <p>Castling moves your king two squares toward a rook and puts the rook on the far side of the king. It needs an unmoved king and rook, empty squares between them, and no check on the king’s start, pass-through or destination square.</p>
+      <p><b>En passant:</b> if an enemy pawn advances two squares and lands beside your pawn, you may capture it as though it had moved only one square — but only on the very next move.</p>
+    </details>
+
+    <details class="lesson" id="lesson-openings">
+      <summary>Opening principles</summary>
+      <p>Fight for the centre, develop your knights and bishops early, castle within the first ten moves, and don’t move the same piece twice without a reason. Bring the queen out late, and only where she is safe.</p>
+      <p>Before every move, ask what your opponent’s last move threatened. Most lost games start with an unanswered threat.</p>
+    </details>
+
+    <details class="lesson" id="lesson-tactics">
+      <summary>Tactics worth spotting</summary>
+      <p><b>Fork:</b> one piece attacks two targets at once. <b>Pin:</b> a piece cannot move because something more valuable sits behind it. <b>Skewer:</b> the valuable piece is in front and must move, exposing what is behind.</p>
+      <p><b>Discovered attack:</b> moving one piece uncovers the attack of another. <b>Back-rank mate:</b> a king trapped behind its own pawns. Checks and captures first — they are how tactics start.</p>
+    </details>
+
+    <details class="lesson" id="lesson-endgame">
+      <summary>Endgame basics</summary>
+      <p>Activate your king in the endgame — it becomes a strong piece once the queens are gone. Passed pawns should be pushed, and rooks belong behind passed pawns.</p>
+      <p>King and queen versus king, and king and rook versus king, are routine wins: force the enemy king to the edge, then deliver mate. Learn the <b>opposition</b> in king-and-pawn endings before you need it.</p>
+    </details>
+
+    <p class="hint">Want feedback? Play a game, then open <b>Review</b> for move-by-move coach notes and accuracy.</p>
+  </section>
+
+  <section class="page-col" id="statsPage">
+    <h1>Your stats</h1>
+    <p class="lead">Saved in this browser &mdash; wins, losses, draws and your finished games.</p>
+    <div class="quest-card" id="questCard"></div>
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="placement-strip" id="placementStrip">
+      <div class="ps-text">
+        <b>Starting level</b>
+        <span id="placementState">No Elo test yet — take it and start from your result, or skip and start at 0.</span>
+      </div>
+      <button class="ghost" id="placementBtn" type="button">Take the Elo test</button>
+    </div>
+
+    <div class="progress-card" id="progressCard"></div>
+    <div class="result-strip" id="resultStrip"></div>
+
+    <h2 class="learn-h2">Openings you play <span>Your record from your saved games.</span></h2>
+    <div class="opening-report" id="openingReport"></div>
+
+    <h2 class="learn-h2">Against the bots <span>Your record at each computer level.</span></h2>
+    <div class="opening-report" id="levelReport"></div>
+
+    <div class="lobby-head">
+      <span>Saved games</span>
+      <button class="mini" id="clearGames" type="button">Clear</button>
+    </div>
+    <div class="stats-tools">
+      <input class="text-input" id="gameSearch" placeholder="Search results and openings…" autocomplete="off">
+      <div class="seg mini-seg" id="gameFilter">
+        <button data-filter="all" class="on">All</button>
+        <button data-filter="w">Wins</button>
+        <button data-filter="l">Losses</button>
+        <button data-filter="d">Draws</button>
+      </div>
+    </div>
+    <div class="game-list" id="gameList"></div>
+  </section>
+</main>
+
+<div class="editor-layer" id="editorLayer" hidden>
+  <div class="editor-card">
+    <div class="ed-head">
+      <h2>Board editor</h2>
+      <button class="mini" id="edCancel" type="button">Close</button>
+    </div>
+    <p class="ed-sub">Pick a piece, then click a square. Right-click a square to clear it. Both kings are required.</p>
+    <div class="ed-body">
+      <div class="ed-board" id="edBoard"></div>
+      <div class="ed-side">
+        <div class="ed-palette" id="edPalette"></div>
+        <div class="field">
+          <label class="label">Side to move</label>
+          <div class="seg" id="edTurn">
+            <button data-turn="w" class="on" type="button">White</button>
+            <button data-turn="b" type="button">Black</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Castling</label>
+          <div class="ed-castle">
+            <label class="row"><span>White O-O</span><input type="checkbox" id="edCastleK"></label>
+            <label class="row"><span>White O-O-O</span><input type="checkbox" id="edCastleQ"></label>
+            <label class="row"><span>Black O-O</span><input type="checkbox" id="edCastlek"></label>
+            <label class="row"><span>Black O-O-O</span><input type="checkbox" id="edCastleq"></label>
+          </div>
+        </div>
+        <div class="ed-fen" id="edFen"></div>
+      </div>
+    </div>
+    <div class="ed-actions">
+      <button class="ghost" id="edStart" type="button">Start position</button>
+      <button class="ghost" id="edEmpty" type="button">Empty board</button>
+      <button class="ghost" id="edCopy" type="button">Copy FEN</button>
+      <button class="primary" id="edPlay" type="button">Play this position</button>
+    </div>
+  </div>
+</div>
+
+<div class="editor-layer" id="accountLayer" hidden>
+  <div class="editor-card account-card">
+    <div class="ed-head">
+      <h2 id="accTitle">Your account</h2>
+      <button class="mini" id="accClose" type="button">Close</button>
+    </div>
+    <p class="acc-note">Accounts live on this device only &mdash; no password or email ever leaves this browser.</p>
+
+    <div id="accGuest">
+      <div class="seg acc-tabs" id="accTabs">
+        <button data-tab="in" class="on" type="button">Sign in</button>
+        <button data-tab="up" type="button">Create account</button>
+        <button data-tab="reset" type="button">Reset password</button>
+      </div>
+
+      <form class="acc-form" id="signInForm" novalidate>
+        <div class="field">
+          <label class="label" for="siEmail">Email</label>
+          <input class="input" id="siEmail" type="email" autocomplete="username" spellcheck="false" placeholder="you@example.com">
+          <p class="field-err" id="siEmailErr"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="siPassword">Password</label>
+          <input class="input" id="siPassword" type="password" autocomplete="current-password">
+          <p class="field-err" id="siPasswordErr"></p>
+        </div>
+        <p class="form-err" id="siErr" role="alert" hidden></p>
+        <div class="acc-actions">
+          <button class="primary" id="siSubmit" type="submit">Sign in</button>
+          <button class="link-btn" id="siForgot" type="button">Forgot password?</button>
+        </div>
+      </form>
+
+      <form class="acc-form" id="signUpForm" hidden novalidate>
+        <div class="field">
+          <label class="label" for="upName">Display name</label>
+          <input class="input" id="upName" autocomplete="nickname" placeholder="How others see you">
+          <p class="field-err" id="upNameErr"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="upEmail">Email</label>
+          <input class="input" id="upEmail" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com">
+          <p class="field-err" id="upEmailErr"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="upPassword">Password</label>
+          <input class="input" id="upPassword" type="password" autocomplete="new-password">
+          <div class="pw-meter" id="upMeter" aria-hidden="true"><span></span></div>
+          <div class="pw-note"><span id="upMeterLabel">At least 8 characters with a letter and a number.</span></div>
+          <p class="field-err" id="upPasswordErr"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="upConfirm">Confirm password</label>
+          <input class="input" id="upConfirm" type="password" autocomplete="new-password">
+          <p class="field-err" id="upConfirmErr"></p>
+        </div>
+        <p class="form-err" id="upErr" role="alert" hidden></p>
+        <div class="acc-actions">
+          <button class="primary" id="upSubmit" type="submit">Create account</button>
+        </div>
+      </form>
+
+      <form class="acc-form" id="resetForm" hidden novalidate>
+        <div id="rsStep1">
+          <div class="field">
+            <label class="label" for="rsEmail">Email</label>
+            <input class="input" id="rsEmail" type="email" autocomplete="username" spellcheck="false" placeholder="you@example.com">
+            <p class="field-err" id="rsEmailErr"></p>
+          </div>
+          <p class="form-hint">We send a 6-digit code to prove the address is yours.</p>
+          <p class="form-err" id="rsErr" role="alert" hidden></p>
+          <div class="acc-actions">
+            <button class="primary" id="rsSend" type="submit">Send code</button>
+          </div>
+        </div>
+        <div id="rsStep2" hidden>
+          <p class="form-hint" id="rsSent"></p>
+          <div class="field">
+            <label class="label" for="rsCode">6-digit code</label>
+            <input class="input code-input" id="rsCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+            <p class="field-err" id="rsCodeErr"></p>
+          </div>
+          <div class="field">
+            <label class="label" for="rsPassword">New password</label>
+            <input class="input" id="rsPassword" type="password" autocomplete="new-password">
+            <p class="field-err" id="rsPasswordErr"></p>
+          </div>
+          <p class="form-err" id="rsFormErr" role="alert" hidden></p>
+          <div class="acc-actions">
+            <button class="primary" id="rsSubmit" type="submit">Set new password</button>
+            <button class="link-btn" id="rsBack" type="button">Use another email</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="accVerify" hidden>
+      <h3 class="acc-h3">Verify your email</h3>
+      <p class="acc-note" id="vfLead"></p>
+      <div class="inbox-card">
+        <div class="inbox-head"><span id="vfInboxHead">Local inbox</span><span class="pill" id="vfInboxPill">no mail server</span></div>
+        <p class="inbox-line" id="vfMail"></p>
+        <div class="inbox-code" id="vfCode">000000</div>
+        <button class="mini" id="vfFill" type="button">Use this code</button>
+        <p class="form-hint" id="vfDelivery"></p>
+      </div>
+      <form class="acc-form" id="verifyForm" novalidate>
+        <div class="field">
+          <label class="label" for="vfInput">6-digit code</label>
+          <input class="input code-input" id="vfInput" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+          <p class="field-err" id="vfErr"></p>
+        </div>
+        <p class="form-err" id="vfFormErr" role="alert" hidden></p>
+        <div class="acc-actions">
+          <button class="primary" id="vfSubmit" type="submit">Verify and sign in</button>
+          <button class="link-btn" id="vfResend" type="button">Send a new code</button>
+          <button class="link-btn" id="vfBack" type="button">Start over</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="accUser" hidden>
+      <div class="acc-profile">
+        <div class="acc-avatar big" id="pfAvatar">?</div>
+        <div class="acc-profile-text">
+          <div class="acc-name" id="pfName">&mdash;</div>
+          <div class="acc-mail" id="pfEmail">&mdash;</div>
+        </div>
+        <span class="pill ok" id="pfVerified">Verified</span>
+      </div>
+
+      <div class="acc-banner" id="pfUnverified" hidden>
+        <span id="pfUnverifiedText">This email is not verified yet.</span>
+        <button class="mini" id="pfVerifyNow" type="button">Verify email</button>
+      </div>
+
+      <div class="acc-block">
+        <h3 class="acc-h3">Notifications</h3>
+        <label class="acc-row">
+          <span><strong>Show notifications</strong><em>Mirrors the alert switch in the top bar.</em></span>
+          <span class="switch">
+            <input type="checkbox" id="pfNotify" role="switch" aria-label="Show notifications">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+          </span>
+        </label>
+        <label class="acc-row">
+          <span><strong>Reminders</strong><em>Daily puzzle and practice nudges.</em></span>
+          <span class="switch">
+            <input type="checkbox" id="pfReminders" role="switch" aria-label="Reminders">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+          </span>
+        </label>
+        <label class="acc-row">
+          <span><strong>Achievements</strong><em>Announce unlocks and mastered openings.</em></span>
+          <span class="switch">
+            <input type="checkbox" id="pfAchievements" role="switch" aria-label="Achievement alerts">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+          </span>
+        </label>
+      </div>
+
+      <form class="acc-form" id="nameForm" novalidate>
+        <div class="field">
+          <label class="label" for="pfNameInput">Display name</label>
+          <input class="input" id="pfNameInput" autocomplete="nickname">
+          <p class="field-err" id="pfNameErr"></p>
+        </div>
+        <div class="acc-actions"><button class="ghost" id="pfNameSave" type="submit">Save name</button></div>
+      </form>
+
+      <form class="acc-form" id="passForm" novalidate>
+        <h3 class="acc-h3">Password</h3>
+        <div class="field">
+          <label class="label" for="pfCurrent">Current password</label>
+          <input class="input" id="pfCurrent" type="password" autocomplete="current-password">
+          <p class="field-err" id="pfCurrentErr"></p>
+        </div>
+        <div class="field">
+          <label class="label" for="pfNew">New password</label>
+          <input class="input" id="pfNew" type="password" autocomplete="new-password">
+          <p class="field-err" id="pfNewErr"></p>
+        </div>
+        <p class="form-err" id="pfPassErr" role="alert" hidden></p>
+        <div class="acc-actions"><button class="ghost" id="pfPassSave" type="submit">Change password</button></div>
+      </form>
+
+      <div class="acc-danger">
+        <button class="ghost" id="accSignOut" type="button">Sign out</button>
+        <button class="ghost danger" id="accDelete" type="button">Delete account</button>
+      </div>
+
+      <form class="acc-form" id="deleteForm" hidden novalidate>
+        <p class="form-hint">Deleting removes this account from this device. Saved games and your rating stay.</p>
+        <div class="field">
+          <label class="label" for="delPassword">Password</label>
+          <input class="input" id="delPassword" type="password" autocomplete="current-password">
+          <p class="field-err" id="delErr"></p>
+        </div>
+        <div class="acc-actions">
+          <button class="danger-btn" id="delConfirm" type="submit">Delete for good</button>
+          <button class="link-btn" id="delCancel" type="button">Keep it</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="acc-block">
+      <h3 class="acc-h3">Problems</h3>
+      <p class="acc-note">Anything that went wrong in the app is listed here. Nothing is sent anywhere.</p>
+      <div class="err-list" id="errList"></div>
+      <div class="acc-actions"><button class="mini" id="errClear" type="button">Clear log</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="editor-layer" id="placementLayer" hidden>
+  <div class="editor-card placement-card" role="dialog" aria-modal="true" aria-labelledby="plTitle">
+    <div class="ed-head">
+      <h2 id="plTitle">Find your level</h2>
+      <button class="mini" id="plClose" type="button">Skip</button>
+    </div>
+
+    <div id="plIntro">
+      <p class="pl-lead">Eight positions that adapt to you: solve one and the next is harder, miss one and it eases off. You play the move on a full-size board — no multiple choice — and if you miss, Gambit plays the move you should have found, explains why yours did not work, and shows every other move that wins.</p>
+      <ul class="pl-facts">
+        <li>About two minutes, and nothing is timed.</li>
+        <li>Every answer gets a one-line reason, right or wrong.</li>
+        <li>It only sets your starting point — games move you from there.</li>
+        <li>Skip and you start at <b>0 Elo</b> instead.</li>
+      </ul>
+      <div class="pl-actions">
+        <button class="primary" id="plStart" type="button">Start the test</button>
+        <button class="ghost" id="plSkip" type="button">Skip — start at 0</button>
+      </div>
+    </div>
+
+    <div id="plQuiz" class="pl-stage" hidden>
+      <div class="pq-head">
+        <div class="pl-progress" id="plProgress">Position 1 of 8</div>
+        <p class="pq-turn" id="plTurn">White to move</p>
+      </div>
+      <div class="pl-bar"><i id="plBar"></i></div>
+      <p class="pl-prompt" id="plPrompt"></p>
+      <div class="pq-main">
+        <div class="pq-board-wrap">
+          <div class="board" id="plBoard" role="application" aria-label="Placement test board"></div>
+        </div>
+        <div class="pq-side">
+          <div class="pq-opponent" id="plOpponent">
+            <span class="pq-avatar" aria-hidden="true">G</span>
+            <span class="pq-opp-text"><b>Gambit</b><span class="pq-opp-line" id="plOppLine">watching your move</span></span>
+          </div>
+          <p class="pl-feedback" id="plFeedback"></p>
+          <button class="primary wide" id="plNext" type="button" hidden>Next position</button>
+          <button class="ghost wide" id="plGiveUp" type="button">I don't know</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="plResult" hidden>
+      <div class="pl-score" id="plScore">0 of 8 correct</div>
+      <div class="pl-elo" id="plElo">0</div>
+      <p class="pl-band" id="plBand"></p>
+      <p class="pl-lead" id="plNote"></p>
+      <div class="pl-actions">
+        <button class="primary" id="plUse" type="button">Use this rating</button>
+        <button class="ghost" id="plRetake" type="button">Retake</button>
+        <button class="ghost" id="plUseZero" type="button">Start at 0 instead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/accounts.js"></script>
+<script src="js/errors.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/pieces.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/puzzles.js"></script>
+<script src="js/openings.js"></script>
+<script src="js/trainer.js"></script>
+<script src="js/quests.js"></script>
+<script src="js/variants.js"></script>
+<script src="js/results.js"></script>
+<script src="js/review.js"></script>
+<script src="js/drills.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/achievements.js"></script>
+<script src="js/rating.js"></script>
+<script src="js/explain.js"></script>
+<script src="js/placement-pool.js"></script>
+<script src="js/placement.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
