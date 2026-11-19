@@ -5,15 +5,17 @@
    ========================================================================== */
 
 :root {
-  /* surfaces */
-  --glass: rgba(255, 255, 255, 0.065);
-  --glass-2: rgba(255, 255, 255, 0.105);
-  --glass-3: rgba(255, 255, 255, 0.042);
-  --glass-deep: rgba(14, 16, 23, 0.55);
-  --rim: rgba(255, 255, 255, 0.155);
-  --rim-strong: rgba(255, 255, 255, 0.3);
-  --blur: 30px;
-  --sat: 185%;
+  /* surfaces — clearer than before: less fill, more backdrop and a specular
+     sweep that catches the corner like real glass */
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-2: rgba(255, 255, 255, 0.085);
+  --glass-3: rgba(255, 255, 255, 0.03);
+  --glass-deep: rgba(12, 14, 21, 0.42);
+  --rim: rgba(255, 255, 255, 0.2);
+  --rim-strong: rgba(255, 255, 255, 0.42);
+  --blur: 34px;
+  --sat: 205%;
+  --sheen: linear-gradient(137deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.07) 30%, rgba(255, 255, 255, 0.012) 52%, rgba(255, 255, 255, 0.075) 78%, rgba(255, 255, 255, 0.16) 100%);
   --r-xl: 26px;
   --r-lg: 20px;
   --r-md: 15px;
@@ -172,7 +174,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02));
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 12px 34px -18px rgba(0, 0, 0, 0.9);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   backdrop-filter: blur(var(--blur)) saturate(var(--sat));
@@ -214,10 +216,10 @@ body {
   gap: 2px;
   padding: 4px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--sheen), rgba(255, 255, 255, 0.04);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.13),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
     0 8px 20px -14px rgba(0, 0, 0, 0.9);
 }
 
@@ -467,8 +469,8 @@ body {
 .player {
   padding: 6px;
   border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 0 rgba(255, 255, 255, 0.16) inset;
 }
 
 .avatar {
@@ -521,8 +523,9 @@ body {
 .board-shell {
   border-radius: 22px;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.22),
-    0 0 0 6px rgba(255, 255, 255, 0.035),
+    0 0 0 1px rgba(255, 255, 255, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 0 0 6px rgba(255, 255, 255, 0.03),
     0 34px 70px -26px rgba(0, 0, 0, 0.95),
     0 0 110px -40px var(--glow);
 }
@@ -618,10 +621,10 @@ body {
 .side {
   border: 0;
   border-radius: var(--r-xl);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035));
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
   box-shadow:
     0 0 0 1px var(--rim),
-    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 1px 0 rgba(255, 255, 255, 0.34) inset,
     0 30px 70px -30px rgba(0, 0, 0, 0.95);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   backdrop-filter: blur(var(--blur)) saturate(var(--sat));
@@ -941,10 +944,10 @@ body {
 .editor-card {
   border: 0;
   border-radius: var(--r-xl);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.05));
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
   box-shadow:
     0 0 0 1px var(--rim),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 1px 0 rgba(255, 255, 255, 0.38) inset,
     0 50px 100px -40px rgba(0, 0, 0, 0.95);
   -webkit-backdrop-filter: blur(36px) saturate(190%);
   backdrop-filter: blur(36px) saturate(190%);
@@ -957,10 +960,10 @@ body {
   top: 70px;
   border: 0;
   border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
   box-shadow:
     0 0 0 1px var(--rim),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
     0 40px 80px -30px rgba(0, 0, 0, 0.95);
   -webkit-backdrop-filter: blur(34px) saturate(190%);
   backdrop-filter: blur(34px) saturate(190%);
@@ -985,7 +988,8 @@ body {
 
 .bell-dot { box-shadow: 0 0 0 2px rgba(10, 12, 18, 0.9), 0 0 12px rgba(255, 90, 84, 0.9); }
 
-/* Notification card: drops in at the top-right, under the top bar. */
+/* Notification card: icon, title, a detail line and a bar that drains while it
+   is on screen. Drops in at the top-right, under the top bar. */
 .toast {
   position: fixed;
   top: 74px;
@@ -993,43 +997,118 @@ body {
   left: auto;
   bottom: auto;
   z-index: 300;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  column-gap: 11px;
   transform: translateX(18px) scale(0.97);
-  padding: 12px 16px 12px 13px;
+  padding: 13px 16px 16px 13px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   color: #f6f7fb;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
   text-align: left;
-  white-space: normal;
-  overflow: visible;
-  max-width: min(340px, calc(100vw - 32px));
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.07));
+  overflow: hidden;
+  max-width: min(360px, calc(100vw - 32px));
+  background: var(--sheen), linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
   box-shadow:
     0 0 0 1px var(--rim),
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
     0 26px 60px -26px rgba(0, 0, 0, 0.95);
-  -webkit-backdrop-filter: blur(30px) saturate(190%);
-  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(34px) saturate(200%);
+  backdrop-filter: blur(34px) saturate(200%);
   opacity: 0;
-  transition: opacity 0.24s var(--ease), transform 0.4s var(--spring);
+  transition: opacity 0.24s var(--ease), transform 0.42s var(--spring);
 }
 
-.toast::before {
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent-dark));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.38) inset, 0 8px 18px -10px var(--glow);
+}
+
+.toast-icon::after {
   content: "";
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #ffffff, color-mix(in oklab, var(--accent) 85%, #000) 68%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.9);
+  background: rgba(4, 20, 8, 0.82);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+}
+
+.toast[data-kind="achievement"] .toast-icon { background: linear-gradient(180deg, #ffe6a1, #d8b45a); }
+.toast[data-kind="quest"] .toast-icon,
+.toast[data-kind="reminder"] .toast-icon { background: linear-gradient(180deg, var(--accent-hi), var(--accent-dark)); }
+.toast[data-kind="account"] .toast-icon { background: linear-gradient(180deg, #7fb6ee, #3f7fc4); }
+
+.toast-text { min-width: 0; }
+
+.toast-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  white-space: normal;
+}
+
+.toast-meta {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(246, 247, 251, 0.66);
+  white-space: normal;
+}
+
+.toast-life {
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0.85;
+}
+
+.toast.show .toast-life { animation: toast-life 2.6s linear forwards; }
+
+@keyframes toast-life {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 .toast.show { opacity: 1; transform: translateX(0) scale(1); }
+
+/* notification centre: kind tag and relative time under each entry */
+.np-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(246, 247, 251, 0.55);
+}
+
+.np-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
 
 /* ---------- motion ---------- */
 
@@ -1135,7 +1214,9 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
   .topnav { display: flex; }
 }
 
-@media (max-width: 820px) {
+/* The dock now covers tablets too, so the top bar keeps a single row instead
+   of wrapping the nav under the brand. */
+@media (max-width: 1010px) {
   .topbar {
     height: auto;
     min-height: 58px;
@@ -1170,24 +1251,31 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
 
   .nav-btn {
     flex: 1 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     padding: 10px 12px;
     font-size: 11.5px;
     border-radius: 16px;
   }
 
-  .layout { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+  .layout {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
+  }
+
+  /* 16px keeps iOS from zooming the page when a field is focused. */
+  .text-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="search"] { font-size: 16px; }
 
   body.focus .topnav { display: none !important; }
 
   .notify-panel { top: 66px; }
   .error-banner { top: 66px; }
-  .toast {
-    top: 70px;
-    right: 12px;
-    left: 12px;
-    max-width: none;
-    text-align: left;
-  }
   .side { border-radius: var(--r-lg); }
   .board-shell { border-radius: 18px; }
   .board { border-radius: 16px; }
@@ -1196,6 +1284,18 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
 
 @media (max-width: 620px) {
   #pgnBtn, #fenBtn, #linkBtn, #focusBtn { display: none; }
+
+  /* phones: the notification spans the screen instead of hugging the corner */
+  .toast {
+    top: 68px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    padding: 13px 15px 16px 13px;
+  }
+
+  .toast-title { font-size: 13.5px; }
+  .toast-meta { font-size: 12px; }
   .topbar { padding: 8px 10px; }
   .brand-mark { width: 32px; height: 32px; font-size: 19px; }
   .brand-name { font-size: 17px; }
@@ -1209,7 +1309,34 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
 }
 
 @media (max-width: 420px) {
-  .nav-btn { font-size: 10.5px; padding: 9px 8px; }
+  .nav-btn { font-size: 11px; padding: 9px 9px; letter-spacing: -0.01em; }
+  .notify-panel { left: 10px; right: 10px; width: auto; }
+}
+
+/* ---------- touch ergonomics ---------- */
+
+html { -webkit-tap-highlight-color: transparent; }
+
+button,
+.nav-btn,
+.tab-btn,
+.tb-btn,
+.icon-btn,
+.account-btn,
+.theme-btn,
+.accent-dot,
+.drill-tile,
+.opening-tile,
+.sq { touch-action: manipulation; }
+
+@media (max-width: 560px) {
+  /* phones: the side panel becomes a full-width stack of cards below the board */
+  .side { padding: 12px; }
+  .moves { max-height: 34vh; }
+  .toolbar { flex-wrap: wrap; }
+  .clock { min-width: 68px; }
+  .acc-label { display: none; }
+  .switch-text { display: none; }
 }
 
 /* ---------- accessibility preferences ---------- */
@@ -1225,6 +1352,7 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
 
 @media (prefers-reduced-motion: reduce) {
   .wall i { animation: none; }
+  .toast.show .toast-life { animation: none; transform: scaleX(1); opacity: 0.4; }
   .result-card, .editor-card, .notify-panel, .error-banner, .toast,
   body[data-screen] .page-col, body[data-screen] .tabpanel { animation: none !important; }
   .primary, .ghost, .tb-btn, .mini, .nav-btn, .tab-btn, .drill-tile, .opening-tile { transition: none; }

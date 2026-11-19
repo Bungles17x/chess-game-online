@@ -941,7 +941,14 @@
   </div>
 </div>
 
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span class="toast-icon" aria-hidden="true"></span>
+  <div class="toast-text">
+    <p class="toast-title" id="toastTitle"></p>
+    <p class="toast-meta" id="toastMeta"></p>
+  </div>
+  <span class="toast-life" aria-hidden="true"></span>
+</div>
 
 <script src="js/accounts.js"></script>
 <script src="js/errors.js"></script>

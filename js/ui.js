@@ -186,16 +186,42 @@
 
   /* ---------------- helpers ---------------- */
 
-  function toast(msg) {
+  /* A notification card: a short title, an optional detail line, and a bar that
+     drains while it is on screen. */
+  var TOAST_MS = 2600;
+
+  function toast(msg, detail, kind) {
     var el = $('toast');
-    el.textContent = msg;
+    if (!el) return;
+
+    var title = $('toastTitle');
+    if (title) title.textContent = msg;
+    else el.textContent = msg;
+
+    var meta = $('toastMeta');
+    if (meta) meta.textContent = detail || 'Just now';
+
+    if (kind) el.setAttribute('data-kind', kind);
+    else el.removeAttribute('data-kind');
+
     el.hidden = false;
-    el.classList.add('show');
+    if (!el.classList.contains('show')) {
+      void el.offsetWidth;
+      el.classList.add('show');
+    }
+
+    var life = el.querySelector('.toast-life');
+    if (life) {
+      life.style.animation = 'none';
+      void life.offsetWidth;
+      life.style.animation = '';
+    }
+
     clearTimeout(toast._t);
     toast._t = setTimeout(function () {
       el.classList.remove('show');
-      setTimeout(function () { el.hidden = true; }, 200);
-    }, 2200);
+      setTimeout(function () { el.hidden = true; }, 260);
+    }, TOAST_MS);
   }
 
   function fmtClock(ms) {
@@ -5511,13 +5537,29 @@
     var show = !!settings.notify;
     if (channel === 'achievements' && !settings.notifyAchievements) show = false;
     if (channel === 'reminders' && !settings.notifyReminders) show = false;
-    if (show) toast(body ? title + ' \u2014 ' + body : title);
+    if (show) toast(title, body, kind);
   }
 
   function unreadCount() {
     var seen = 0;
     try { seen = Number(localStorage.getItem(NOTIFY_SEEN_KEY) || 0) || 0; } catch (err) { seen = 0; }
     return notifyEntries().filter(function (e) { return (e.at || 0) > seen; }).length;
+  }
+
+  function kindLabel(kind) {
+    if (kind === 'achievement') return 'Achievement';
+    if (kind === 'quest') return 'Quest';
+    if (kind === 'reminder') return 'Reminder';
+    if (kind === 'account') return 'Account';
+    return 'Note';
+  }
+
+  function agoText(at) {
+    var s = Math.max(0, Math.round((Date.now() - Number(at || 0)) / 1000));
+    if (s < 45) return 'just now';
+    if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return Math.round(s / 86400) + ' d ago';
   }
 
   function renderNotify() {
@@ -5531,9 +5573,13 @@
       return;
     }
     box.innerHTML = list.map(function (e) {
-      return '<div class="np-row ' + escText(e.kind || 'info') + '">' +
-        '<div class="np-row-head"><b>' + escText(e.title) + '</b><span>' + clockText(e.at || Date.now()) + '</span></div>' +
-        (e.body ? '<p>' + escText(e.body) + '</p>' : '') + '</div>';
+      var kind = e.kind || 'info';
+      var at = e.at || Date.now();
+      return '<div class="np-row ' + escText(kind) + '">' +
+        '<div class="np-row-head"><b>' + escText(e.title) + '</b><span>' + clockText(at) + '</span></div>' +
+        (e.body ? '<p>' + escText(e.body) + '</p>' : '') +
+        '<div class="np-row-meta"><span class="np-tag">' + escText(kindLabel(kind)) + '</span>' +
+        '<span>' + escText(agoText(at)) + '</span></div></div>';
     }).join('');
   }
 
