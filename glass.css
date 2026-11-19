@@ -1915,8 +1915,14 @@ button:focus-visible { outline-offset: 3px; }
 
 /* The dot grows out of the square instead of appearing, which makes a tapped
    piece read as "these are the moves" rather than a repaint. No fill-mode, so
-   the hover transform below still applies once the 0.2s entrance is over. */
-.sq.hint::after { animation: hint-dot 0.2s var(--ease); }
+   the hover transform below still applies once the 0.2s entrance is over.
+   The fill is darker than the old 26% and carries a hairline rim: at 26% the
+   dot disappeared into the dark green squares on a phone. */
+.sq.hint::after {
+  background: rgba(10, 14, 20, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  animation: hint-dot 0.2s var(--ease);
+}
 .sq.hint-cap::after { animation: hint-ring 0.26s var(--ease); }
 
 @keyframes hint-dot {
@@ -1928,9 +1934,11 @@ button:focus-visible { outline-offset: 3px; }
 }
 
 .sq.hint:hover::after {
-  background: rgba(10, 14, 20, 0.36);
+  background: rgba(10, 14, 20, 0.42);
   transform: scale(1.12);
 }
+
+.sq.hint-cap::after { border-color: rgba(14, 18, 26, 0.34); }
 
 .sq.hint-cap:hover::after {
   border-color: rgba(255, 255, 255, 0.55);
