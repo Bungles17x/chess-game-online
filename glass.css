@@ -1237,13 +1237,15 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
     flex-wrap: nowrap;
     overflow-x: auto;
     border-radius: 22px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+    /* the dock floats over scrolling content, so it keeps more of its own tone
+       than the other glass surfaces — otherwise the board reads through it */
+    background: var(--sheen), linear-gradient(180deg, rgba(24, 28, 38, 0.78), rgba(13, 16, 23, 0.68));
     box-shadow:
       0 0 0 1px var(--rim),
-      0 1px 0 rgba(255, 255, 255, 0.35) inset,
+      0 1px 0 rgba(255, 255, 255, 0.3) inset,
       0 26px 50px -20px rgba(0, 0, 0, 0.95);
-    -webkit-backdrop-filter: blur(30px) saturate(190%);
-    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(180%);
     scrollbar-width: none;
   }
 
