@@ -10,4 +10,4 @@
  *
  * http(s) or ws(s) both work; /ws is appended if you leave it off.
  */
-window.GAMBIT_SERVER = '';
+window.GAMBIT_SERVER = 'https://chess-game-online-u34h.onrender.com';
