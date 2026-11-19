@@ -3551,13 +3551,14 @@
 
   var netCfg = { name: '', base: 300, inc: 0, color: 'w' };
 
-  /* GitHub Pages (or a file:// copy) has no game server behind it, so rooms are
-     off there instead of failing with a connection error. Everything else in
-     the app runs in the browser. */
+  /* A static host (GitHub Pages, file://) has no server of its own, so online
+     play is only offered there when js/config.js names a hosted server. */
+  var SERVER = String(window.GAMBIT_SERVER || '').trim();
   var STATIC_HOST = /\.github\.io$/i.test(location.hostname) || location.protocol === 'file:';
+  var NO_SERVER = STATIC_HOST && !SERVER;
 
   function markStaticHost() {
-    if (!STATIC_HOST) return;
+    if (!NO_SERVER) return;
 
     var note = $('netHint');
     if (note) {
@@ -3585,8 +3586,8 @@
   }
 
   function netConnect(then, quiet) {
-    if (STATIC_HOST) {
-      toast('Online rooms need the Gambit server \u2014 this copy is a static build.');
+    if (NO_SERVER) {
+      toast('Online rooms need the Gambit server \u2014 this copy has none configured.');
       return;
     }
 
@@ -3596,36 +3597,56 @@
       return;
     }
 
-    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var ws;
-    try { ws = new WebSocket(proto + '//' + location.host + '/ws'); }
-    catch (err) { toast('Could not open a connection.'); return; }
+    /* A free host spins the server down when nobody is around, and the first
+       connection afterwards waits for it to boot, so keep knocking for a bit. */
+    var firstTry = Date.now();
+    var tries = 0;
 
-    S.net = { ws: ws, code: null, seat: null, names: {}, present: {}, chat: [], open: false, queued: then, quiet: !!quiet };
+    function open() {
+      var ws;
+      try { ws = new WebSocket(GambitNet.wsUrl(SERVER, location)); }
+      catch (err) { toast('Could not open a connection.'); return; }
 
-    ws.onopen = function () {
-      if (!S.net || S.net.ws !== ws) return;
-      S.net.open = true;
-      renderRoom();
-      netSend({ t: 'lobby' });
-      var fn = S.net.queued;
-      S.net.queued = null;
-      if (fn) fn();
-    };
+      var opened = false;
+      S.net = { ws: ws, code: null, seat: null, names: {}, present: {}, chat: [], open: false, queued: then, quiet: !!quiet };
 
-    ws.onmessage = function (ev) {
-      var msg;
-      try { msg = JSON.parse(ev.data); } catch (err) { return; }
-      netMessage(msg);
-    };
+      ws.onopen = function () {
+        if (!S.net || S.net.ws !== ws) return;
+        opened = true;
+        S.net.open = true;
+        renderRoom();
+        netSend({ t: 'lobby' });
+        var fn = S.net.queued;
+        S.net.queued = null;
+        if (fn) fn();
+      };
 
-    ws.onclose = function () {
-      var quiet = !S.net || S.net.quiet;
-      if (S.net) { S.net.open = false; S.net.present = {}; }
-      if (!quiet) toast('Disconnected from the online game.');
-      renderRoom();
-      renderPlayers();
-    };
+      ws.onmessage = function (ev) {
+        var msg;
+        try { msg = JSON.parse(ev.data); } catch (err) { return; }
+        netMessage(msg);
+      };
+
+      ws.onerror = function () { /* onclose reports it */ };
+
+      ws.onclose = function () {
+        if (!S.net || S.net.ws !== ws) return;
+        var wasQuiet = S.net.quiet;
+        S.net.open = false;
+        S.net.present = {};
+        if (!opened && SERVER && Date.now() - firstTry < 90000) {
+          tries++;
+          if (tries === 1) toast('Waking the online server \u2014 the first visit can take a minute.');
+          setTimeout(open, Math.min(8000, 1000 * tries));
+          return;
+        }
+        if (!wasQuiet) toast('Disconnected from the online game.');
+        renderRoom();
+        renderPlayers();
+      };
+    }
+
+    open();
   }
 
   function netMessage(msg) {

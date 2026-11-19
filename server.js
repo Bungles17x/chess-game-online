@@ -41,6 +41,12 @@ const server = http.createServer((req, res) => {
   try { urlPath = decodeURIComponent((req.url || '/').split('?')[0]); }
   catch (err) { res.writeHead(400, { 'Content-Type': 'text/plain' }); res.end('bad request'); return; }
 
+  /* Used by hosts' health checks and by the keep-awake job. */
+  if (urlPath === '/health') {
+    jsonReply(res, 200, { ok: true, rooms: rooms.size, at: Date.now() });
+    return;
+  }
+
   if (urlPath === '/api/send-code') {
     handleSendCode(req, res).catch(() => {
       if (!res.headersSent) jsonReply(res, 500, { ok: false, error: 'The mail request failed.' });

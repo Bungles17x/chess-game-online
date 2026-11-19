@@ -1,0 +1,14 @@
+{
+  "name": "gambit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gambit — a free chess board, rules engine and online server with no dependencies.",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "checks": "node tools/check-netcfg.js && node tools/check-placement.js && node tools/check-features.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

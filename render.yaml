@@ -1,0 +1,15 @@
+# Render blueprint for the Gambit online server.
+# Render dashboard -> New -> Blueprint -> pick this repo and the gambit-app branch,
+# or create a Web Service by hand with: runtime Node, start `node server.js`, plan Free.
+services:
+  - type: web
+    name: gambit-online
+    runtime: node
+    plan: free
+    branch: gambit-app
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

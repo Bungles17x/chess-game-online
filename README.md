@@ -24,10 +24,36 @@ Without it the app simply displays the code.
 ## Published build
 
 <https://bungles17x.github.io/chess-game-online/> is served from the `gh-pages`
-branch by GitHub Pages. It is the same app minus what a static host cannot do:
-online rooms and emailed sign-in codes need `node server.js`, so those controls
-are disabled there (with a note saying why) and everything else — the computer,
-puzzles, drills, review, the coach and the Elo test — runs in the browser.
+branch by GitHub Pages. Pages can only hand out files, so online play there talks
+to a hosted copy of `server.js` named in `js/config.js`:
+
+```js
+window.GAMBIT_SERVER = 'https://your-server.example';
+```
+
+Leave it empty and the page uses whatever origin serves it, which is what you
+want locally. When a static copy has no server configured, the Online tab says so
+and turns its controls off instead of failing on a socket that cannot exist.
+
+## Hosting the online server (free)
+
+[Render](https://render.com) runs the server on its free plan with no credit
+card: Node web services accept WebSockets, there is no connection time limit,
+and the instance is 512 MB with 750 hours a month. It spins down after 15
+minutes without traffic and takes about a minute to wake.
+
+1. Render dashboard → **New → Web Service**, connect this GitHub repo.
+2. Branch: **`gambit-app`**. Runtime: **Node**. Build: `npm install`.
+   Start: `node server.js`. Plan: **Free**. Health check path: `/health`.
+3. Copy the service URL (`https://something.onrender.com`) into `js/config.js`
+   as shown above, and push to `gh-pages`.
+4. Optional: set the repository variable `GAMBIT_SERVER_URL` to that URL so
+   `.github/workflows/keep-awake.yml` pings `/health` every 10 minutes and the
+   free instance stays warm.
+
+`render.yaml` in the repo root describes the same service, so
+**New → Blueprint** can create it instead. The client already retries for 90
+seconds when the server is waking, and shows a "waking the online server" note.
 
 ## What is in here
 
