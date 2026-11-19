@@ -430,8 +430,16 @@
       html += '</div>';
     }
     movesEl.innerHTML = html || '<div class="empty-state">No moves yet. Click a piece to begin \u2014 or drag it to a square.</div>';
+    /* Keep the current move in view inside the list only. scrollIntoView also
+       scrolls the page, which used to yank the board out of view on every
+       move; this moves the list's own scrollTop and nothing else. */
     var cur = movesEl.querySelector('.san.cur');
-    if (cur) cur.scrollIntoView({ block: 'nearest' });
+    if (cur) {
+      var box = movesEl.getBoundingClientRect();
+      var row = cur.getBoundingClientRect();
+      if (row.top < box.top) movesEl.scrollTop -= box.top - row.top;
+      else if (row.bottom > box.bottom) movesEl.scrollTop += row.bottom - box.bottom;
+    }
     renderReviewNote();
     renderCoachNote();
   }
