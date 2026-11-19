@@ -2907,7 +2907,11 @@
   function renderRecord() {
     var el = $('recordLine');
     if (!el) return;
-    el.textContent = 'Record: ' + record.w + 'W \u00b7 ' + record.l + 'L \u00b7 ' + record.d + 'D';
+    el.innerHTML = 'Record: ' + record.w + '-' + record.l + '-' + record.d +
+      ' <span class="rec-legend">W-L-D</span>';
+    var pick = function (n, one, many) { return n + ' ' + (n === 1 ? one : many); };
+    el.title = pick(record.w, 'win', 'wins') + ' \u00b7 ' + pick(record.l, 'loss', 'losses') +
+      ' \u00b7 ' + pick(record.d, 'draw', 'draws');
   }
 
   /* ---------------- per-screen chrome ---------------- */

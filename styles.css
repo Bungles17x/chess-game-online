@@ -960,6 +960,12 @@ body[data-screen="analysis"] .clock { color: transparent; background: #2b2926; }
   padding: 8px 0 2px;
 }
 
+.rec-legend {
+  font-size: 10px;
+  letter-spacing: .06em;
+  opacity: .6;
+}
+
 body[data-screen="puzzles"] .status { border-left-color: var(--accent); }
 body[data-screen="analysis"] .status { border-left-color: #6f93bd; }
 
