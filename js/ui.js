@@ -670,6 +670,7 @@
   function toggleFocus() {
     var on = document.body.classList.toggle('focus');
     $('focusBtn').classList.toggle('active', on);
+    $('focusBtn').setAttribute('aria-pressed', on ? 'true' : 'false');
     toast(on ? 'Focus mode \u2014 press Z to leave.' : 'Focus mode off.');
   }
 
@@ -4144,7 +4145,7 @@
     $('optAutoFlip').checked = settings.autoFlip;
     $('optBlind').checked = !!settings.blindfold;
     $('optAutoQueen').checked = !!settings.autoQueen;
-    $('soundBtn').classList.toggle('muted', !settings.sound);
+    paintSoundBtn();
     document.querySelectorAll('.theme-btn').forEach(function (b) {
       b.classList.toggle('active', b.dataset.theme === settings.theme);
     });
@@ -4162,7 +4163,7 @@
   bindToggle('optHints', 'hints', function () { renderBoard(); });
   bindToggle('optAnim', 'anim');
   bindToggle('optSound', 'sound', function () {
-    $('soundBtn').classList.toggle('muted', !settings.sound);
+    paintSoundBtn();
   });
   bindToggle('optAutoFlip', 'autoFlip');
   bindToggle('optBlind', 'blindfold', function () { renderBoard(); });
@@ -4331,6 +4332,13 @@
     if (!text) return;
     if (netSend({ t: 'chat', text: text })) input.value = '';
   });
+
+  function paintSoundBtn() {
+    var btn = $('soundBtn');
+    if (!btn) return;
+    btn.classList.toggle('muted', !settings.sound);
+    btn.setAttribute('aria-pressed', settings.sound ? 'true' : 'false');
+  }
 
   $('soundBtn').addEventListener('click', function () {
     settings.sound = !settings.sound;

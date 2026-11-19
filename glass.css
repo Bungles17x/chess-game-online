@@ -1903,3 +1903,224 @@ button:focus-visible { outline-offset: 3px; }
 
 .coach-card.locked .coach-tips { color: #c6c9d4; }
 .coach-card.locked .coach-tips li::marker { color: rgba(255, 255, 255, 0.35); }
+
+/* ============================================================================
+   Enhancement pass — a single layer of depth, feedback and micro-motion over
+   the whole app. Nothing here animates at rest: every keyframe is a one-off
+   entrance or a state the player is meant to notice (check, low clock, the
+   computer thinking), so an idle board still costs no frames.
+   ========================================================================== */
+
+/* ---------- board: legal moves ---------- */
+
+/* The dot grows out of the square instead of appearing, which makes a tapped
+   piece read as "these are the moves" rather than a repaint. No fill-mode, so
+   the hover transform below still applies once the 0.2s entrance is over. */
+.sq.hint::after { animation: hint-dot 0.2s var(--ease); }
+.sq.hint-cap::after { animation: hint-ring 0.26s var(--ease); }
+
+@keyframes hint-dot {
+  from { opacity: 0; transform: scale(0.35); }
+}
+
+@keyframes hint-ring {
+  from { opacity: 0; transform: scale(0.72); }
+}
+
+.sq.hint:hover::after {
+  background: rgba(10, 14, 20, 0.36);
+  transform: scale(1.12);
+}
+
+.sq.hint-cap:hover::after {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 18px rgba(0, 0, 0, 0.22);
+}
+
+/* a capture target lifts its victim slightly, so the piece about to go reads
+   as the thing you are aiming at */
+.sq.hint-cap .piece {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.42));
+  transition: filter 0.16s var(--ease);
+}
+
+/* ---------- board: last move, selection, check ---------- */
+
+.sq.last::before {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--accent) 42%, transparent);
+}
+
+.sq.sel::before {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--accent) 82%, white),
+    inset 0 0 26px rgba(0, 0, 0, 0.16);
+}
+
+.sq.check::before { animation: check-pulse 1.5s ease-in-out infinite; }
+
+@keyframes check-pulse {
+  50% { opacity: 0.62; transform: scale(0.86); }
+}
+
+.board { cursor: pointer; }
+body.grabbing .board { cursor: grabbing; }
+
+/* ---------- eval bar ---------- */
+
+.eval-bar {
+  background: linear-gradient(180deg, #1a1d26, #101218);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 18px -12px rgba(0, 0, 0, 0.9);
+}
+
+.eval-white {
+  background: linear-gradient(180deg, #ffffff, #e6e9f1);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+  transition: height 0.24s var(--ease);
+}
+
+/* ---------- players: the side that is thinking ---------- */
+
+.player { transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+
+.player.thinking {
+  background: var(--sheen), linear-gradient(180deg, color-mix(in oklab, var(--accent) 14%, rgba(255, 255, 255, 0.06)), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--accent) 48%, transparent),
+    0 0 34px -16px var(--glow),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+.player.thinking .pmeta { color: var(--accent-hi); }
+
+.player.thinking .avatar {
+  animation: think-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes think-glow {
+  50% {
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--accent) 60%, transparent),
+      0 0 24px -2px var(--glow);
+  }
+}
+
+/* ---------- clocks: the last minute ---------- */
+
+.clock.low { color: #ff9a93; }
+
+.clock.active.low { animation: clock-alarm 1.3s ease-in-out infinite; }
+
+@keyframes clock-alarm {
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 150, 143, 0.95),
+      0 0 32px -4px rgba(255, 90, 84, 0.75);
+  }
+}
+
+/* ---------- status line: thinking dot ---------- */
+
+.status { transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease); }
+
+.status.thinking::before { animation: status-thinking 1.1s ease-in-out infinite; }
+
+@keyframes status-thinking {
+  50% { transform: scale(0.55); opacity: 0.55; box-shadow: 0 0 6px var(--glow); }
+}
+
+/* ---------- move list: the move you are looking at ---------- */
+
+.mrow { transition: background 0.16s var(--ease); }
+
+.mrow:has(.san.cur) {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 18%, transparent), transparent 72%);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.empty-state {
+  padding: 16px 12px;
+  border-radius: var(--r-md);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ---------- cards and chips: hover depth ---------- */
+
+.stat-card { transition: transform 0.22s var(--spring), box-shadow 0.22s var(--ease); }
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--rim), 0 18px 34px -26px rgba(0, 0, 0, 0.95);
+}
+
+.tc-card,
+.theme-btn,
+.color-seg button {
+  transition: transform 0.2s var(--spring), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.tc-card:hover,
+.theme-btn:hover,
+.color-seg button:hover { transform: translateY(-1px); }
+
+/* ---------- notification card: a tinted edge for each kind ---------- */
+
+.toast::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, var(--accent-hi), transparent);
+}
+
+.toast[data-kind="achievement"]::before { background: linear-gradient(180deg, #ffe6a1, transparent); }
+.toast[data-kind="account"]::before { background: linear-gradient(180deg, #7fb6ee, transparent); }
+
+.np-row { transition: background 0.16s var(--ease); }
+.np-row:hover { background: rgba(255, 255, 255, 0.095); }
+
+/* ---------- accessibility: more contrast, and less motion ---------- */
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass: rgba(255, 255, 255, 0.1);
+    --rim: rgba(255, 255, 255, 0.36);
+    --rim-strong: rgba(255, 255, 255, 0.6);
+  }
+
+  .pmeta,
+  .hint,
+  .empty-state,
+  .page-col .lead { color: #d9dce5; }
+
+  .sq.last::before { box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sq.hint::after,
+  .sq.hint-cap::after,
+  .sq.check::before,
+  .player.thinking .avatar,
+  .clock.active.low,
+  .status.thinking::before { animation: none !important; }
+
+  .player,
+  .stat-card,
+  .tc-card,
+  .theme-btn,
+  .color-seg button,
+  .eval-white { transition: none; }
+}
+
+/* no hover lift on touch screens, where the tap leaves the state stuck on */
+@media (hover: none) {
+  .stat-card:hover,
+  .tc-card:hover,
+  .theme-btn:hover,
+  .color-seg button:hover,
+  .sq.hint:hover::after { transform: none; }
+}
