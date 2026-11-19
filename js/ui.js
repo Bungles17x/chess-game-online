@@ -3541,12 +3541,45 @@
 
   var netCfg = { name: '', base: 300, inc: 0, color: 'w' };
 
+  /* GitHub Pages (or a file:// copy) has no game server behind it, so rooms are
+     off there instead of failing with a connection error. Everything else in
+     the app runs in the browser. */
+  var STATIC_HOST = /\.github\.io$/i.test(location.hostname) || location.protocol === 'file:';
+
+  function markStaticHost() {
+    if (!STATIC_HOST) return;
+
+    var note = $('netHint');
+    if (note) {
+      note.textContent = 'Online rooms need the Gambit server, and this copy is a static build, ' +
+        'so rooms are off here. The computer, puzzles, drills, review and the Elo test all work.';
+    }
+
+    ['netCreate', 'netQuick', 'netJoin', 'netRefresh'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.disabled = true;
+      el.title = 'Needs the Gambit server';
+    });
+
+    var code = $('netCode');
+    if (code) {
+      code.disabled = true;
+      code.placeholder = 'static build';
+    }
+  }
+
   function netSend(obj) {
     if (!S.net || !S.net.ws || S.net.ws.readyState !== 1) return false;
     try { S.net.ws.send(JSON.stringify(obj)); return true; } catch (err) { return false; }
   }
 
   function netConnect(then, quiet) {
+    if (STATIC_HOST) {
+      toast('Online rooms need the Gambit server \u2014 this copy is a static build.');
+      return;
+    }
+
     if (S.net && S.net.ws && (S.net.ws.readyState === 0 || S.net.ws.readyState === 1)) {
       if (S.net.ws.readyState === 1) then();
       else S.net.queued = then;
@@ -6184,6 +6217,7 @@
   bootReminder();
   syncNewPanel();
   syncNav();
+  markStaticHost();
   var shared = sharedFen();
   newGame(shared
     ? { mode: 'human', level: 3, color: 'w', base: 0, inc: 0, variant: 'standard', fen: shared }

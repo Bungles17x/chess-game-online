@@ -21,6 +21,14 @@ Optional: copy `.env.example` to `.env` and fill in either SMTP details or a
 Resend API key if you want sign-in codes emailed instead of shown on screen.
 Without it the app simply displays the code.
 
+## Published build
+
+<https://bungles17x.github.io/chess-game-online/> is served from the `gh-pages`
+branch by GitHub Pages. It is the same app minus what a static host cannot do:
+online rooms and emailed sign-in codes need `node server.js`, so those controls
+are disabled there (with a note saying why) and everything else — the computer,
+puzzles, drills, review, the coach and the Elo test — runs in the browser.
+
 ## What is in here
 
 | Path | What it is |
