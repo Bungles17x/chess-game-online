@@ -317,6 +317,9 @@
     return color === S.playerColor ? 'You' : 'Computer';
   }
 
+  /* wins-losses-draws, the way chess scoresheets write it: 3-2-0 */
+  function recordTag() { return record.w + '-' + record.l + '-' + record.d; }
+
   function playerMeta(color) {
     if (S.mode === 'online') {
       return S.net && S.net.seat === color ? 'You \u00b7 online' : 'Online';
@@ -324,11 +327,14 @@
     if (S.variant === 'threecheck') return 'Checks ' + S.checks[color] + '/3';
     if (S.mode === 'coach') {
       return color === S.playerColor
-        ? 'Elo ' + Math.round(ratingState.r) + ' · live feedback'
+        ? 'Elo ' + Math.round(ratingState.r) + ' · live feedback · ' + recordTag()
         : 'Coach · Elo ' + Ratings.levelRating(S.level);
     }
     if (S.mode === 'human') return 'Local player';
-    if (color === S.playerColor) return 'Elo ' + Math.round(ratingState.r) + ' \u00b7 ' + Ratings.band(ratingState.r);
+    if (color === S.playerColor) {
+      return 'Elo ' + Math.round(ratingState.r) + ' \u00b7 ' + Ratings.band(ratingState.r) +
+        ' \u00b7 ' + recordTag();
+    }
     return 'Level ' + S.level + ' \u00b7 Elo ' + Ratings.levelRating(S.level);
   }
 
@@ -2902,13 +2908,13 @@
     else record.l++;
     saveJSON('gambit.record', record);
     renderRecord();
+    renderPlayers();
   }
 
   function renderRecord() {
     var el = $('recordLine');
     if (!el) return;
-    el.innerHTML = 'Record: ' + record.w + '-' + record.l + '-' + record.d +
-      ' <span class="rec-legend">W-L-D</span>';
+    el.innerHTML = 'Record: ' + recordTag() + ' <span class="rec-legend">W-L-D</span>';
     var pick = function (n, one, many) { return n + ' ' + (n === 1 ? one : many); };
     el.title = pick(record.w, 'win', 'wins') + ' \u00b7 ' + pick(record.l, 'loss', 'losses') +
       ' \u00b7 ' + pick(record.d, 'draw', 'draws');
