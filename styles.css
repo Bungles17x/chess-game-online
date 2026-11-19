@@ -793,26 +793,41 @@ body.grabbing { cursor: grabbing; }
 
 /* ---------- toast ---------- */
 
+/* A notification card in the top-right corner, under the top bar. */
 .toast {
   position: fixed;
-  left: 50%;
-  bottom: 26px;
-  transform: translateX(-50%) translateY(8px);
+  top: 74px;
+  right: 18px;
+  transform: translateX(14px) scale(0.98);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(340px, calc(100vw - 32px));
   background: #1c1b19;
   border: 1px solid #454239;
   color: #efece7;
   font-size: 13px;
   font-weight: 600;
-  padding: 10px 15px;
-  border-radius: 6px;
+  line-height: 1.35;
+  padding: 11px 15px 11px 12px;
+  border-radius: 12px;
   box-shadow: var(--shadow);
   opacity: 0;
-  transition: opacity 150ms, transform 150ms;
+  transition: opacity 180ms, transform 260ms;
   z-index: 300;
   pointer-events: none;
 }
 
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fdfdfb, #8f8b81 70%);
+}
+
+.toast.show { opacity: 1; transform: translateX(0) scale(1); }
 
 /* ---------- responsive ---------- */
 

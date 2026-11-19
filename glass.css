@@ -985,23 +985,30 @@ body {
 
 .bell-dot { box-shadow: 0 0 0 2px rgba(10, 12, 18, 0.9), 0 0 12px rgba(255, 90, 84, 0.9); }
 
+/* Notification card: drops in at the top-right, under the top bar. */
 .toast {
   position: fixed;
-  left: 50%;
-  bottom: 26px;
+  top: 74px;
+  right: 18px;
+  left: auto;
+  bottom: auto;
   z-index: 300;
-  transform: translate(-50%, 18px);
-  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateX(18px) scale(0.97);
+  padding: 12px 16px 12px 13px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 14px;
   color: #f6f7fb;
   font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
-  max-width: calc(100vw - 32px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07));
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  overflow: visible;
+  max-width: min(340px, calc(100vw - 32px));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.07));
   box-shadow:
     0 0 0 1px var(--rim),
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
@@ -1012,7 +1019,17 @@ body {
   transition: opacity 0.24s var(--ease), transform 0.4s var(--spring);
 }
 
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff, color-mix(in oklab, var(--accent) 85%, #000) 68%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.9);
+}
+
+.toast.show { opacity: 1; transform: translateX(0) scale(1); }
 
 /* ---------- motion ---------- */
 
@@ -1164,7 +1181,13 @@ body.focus .board-shell { box-shadow: 0 0 0 1px var(--rim-strong), 0 40px 90px -
 
   .notify-panel { top: 66px; }
   .error-banner { top: 66px; }
-  .toast { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); white-space: normal; text-align: center; }
+  .toast {
+    top: 70px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    text-align: left;
+  }
   .side { border-radius: var(--r-lg); }
   .board-shell { border-radius: 18px; }
   .board { border-radius: 16px; }
