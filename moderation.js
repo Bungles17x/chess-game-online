@@ -157,6 +157,69 @@ function createModeration(opts) {
     return found;
   }
 
+  function latest(ip) {
+    const record = records.get(String(ip || 'local'));
+    if (!record || !record.bans.length) return null;
+    const ban = record.bans[record.bans.length - 1];
+    return ban.liftedAt ? null : ban;
+  }
+
+  /* A ban issued straight from the owner tools: no scoring, same record shape,
+     so the page renders it exactly like one the ladder produced. */
+  function ban(ip, opts) {
+    opts = opts || {};
+    const at = clock();
+    const record = get(ip);
+    record.last = at;
+
+    const permanent = !!opts.permanent;
+    const ms = permanent ? 0 : Math.max(60000, Number(opts.ms) || 10 * 60000);
+    const recordBan = {
+      id: code(),
+      reason: 'review',
+      reasonLabel: opts.label || 'Owner test ban',
+      detail: opts.detail || 'Issued from the owner tools to test the ban screen.',
+      findings: findingList(record),
+      points: record.points,
+      threshold: rules.permBanAt,
+      severity: permanent ? 'permanent' : 'temporary',
+      issuedAt: at,
+      expiresAt: permanent ? 0 : at + ms,
+      strike: record.bans.length + 1,
+      name: String(opts.name || ''),
+      test: true
+    };
+    record.bans.push(recordBan);
+    persist();
+    return recordBan;
+  }
+
+  /* Owner clean slate: score, findings and bans all go. */
+  function reset(ip) {
+    const key = String(ip || 'local');
+    const had = records.has(key);
+    records.delete(key);
+    if (had) persist();
+    return had;
+  }
+
+  /* The owner's view of the ledger: addresses, scores, evidence, live ban. */
+  function list() {
+    const out = [];
+    records.forEach((record) => {
+      const live = latest(record.ip);
+      if (!live && !record.points) return;
+      out.push({
+        ip: record.ip,
+        points: record.points,
+        findings: findingList(record),
+        bans: record.bans.length,
+        ban: live ? AC.publicBan(live) : null
+      });
+    });
+    return out.sort((a, b) => (b.points || 0) - (a.points || 0));
+  }
+
   function activeBans() {
     const out = [];
     records.forEach((record) => {
@@ -216,6 +279,10 @@ function createModeration(opts) {
     strike,
     check,
     lift,
+    latest,
+    ban,
+    reset,
+    list,
     activeBans,
     count,
     get,

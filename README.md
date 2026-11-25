@@ -66,8 +66,72 @@ seconds when the server is waking, and shows a "waking the online server" note.
 | `js/placement.js`, `js/placement-pool.js` | adaptive Elo test, its position pool and mate search |
 | `js/puzzles.js`, `js/drills.js`, `js/openings.js` | puzzle bank, endgame drills, opening names |
 | `js/coach.js`, `js/review.js`, `js/explain.js` | move grading, accuracy and written explanations |
-| `server.js`, `mailer.js` | static server, online rooms over WebSocket, optional email codes |
+| `server.js`, `mailer.js`, `moderation.js` | static server, online rooms over WebSocket, optional email codes, the ban ledger |
+| `js/anticheat.js` | fair-play detector and ban ladder, shared by the server and the page |
 | `tools/` | generators for the puzzle and placement data, plus the test suite |
+
+## Testing the fair play system
+
+The server scores traffic, not people: message floods, chat spam, repeated
+`sync`, illegal moves and machine-speed play. Three ways to see it working,
+from safest to most real.
+
+### Automated
+
+```bash
+node tools/check-anticheat.js     # the detector, the ladder and the ledger
+node tools/check-online-ban.js    # starts its own server on :8131 with tiny
+                                  # thresholds and walks warning -> ban -> lift
+```
+
+Neither one touches the deployed server or your own address.
+
+### The owner console (live)
+
+1. Give the server a key. Locally: copy `.env.example` to `.env` and set
+   `OWNER_KEY=` to any long random string. On Render: **Environment → add
+   `OWNER_KEY` → save**, which redeploys the service.
+2. Restart the local server, or wait for the Render deploy.
+3. Open the app → **Settings → Owner tools**, paste the key, press **Save**.
+   The key is kept in this browser only.
+4. Then use the buttons:
+
+| Button | What it does |
+| --- | --- |
+| Preview the ban screen | paints a complete sample ban — no server call, no lock |
+| Ban me for 10 minutes | issues a real temporary ban for your address and shows the screen |
+| Score a finding | runs the real scoring for the finding you picked; 3 points warns, 8 bans, 22 is permanent |
+| Lift my ban | lifts the newest ban on your address so online play works again |
+| Reset my record | clears every point, finding and ban for your address |
+| List active bans | shows the live ledger: reference, reason and time left |
+
+Lifting also works from the ban screen itself, which grows an **Owner tools** row
+once a key is saved.
+
+Owner actions apply to the address you are using, five wrong keys lock the
+console for ten minutes, and the key is only ever sent to your own server. With
+no `OWNER_KEY` set, the server refuses every owner action and the console says
+so.
+
+One catch when testing locally: `js/config.js` names the hosted server, so a page
+opened from `node server.js` still talks to that host. Put `''` in that file
+while you test against a local server (or do the test on the published site,
+where the hosted server already answers).
+
+### A hostile client, with the thresholds turned down
+
+```bash
+GAMBIT_AC_STRICT=1 node server.js
+node -e "const w=new WebSocket('ws://127.0.0.1:8124/ws');w.onopen=()=>{for(let i=0;i<20;i++)w.send(JSON.stringify({t:'lobby'}))};w.onmessage=e=>console.log(e.data)"
+```
+
+The first command lowers the ladder to a handful of messages; the second is a
+client that does nothing but flood. You should see a warning, then a ban frame,
+then the socket close. **Reset my record** clears it, or delete
+`data/bans.json`. `GAMBIT_BANS` points the ledger at a different file.
+
+The live server's disk is not permanent on a free host, so bans survive a
+restart only until the next deploy there.
 
 ## Tests
 
@@ -78,8 +142,8 @@ for f in tools/check-*.js; do node "$f"; done
 ```
 
 They cover the rules engine (including perft), the search, puzzles, placement,
-online protocol, rating, review, drills, achievements, quests, accounts, the
-mailer and the error log.
+online protocol, fair play and its ban ledger, rating, review, drills,
+achievements, quests, accounts, the mailer and the error log.
 
 ## Copyright and licensing
 

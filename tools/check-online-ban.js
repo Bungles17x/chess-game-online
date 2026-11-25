@@ -20,6 +20,7 @@ if (!WS) {
 
 const root = path.join(__dirname, '..');
 const port = 8131;
+const OWNER = 'test-owner-key';
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gambit-ban-'));
 const bansFile = path.join(dir, 'bans.json');
 let failures = 0;
@@ -79,7 +80,13 @@ function client() {
       ws.addEventListener('error', () => reject(new Error('socket error')));
     }),
     send(obj) { ws.send(JSON.stringify(obj)); },
-    wait(pred, ms, label) { return waitFor(() => seen.find(pred), ms, label); }
+    /* Consume what is matched, so a later wait does not read the same frame. */
+    wait(pred, ms, label) {
+      return waitFor(() => {
+        const at = seen.findIndex(pred);
+        return at >= 0 ? seen.splice(at, 1)[0] : null;
+      }, ms, label);
+    }
   };
 }
 
@@ -89,7 +96,8 @@ function client() {
     env: Object.assign({}, process.env, {
       PORT: String(port),
       GAMBIT_BANS: bansFile,
-      GAMBIT_AC_STRICT: '1'
+      GAMBIT_AC_STRICT: '1',
+      OWNER_KEY: OWNER
     }),
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -124,14 +132,14 @@ function client() {
     check((banned.ban.findings || []).some((f) => f.id === 'flood'), 'the payload lists the finding');
     check(Array.isArray(banned.ban.findings) && banned.ban.findings[0].label, 'findings have readable labels');
 
-    await waitFor(() => a.closed.value, 5000, 'the socket to close');
+    await waitFor(() => a.closed.value, 7000, 'the socket to close');
     check(a.closed.value, 'a banned connection is closed');
 
     const b = client();
     await b.open;
     const again = await b.wait((m) => m.t === 'banned', 4000, 'the ban on reconnect');
     check(again.ban.id === banned.ban.id, 'reconnecting is refused with the same reference');
-    await waitFor(() => b.closed.value, 4000, 'the second socket to close');
+    await waitFor(() => b.closed.value, 7000, 'the second socket to close');
 
     const after = await health();
     check(after && after.bans === 1, 'the health check reports the ban', String(after && after.bans));
@@ -141,6 +149,55 @@ function client() {
     const saved = (ledger.records || []).find((r) => (r.bans || []).length);
     check(!!saved && saved.points >= 4, 'the ledger keeps the score', saved && String(saved.points));
     check(!!saved && saved.bans[0].id === banned.ban.id, 'the ledger keeps the reference');
+
+    /* --- owner tools, still on a banned address --- */
+    const admin = client();
+    await admin.open;
+
+    const onConnect = await admin.wait((m) => m.t === 'banned', 4000, 'the ban on connect');
+    check(onConnect.ban.id === banned.ban.id, 'a banned address is told why when it connects');
+
+    admin.send({ t: 'owner', key: 'wrong-key', action: 'status' });
+    const refused = await admin.wait((m) => m.t === 'owner' && !m.ok, 4000, 'the key refusal');
+    check(/key is not right/i.test(refused.error || ''), 'a wrong owner key is refused', refused.error);
+
+    admin.send({ t: 'owner', key: OWNER, action: 'status' });
+    const state = await admin.wait((m) => m.t === 'owner' && m.ok, 4000, 'owner status');
+    check(!!(state.status && state.status.ban), 'the owner sees the live ban', JSON.stringify(state.status));
+
+    admin.send({ t: 'owner', key: OWNER, action: 'lift' });
+    const lift = await admin.wait((m) => m.t === 'owner' && m.action === 'lift', 4000, 'owner lift');
+    check(lift.ok === true, 'the owner can lift a ban mid-block');
+    check((await health()).bans === 0, 'lifting clears the ban count');
+
+    admin.send({ t: 'owner', key: OWNER, action: 'ban' });
+    const manual = await admin.wait((m) => m.t === 'owner' && m.action === 'ban', 4000, 'owner test ban');
+    check(manual.ok && /^GB-/.test(manual.banId), 'the owner can issue a test ban', manual.banId);
+
+    const manualFrame = await admin.wait((m) => m.t === 'banned', 4000, 'the test ban frame');
+    check(manualFrame.ban.id === manual.banId, 'the test ban reaches the screen');
+    check(manualFrame.ban.reasonLabel === 'Owner test ban', 'the test ban is labelled as a test', manualFrame.ban.reasonLabel);
+
+    admin.send({ t: 'owner', key: OWNER, action: 'lift' });
+    const liftAgain = await admin.wait((m) => m.t === 'owner' && m.action === 'lift', 4000, 'second lift');
+    check(liftAgain.ok === true, 'a test ban can be lifted again');
+
+    admin.send({ t: 'owner', key: OWNER, action: 'reset' });
+    const cleared = await admin.wait((m) => m.t === 'owner' && m.action === 'reset', 4000, 'a clean record');
+    check(cleared.ok && cleared.status.points === 0, 'reset clears the score before the strike test');
+
+    admin.send({ t: 'owner', key: OWNER, action: 'strike', finding: 'illegal' });
+    const firstStrike = await admin.wait((m) => m.t === 'owner' && m.action === 'strike', 4000, 'a scored finding');
+    check(firstStrike.points === 3, 'a scored finding adds its weight', String(firstStrike.points));
+
+    admin.send({ t: 'owner', key: OWNER, action: 'strike', finding: 'illegal' });
+    await admin.wait((m) => m.t === 'banned', 4000, 'the ladder ban');
+    check(true, 'scoring past the strict threshold bans');
+
+    admin.send({ t: 'owner', key: OWNER, action: 'reset' });
+    const reset = await admin.wait((m) => m.t === 'owner' && m.action === 'reset', 4000, 'owner reset');
+    check(reset.ok && reset.status.points === 0, 'reset clears the score');
+    check((await health()).bans === 0, 'reset also clears the ban');
   } catch (err) {
     failures++;
     console.log('FAIL  ' + err.message);

@@ -186,6 +186,26 @@ check(lastBan && lastBan.severity === 'permanent' && lastBan.expiresAt === 0,
   'the last ban is permanent', lastBan && lastBan.severity);
 check(ladder.get(ip).bans.length === bans, 'every ban is kept in the history');
 
+/* ---------------- owner actions ---------------- */
+
+const ownerMod = createModeration({ file: '', now: () => clock });
+const testBan = ownerMod.ban('203.0.113.55', { ms: 600000, name: 'Owner' });
+check(testBan.severity === 'temporary' && testBan.expiresAt === clock + 600000,
+  'an owner ban carries its duration');
+check(ownerMod.check('203.0.113.55') !== null, 'an owner ban blocks the address');
+check(ownerMod.latest('203.0.113.55').id === testBan.id, 'the latest ban is available for lifting');
+check(ownerMod.list().some((row) => row.ban && row.ban.id === testBan.id), 'the owner list shows the ban');
+
+const permBan = ownerMod.ban('203.0.113.56', { permanent: true });
+check(permBan.severity === 'permanent' && permBan.expiresAt === 0, 'an owner ban can be permanent');
+
+ownerMod.lift(testBan.id);
+check(ownerMod.check('203.0.113.55') === null, 'an owner test ban can be lifted');
+
+ownerMod.reset('203.0.113.55');
+check(ownerMod.get('203.0.113.55').points === 0 && ownerMod.get('203.0.113.55').bans.length === 0,
+  'reset leaves a blank record');
+
 try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { /* ignore */ }
 
 console.log(failures ? '\n' + failures + ' fair-play check(s) FAILED' : '\nall fair-play checks passed');

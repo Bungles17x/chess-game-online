@@ -2442,6 +2442,119 @@ body[data-glass="solid"] .ban-layer {
 .ban-rules li { margin-bottom: 4px; }
 .ban-appeal { font-size: 11.5px; }
 
+/* owner console (Settings) and its rows */
+
+.owner-card {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(129, 182, 76, 0.08), transparent 60%), rgba(255, 255, 255, 0.03);
+}
+
+.oc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+}
+
+.oc-shield { color: var(--accent); font-size: 14px; line-height: 1; }
+
+.oc-tag {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.owner-card .hint { margin: 4px 0 10px; }
+.owner-card code { font-family: var(--mono); font-size: 10.5px; color: var(--text); }
+
+.owner-card select.text-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 10px;
+  cursor: pointer;
+}
+
+.owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.owner-actions .ghost {
+  flex: 1 1 46%;
+  min-width: 0;
+  font-size: 11px;
+  padding: 7px 8px;
+}
+
+.owner-status {
+  margin: 4px 0 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.owner-note { margin: 4px 0 0; font-size: 11px; color: var(--muted); min-height: 14px; }
+.owner-note[data-kind="ok"] { color: var(--accent-hi); }
+.owner-note[data-kind="bad"] { color: var(--danger); }
+
+.owner-bans {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.owner-bans[hidden] { display: none; }
+
+.ob-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ob-row code { font-family: var(--mono); font-size: 10.5px; color: var(--text); }
+.ob-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-row em { flex: none; font-style: normal; font-size: 10px; }
+
+.ban-owner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
+.ban-owner[hidden] { display: none; }
+.ban-actions [hidden] { display: none; }
+
+.bo-label {
+  margin-right: auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* the online panel says what is enforced, and why it is off */
 .fair-note {
   display: flex;
@@ -2492,6 +2605,7 @@ body[data-glass="solid"] .ban-layer {
   .ban-id-row { flex-wrap: wrap; }
   .ban-id-row code { margin-left: 0; }
   .ban-findings li { font-size: 11.5px; }
+  .owner-actions .ghost { flex: 1 1 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

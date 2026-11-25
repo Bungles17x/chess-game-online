@@ -42,6 +42,10 @@ const AC_RULES = AC.withRules(process.env.GAMBIT_AC_STRICT === '1' ? {
   permBanAt: 12
 } : null);
 
+/* The owner console is off unless the host sets this. It is never sent to a
+   page and never written to the repo. */
+const OWNER_KEY = String(process.env.OWNER_KEY || '').trim();
+
 /* Bans are keyed by address and kept on disk when there is a disk. */
 const moderation = createModeration({
   file: process.env.GAMBIT_BANS || path.join(root, 'data', 'bans.json'),
@@ -319,6 +323,7 @@ function drain(client) {
 function closeClient(client) {
   if (client.closed) return;
   client.closed = true;
+  if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
   clients.delete(client);
   leaveRoom(client);
   try { client.socket.destroy(); } catch (err) { /* gone */ }
@@ -372,8 +377,127 @@ function banClient(client, ban) {
   send(client, { t: 'banned', ban: AC.publicBan(ban) });
   console.log('  fair play: ' + ban.id + ' ' + ban.severity + ' ban for ' + client.ip);
 
-  /* Give the frame time to arrive before the socket goes away. */
-  setTimeout(() => closeClient(client), 900).unref();
+  /* An authenticated owner keeps the connection: undoing a test ban is the
+     whole point. Everyone else gets the frame, then the socket goes away. */
+  if (client.owner) return;
+  client.banClose = setTimeout(() => closeClient(client), 4000);
+  if (client.banClose.unref) client.banClose.unref();
+}
+
+/* ---------------- owner tools ---------------- */
+
+function ownerMatches(input) {
+  if (!OWNER_KEY) return false;
+  const given = crypto.createHash('sha256').update(String(input || '')).digest();
+  const real = crypto.createHash('sha256').update(OWNER_KEY).digest();
+  return crypto.timingSafeEqual(given, real);
+}
+
+function ownerStatus(client) {
+  const record = moderation.get(client.ip);
+  const current = moderation.check(client.ip);
+  return {
+    ip: client.ip,
+    points: record.points,
+    threshold: AC_RULES.permBanAt,
+    bans: record.bans.length,
+    ban: current ? AC.publicBan(current) : null,
+    findings: Object.keys(record.findings).map((id) => ({ id, count: record.findings[id].count }))
+  };
+}
+
+function ownerOk(client, payload) {
+  send(client, Object.assign({ t: 'owner', ok: true, status: ownerStatus(client) }, payload));
+}
+
+function ownerNo(client, error) {
+  send(client, { t: 'owner', ok: false, error, status: ownerStatus(client) });
+}
+
+/* The owner console over the existing socket: the same ledger and the same ban
+   path the automatic system uses, so what is tested is what ships. */
+function handleOwner(client, msg) {
+  if (!OWNER_KEY) {
+    return ownerNo(client, 'Owner tools are off on this server. Set OWNER_KEY in its environment.');
+  }
+
+  const now = Date.now();
+  if (client.ownerLock && now < client.ownerLock) {
+    const mins = Math.max(1, Math.ceil((client.ownerLock - now) / 60000));
+    return ownerNo(client, 'Too many wrong keys. Owner tools are locked for ' + mins + ' min.');
+  }
+
+  if (!ownerMatches(msg.key)) {
+    client.ownerTries = (client.ownerTries || 0) + 1;
+    if (client.ownerTries >= 5) {
+      client.ownerTries = 0;
+      client.ownerLock = now + 10 * 60000;
+    }
+    return ownerNo(client, 'That key is not right.');
+  }
+
+  client.ownerTries = 0;
+  client.owner = true;
+  /* A banned owner may still drive the tools from this connection. */
+  if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
+
+  const action = String(msg.action || 'status');
+  const me = client.ip;
+  const label = cleanName(msg.name) || 'Owner test';
+
+  if (action === 'status') return ownerOk(client, { action: 'status' });
+
+  if (action === 'strike') {
+    if (moderation.check(me)) return ownerNo(client, 'Already banned. Lift it before scoring another finding.');
+    const finding = String(msg.finding || 'illegal');
+    const out = moderation.strike(me, { finding, name: label });
+    if (!out) return ownerNo(client, 'Unknown finding.');
+
+    if (out.action === 'ban') {
+      ownerOk(client, { action: 'strike', points: out.points, verdict: out.verdict.label, banId: out.ban.id });
+      banClient(client, out.ban);
+      return;
+    }
+    return ownerOk(client, { action: 'strike', points: out.points, verdict: out.verdict.label || 'No warning yet' });
+  }
+
+  if (action === 'ban') {
+    if (moderation.check(me)) return ownerNo(client, 'Already banned. Lift it first.');
+    const record = moderation.ban(me, {
+      permanent: !!msg.permanent,
+      ms: Number(msg.ms) || undefined,
+      name: label
+    });
+    ownerOk(client, { action: 'ban', banId: record.id, permanent: record.severity === 'permanent' });
+    banClient(client, record);
+    return;
+  }
+
+  if (action === 'lift') {
+    const current = moderation.check(me) || moderation.latest(me);
+    if (!current) return ownerNo(client, 'Nothing to lift on this address.');
+    moderation.lift(current.id);
+    if (client.ban && client.ban.id === current.id) client.ban = null;
+    if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
+    return ownerOk(client, { action: 'lift', banId: current.id });
+  }
+
+  if (action === 'reset') {
+    moderation.reset(me);
+    client.ban = null;
+    if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
+    return ownerOk(client, { action: 'reset' });
+  }
+
+  if (action === 'list') {
+    return ownerOk(client, {
+      action: 'list',
+      count: moderation.count(),
+      bans: moderation.activeBans().map(AC.publicBan)
+    });
+  }
+
+  return ownerNo(client, 'Unknown owner action.');
 }
 
 /* ---------------- rooms ---------------- */
@@ -585,7 +709,16 @@ function resetRoom(room) {
 /* ---------------- protocol ---------------- */
 
 function onMessage(client, msg) {
-  if (!msg || typeof msg !== 'object' || client.ban) return;
+  if (!msg || typeof msg !== 'object') return;
+
+  /* Owner tools have to work on a banned connection: undoing the test is the
+     point, and the key is checked before anything happens. */
+  if (msg.t === 'owner') {
+    handleOwner(client, msg);
+    return;
+  }
+
+  if (client.ban) return;
 
   strike(client, client.guard.note('message'));
   if (client.ban) return;

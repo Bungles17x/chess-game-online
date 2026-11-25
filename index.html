@@ -519,6 +519,50 @@
       <div class="record" id="recordLine">Record: 0-0-0 <span class="rec-legend">W-L-D</span></div>
       <button class="ghost wide" id="resetSettings">Reset settings</button>
       <p class="hint">Keys: &larr; &rarr; step &middot; <b>1</b>&ndash;<b>6</b> screens &middot; <b>F</b> flip &middot; <b>U</b> undo &middot; <b>W</b> replay &middot; <b>N</b> new game &middot; <b>P</b> copy PGN &middot; <b>L</b> link &middot; <b>B</b> blindfold &middot; <b>Z</b> focus &middot; <b>T</b> theme &middot; <b>S</b> sound &middot; <b>?</b> list them. Right-drag on the board draws an arrow; Esc clears it.</p>
+
+      <div class="owner-card" id="ownerCard">
+        <div class="oc-head">
+          <span class="oc-shield" aria-hidden="true">&#9878;</span>
+          <b>Owner tools</b>
+          <span class="oc-tag">Bungles17x</span>
+        </div>
+        <p class="hint">Fair-play testing on the live server. Add <code>OWNER_KEY</code> to the server's environment, then paste the same key here. The key stays in this browser.</p>
+
+        <div class="field">
+          <label class="label" for="ownerKey">Owner key</label>
+          <div class="join-row">
+            <input class="text-input" id="ownerKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste the server key">
+            <button class="ghost" id="ownerSave" type="button">Save</button>
+          </div>
+        </div>
+
+        <div class="owner-actions">
+          <button class="ghost" id="ownerPreview" type="button">Preview the ban screen</button>
+          <button class="ghost" id="ownerList" type="button">List active bans</button>
+          <button class="ghost" id="ownerLift" type="button">Lift my ban</button>
+          <button class="ghost" id="ownerReset" type="button">Reset my record</button>
+          <button class="ghost" id="ownerBan" type="button">Ban me for 10 minutes</button>
+        </div>
+
+        <div class="field">
+          <label class="label" for="ownerFinding">Score a finding</label>
+          <div class="join-row">
+            <select class="text-input" id="ownerFinding">
+              <option value="illegal">Illegal moves / tampering</option>
+              <option value="instant">Machine-like timing</option>
+              <option value="flood">Message flooding</option>
+              <option value="chat">Chat spam</option>
+              <option value="sync">State scraping</option>
+            </select>
+            <button class="ghost" id="ownerStrike" type="button">Strike</button>
+          </div>
+          <p class="hint">Each strike runs the real scoring. Three points warns, eight bans, twenty-two is permanent.</p>
+        </div>
+
+        <p class="owner-status" id="ownerStatus">No key saved.</p>
+        <p class="owner-note" id="ownerNote"></p>
+        <div class="owner-bans" id="ownerBans" hidden></div>
+      </div>
     </div>
   </aside>
 
@@ -990,6 +1034,12 @@
       <button class="primary" id="banOffline" type="button">Play offline</button>
       <button class="ghost" id="banRetry" type="button">Check again</button>
       <button class="ghost" id="banRules" type="button" aria-expanded="false" aria-controls="banRulesBox">Fair-play rules</button>
+    </div>
+
+    <div class="ban-owner" id="banOwner" hidden>
+      <span class="bo-label">Owner tools</span>
+      <button class="mini" id="banOwnerLift" type="button">Lift this ban</button>
+      <button class="mini" id="banOwnerReset" type="button">Reset record</button>
     </div>
 
     <div class="ban-rules" id="banRulesBox" hidden>

@@ -78,6 +78,11 @@
     coachHint: null,
     net: null,
     ban: null,
+    banPreview: false,
+    banBeforePreview: null,
+    ownerKey: '',
+    ownerBusy: false,
+    ownerBusyTimer: null,
     variant: 'standard',
     checks: { w: 0, b: 0 },
     rush: null,
@@ -3703,12 +3708,24 @@
       meta.textContent = 'Issued ' + when.toLocaleString() +
         (ban.name ? ' \u00b7 playing as ' + ban.name : '');
     }
+
+    var preview = !!S.banPreview;
+    var offline = $('banOffline');
+    if (offline) offline.textContent = preview ? 'Close preview' : 'Play offline';
+    var retry = $('banRetry');
+    if (retry) retry.hidden = preview;
+    var owner = $('banOwner');
+    if (owner) owner.hidden = preview || !S.ownerKey;
   }
 
   function banTick() {
     var ban = S.ban;
     if (!AC || !ban) return;
-    if (!AC.active(ban, Date.now())) { clearBan(); return; }
+    if (!AC.active(ban, Date.now())) {
+      if (S.banPreview) return;
+      clearBan();
+      return;
+    }
     if (!ban.expiresAt) return;
 
     var left = AC.expiresIn(ban, Date.now());
@@ -3723,36 +3740,59 @@
   }
 
   function showBan(ban, opts) {
+    opts = opts || {};
     if (!AC || !ban || !AC.active(ban, Date.now())) return;
 
+    if (opts.preview) {
+      if (!S.banPreview) S.banBeforePreview = S.ban;
+      S.banPreview = true;
+    } else {
+      S.banPreview = false;
+      saveJSON(BAN_KEY, ban);
+      if (S.net) netLeave(true);
+    }
+
     S.ban = ban;
-    saveJSON(BAN_KEY, ban);
     paintBan(ban);
 
     var layer = $('banLayer');
     if (layer) layer.hidden = false;
-    document.body.setAttribute('data-banned', '1');
-    paintOnlineGate();
 
-    if (S.net) netLeave(true);
+    if (!opts.preview) {
+      document.body.setAttribute('data-banned', '1');
+      paintOnlineGate();
+    }
 
     clearInterval(banTimer);
     banTimer = setInterval(banTick, 1000);
     banTick();
 
-    if (!(opts && opts.quiet)) {
+    if (!opts.quiet && !opts.preview) {
       var off = $('banOffline');
       if (off) off.focus();
     }
   }
 
+  /* Hiding a preview puts the real ban state back; hiding a real ban leaves the
+     lock in place, which is what "Play offline" wants. */
   function hideBan() {
     var layer = $('banLayer');
     if (layer) layer.hidden = true;
+
+    if (S.banPreview) {
+      S.banPreview = false;
+      S.ban = S.banBeforePreview || null;
+      S.banBeforePreview = null;
+      clearInterval(banTimer);
+      banTimer = null;
+      paintOnlineGate();
+    }
   }
 
   function clearBan() {
     S.ban = null;
+    S.banPreview = false;
+    S.banBeforePreview = null;
     saveJSON(BAN_KEY, null);
     clearInterval(banTimer);
     banTimer = null;
@@ -3777,6 +3817,185 @@
     } else {
       done(false);
     }
+  }
+
+  /* ---------------- owner tools ---------------- */
+
+  var OWNER_STORE = 'gambit.ownerKey';
+
+  function savedOwnerKey() {
+    try { return String(localStorage.getItem(OWNER_STORE) || ''); } catch (err) { return ''; }
+  }
+
+  function storeOwnerKey(key) {
+    S.ownerKey = key;
+    try {
+      if (key) localStorage.setItem(OWNER_STORE, key);
+      else localStorage.removeItem(OWNER_STORE);
+    } catch (err) { /* ignore */ }
+  }
+
+  function ownerNote(text, kind) {
+    var el = $('ownerNote');
+    if (!el) return;
+    el.textContent = text || '';
+    if (kind) el.setAttribute('data-kind', kind);
+    else el.removeAttribute('data-kind');
+  }
+
+  function renderOwnerStatus(status) {
+    var box = $('ownerStatus');
+    if (!box || !status) return;
+    var bits = [
+      'Risk ' + status.points + '/' + status.threshold,
+      status.bans + ' ban' + (status.bans === 1 ? '' : 's')
+    ];
+    if (status.ban) {
+      bits.push(status.ban.severity === 'permanent'
+        ? 'permanently banned'
+        : 'banned for ' + AC.formatLeft(AC.expiresIn(status.ban, Date.now())));
+    } else {
+      bits.push('not banned');
+    }
+    box.textContent = bits.join(' \u00b7 ');
+  }
+
+  function renderOwnerBans(list) {
+    var box = $('ownerBans');
+    if (!box) return;
+    box.innerHTML = '';
+
+    if (!list.length) {
+      box.textContent = 'No active bans.';
+      box.hidden = false;
+      return;
+    }
+
+    list.forEach(function (ban) {
+      var row = document.createElement('div');
+      row.className = 'ob-row';
+      var id = document.createElement('code');
+      id.textContent = ban.id;
+      var why = document.createElement('span');
+      why.textContent = (ban.reasonLabel || ban.reason) + (ban.name ? ' \u00b7 ' + ban.name : '');
+      var when = document.createElement('em');
+      when.textContent = ban.severity === 'permanent'
+        ? 'permanent'
+        : AC.formatLeft(AC.expiresIn(ban, Date.now())) + ' left';
+      row.appendChild(id);
+      row.appendChild(why);
+      row.appendChild(when);
+      box.appendChild(row);
+    });
+    box.hidden = false;
+  }
+
+  function ownerSend(action, extra) {
+    var key = S.ownerKey || savedOwnerKey();
+    if (!key) { ownerNote('Save the server key first.', 'bad'); return; }
+    if (!AC) return;
+
+    ownerNote('Talking to the server\u2026', '');
+    S.ownerBusy = true;
+    clearTimeout(S.ownerBusyTimer);
+    S.ownerBusyTimer = setTimeout(function () { S.ownerBusy = false; }, 8000);
+
+    netConnect(function () {
+      var payload = {
+        t: 'owner',
+        key: key,
+        action: action,
+        name: String(($('netName').value || '')).trim() || 'Owner'
+      };
+      if (extra) {
+        Object.keys(extra).forEach(function (k) { payload[k] = extra[k]; });
+      }
+      netSend(payload);
+    }, true, true);
+  }
+
+  function onOwnerReply(msg) {
+    S.ownerBusy = false;
+    clearTimeout(S.ownerBusyTimer);
+
+    if (!msg.ok) {
+      ownerNote(msg.error || 'That did not work.', 'bad');
+      toast('Owner tools', msg.error || 'That did not work.', 'ban');
+      return;
+    }
+
+    if (msg.status) renderOwnerStatus(msg.status);
+
+    if (msg.action === 'lift') {
+      S.ban = null;
+      S.banPreview = false;
+      S.banBeforePreview = null;
+      saveJSON(BAN_KEY, null);
+      clearInterval(banTimer);
+      banTimer = null;
+      hideBan();
+      document.body.removeAttribute('data-banned');
+      paintOnlineGate();
+      ownerNote('Ban lifted. Online play should work again.', 'ok');
+      toast('Ban lifted', 'Online play is back.', 'account');
+      return;
+    }
+
+    if (msg.action === 'reset') {
+      S.ban = null;
+      S.banPreview = false;
+      S.banBeforePreview = null;
+      saveJSON(BAN_KEY, null);
+      clearInterval(banTimer);
+      banTimer = null;
+      hideBan();
+      document.body.removeAttribute('data-banned');
+      paintOnlineGate();
+      ownerNote('Record cleared: no points and no bans.', 'ok');
+      return;
+    }
+
+    if (msg.action === 'strike') {
+      ownerNote('Finding scored: ' + (msg.verdict || 'no warning yet') + '.', 'ok');
+      return;
+    }
+
+    if (msg.action === 'ban') {
+      ownerNote('Test ban ' + msg.banId + ' issued.', 'ok');
+      return;
+    }
+
+    if (msg.action === 'list') {
+      renderOwnerBans(msg.bans || []);
+      ownerNote((msg.count || 0) + ' active ban' + (msg.count === 1 ? '' : 's') + '.', 'ok');
+      return;
+    }
+
+    ownerNote('Owner key accepted.', 'ok');
+  }
+
+  /* A complete fake record for looking at the screen without touching the
+     server, the ledger or this browser's ban state. */
+  function previewBan() {
+    if (!AC) return;
+    var now = Date.now();
+    showBan({
+      id: 'GB-PREVIEW-01',
+      reason: 'instant',
+      reasonLabel: 'Machine-like timing',
+      detail: 'Chose many moves in a fraction of the time a person needs to read the board.',
+      findings: [
+        { id: 'instant', label: 'Machine-like timing', detail: 'A whole game of moves under 170 ms.', count: 21 },
+        { id: 'flood', label: 'Message flooding', detail: 'Sent far more traffic than a game can produce.', count: 2 }
+      ],
+      points: 11,
+      threshold: AC.RULES.permBanAt,
+      severity: 'temporary',
+      issuedAt: now,
+      expiresAt: now + 30 * 60000,
+      strike: 1,
+      name: 'Preview'
+    }, { preview: true });
   }
 
   function netSend(obj) {
@@ -3888,7 +4107,13 @@
         }
         break;
       case 'banned':
+        /* The owner console opens a fresh socket on purpose; the ban frame it
+           gets on connect must not talk over the reply it is waiting for. */
+        if (S.ownerBusy) break;
         showBan(msg.ban);
+        break;
+      case 'owner':
+        onOwnerReply(msg);
         break;
       default: break;
     }
@@ -4487,6 +4712,7 @@
   /* ---- fair-play ban screen ---- */
   $('banCopy').addEventListener('click', copyBanId);
   $('banOffline').addEventListener('click', function () {
+    if (S.banPreview) { hideBan(); return; }
     hideBan();
     if (S.mode === 'online') {
       netLeave(true);
@@ -4496,6 +4722,7 @@
     switchTab('new');
   });
   $('banRetry').addEventListener('click', function () {
+    if (S.banPreview) { hideBan(); return; }
     if (!banNow()) { if (S.ban) clearBan(); else hideBan(); return; }
     toast('Checking your standing\u2026', S.ban.id);
     netConnect(function () { netSend({ t: 'sync' }); }, true, true);
@@ -4505,6 +4732,32 @@
     box.hidden = !box.hidden;
     this.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
   });
+
+  /* ---- owner console ---- */
+  $('ownerSave').addEventListener('click', function () {
+    var key = String($('ownerKey').value || '').trim();
+    storeOwnerKey(key);
+    if (!key) {
+      ownerNote('Key removed from this browser.', '');
+      $('ownerStatus').textContent = 'No key saved.';
+      return;
+    }
+    ownerNote('Key saved. Checking it with the server\u2026', '');
+    ownerSend('status');
+  });
+  $('ownerKey').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); $('ownerSave').click(); }
+  });
+  $('ownerPreview').addEventListener('click', previewBan);
+  $('ownerList').addEventListener('click', function () { ownerSend('list'); });
+  $('ownerLift').addEventListener('click', function () { ownerSend('lift'); });
+  $('ownerReset').addEventListener('click', function () { ownerSend('reset'); });
+  $('ownerBan').addEventListener('click', function () { ownerSend('ban'); });
+  $('ownerStrike').addEventListener('click', function () {
+    ownerSend('strike', { finding: $('ownerFinding').value || 'illegal' });
+  });
+  $('banOwnerLift').addEventListener('click', function () { ownerSend('lift'); });
+  $('banOwnerReset').addEventListener('click', function () { ownerSend('reset'); });
 
   setInterval(function () {
     var panel = document.querySelector('.tabpanel[data-panel="online"]');
@@ -6518,6 +6771,8 @@
   bootReminder();
   syncNewPanel();
   syncNav();
+  S.ownerKey = savedOwnerKey();
+  $('ownerKey').value = S.ownerKey;
   paintOnlineGate();
   var bootBan = storedBan();
   if (bootBan) showBan(bootBan, { quiet: true });
