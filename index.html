@@ -449,6 +449,17 @@
       <div class="room-list" id="roomList"><div class="rl-empty">Loading rooms&hellip;</div></div>
 
       <p class="hint" id="netHint">Create a room, send the link or code to a friend, or pick one from the list. Two browser windows work too.</p>
+
+      <div class="fair-note">
+        <span class="fn-shield" aria-hidden="true">&#9878;</span>
+        <span>The server checks every move and locks engine help while a game is live. Breaking that is an automatic ban.</span>
+      </div>
+
+      <div class="ban-note" id="netBanNote" hidden>
+        <b>Online play is paused.</b>
+        <span id="netBanText"></span>
+        <button class="mini" id="netBanOpen" type="button">Details</button>
+      </div>
     </div>
 
     <div class="tabpanel" data-panel="settings" hidden>
@@ -941,6 +952,58 @@
   </div>
 </div>
 
+<div class="ban-layer" id="banLayer" hidden>
+  <div class="ban-card" id="banCard" data-severity="temporary" role="alertdialog" aria-modal="true" aria-labelledby="banTitle" aria-describedby="banLead">
+    <div class="ban-top">
+      <span class="ban-shield" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-2.9 8.1-7 10-4.1-1.9-7-5.4-7-10V6l7-3z"/><path d="M12 8.5v3.5"/><path d="M12 15.5h.01"/></svg>
+      </span>
+      <div class="ban-tags">
+        <span class="ban-kicker" id="banKicker">Temporary ban</span>
+        <span class="ban-pill" id="banPill">Strike 1</span>
+      </div>
+    </div>
+
+    <h2 id="banTitle">Online play is paused</h2>
+    <p class="ban-lead" id="banLead"></p>
+
+    <div class="ban-meter">
+      <div class="bm-head"><span>Fair-play risk score</span><b id="banPoints">0 / 22</b></div>
+      <div class="bm-bar"><i id="banPointsBar"></i></div>
+    </div>
+
+    <div class="ban-countdown" id="banCountdown">
+      <div class="bc-head"><span id="banLeft">Online play returns in 30 minutes.</span><span class="bc-tag">Temporary</span></div>
+      <div class="bc-bar"><i id="banBar"></i></div>
+    </div>
+
+    <ul class="ban-findings" id="banFindings"></ul>
+
+    <div class="ban-id-row">
+      <span class="ban-id-label">Reference</span>
+      <code id="banCode">GB-0000-0000</code>
+      <button class="mini" id="banCopy" type="button">Copy</button>
+    </div>
+    <p class="ban-meta" id="banMeta"></p>
+
+    <div class="ban-actions">
+      <button class="primary" id="banOffline" type="button">Play offline</button>
+      <button class="ghost" id="banRetry" type="button">Check again</button>
+      <button class="ghost" id="banRules" type="button" aria-expanded="false" aria-controls="banRulesBox">Fair-play rules</button>
+    </div>
+
+    <div class="ban-rules" id="banRulesBox" hidden>
+      <p><b>What the check watches.</b> The server owns the board, the clocks and every result, and it rejects any move that is not legal. On top of that it flags traffic a real game never produces: floods of messages, moves aimed at the state, and whole games of machine-speed moves.</p>
+      <ul>
+        <li>Play your own moves. Engines, books and outside help are off while an online game is live.</li>
+        <li>Hints, coach notes and the analysis board come back when the game ends.</li>
+        <li>Bans escalate: a warning, then 30 minutes, then a day, then permanently.</li>
+      </ul>
+      <p class="ban-appeal">Think this is a mistake? Keep the reference above and quote it when you get in touch. Nothing on this device is deleted: your games, puzzles and Elo stay exactly as they were.</p>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
   <span class="toast-icon" aria-hidden="true"></span>
   <div class="toast-text">
@@ -953,6 +1016,7 @@
 <script src="js/accounts.js"></script>
 <script src="js/errors.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/anticheat.js"></script>
 <script src="js/pieces.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/puzzles.js"></script>

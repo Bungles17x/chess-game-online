@@ -2132,3 +2132,373 @@ body.grabbing .board { cursor: grabbing; }
   .color-seg button:hover,
   .sq.hint:hover::after { transform: none; }
 }
+
+/* ================================================================
+   Fair play: the ban screen, the online gate and the warning toast
+   ================================================================ */
+
+.ban-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background:
+    radial-gradient(900px 520px at 50% -10%, rgba(224, 86, 79, 0.22), transparent 70%),
+    rgba(12, 12, 14, 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  animation: ban-fade 180ms ease-out;
+}
+
+.ban-layer[hidden] { display: none; }
+
+body[data-glass="solid"] .ban-layer {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(12, 12, 14, 0.88);
+}
+
+@keyframes ban-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ban-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ban-ring {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes ban-rules-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.ban-card {
+  --ban-tint: #e2b04a;
+  --ban-tint-soft: rgba(226, 176, 74, 0.15);
+  position: relative;
+  width: min(560px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background:
+    linear-gradient(180deg, var(--ban-tint-soft), transparent 52%),
+    var(--panel);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  overflow: hidden;
+  animation: ban-rise 260ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.ban-card[data-severity="permanent"] {
+  --ban-tint: #e0564f;
+  --ban-tint-soft: rgba(224, 86, 79, 0.17);
+}
+
+/* a thin tinted seam along the top edge, like the rest of the glass */
+.ban-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ban-tint), transparent);
+  opacity: 0.8;
+}
+
+.ban-top { display: flex; align-items: center; gap: 12px; }
+
+.ban-shield {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 14px;
+  color: var(--ban-tint);
+  background: var(--ban-tint-soft);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.ban-shield::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid var(--ban-tint);
+  animation: ban-ring 2.8s ease-out infinite;
+}
+
+.ban-tags { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.ban-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ban-tint);
+}
+
+.ban-pill {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.ban-card h2 {
+  margin: 16px 0 6px;
+  font-size: 24px;
+  letter-spacing: -0.4px;
+  line-height: 1.15;
+}
+
+.ban-lead {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.ban-meter { margin-bottom: 14px; }
+
+.bm-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bm-head b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.bm-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.bm-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--ban-tint));
+  transition: width 500ms ease;
+}
+
+.ban-countdown {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ban-tint-soft);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ban-countdown[hidden] { display: none; }
+
+.bc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.bc-tag {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ban-tint);
+}
+
+.bc-bar {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.30);
+  overflow: hidden;
+}
+
+.bc-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--ban-tint);
+  transition: width 1s linear;
+}
+
+.ban-findings {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ban-findings li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.bf-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ban-tint);
+  box-shadow: 0 0 0 3px var(--ban-tint-soft);
+}
+
+.bf-text { min-width: 0; flex: 1; }
+
+.bf-text b { display: block; font-size: 12.5px; margin-bottom: 1px; }
+
+.bf-text span { color: var(--muted); line-height: 1.45; }
+
+.bf-count {
+  align-self: center;
+  flex: none;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ban-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.ban-id-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ban-id-row code {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.ban-meta {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ban-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.ban-actions .primary { flex: 1 1 150px; }
+.ban-actions .ghost { flex: 0 1 auto; }
+
+.ban-rules {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  animation: ban-rules-in 180ms ease-out;
+}
+
+.ban-rules[hidden] { display: none; }
+.ban-rules p { margin: 0 0 8px; }
+.ban-rules b { color: var(--text); }
+.ban-rules ul { margin: 0 0 8px; padding-left: 16px; }
+.ban-rules li { margin-bottom: 4px; }
+.ban-appeal { font-size: 11.5px; }
+
+/* the online panel says what is enforced, and why it is off */
+.fair-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.fn-shield { flex: none; color: var(--accent); font-size: 13px; line-height: 1.15; }
+
+.ban-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(224, 86, 79, 0.12);
+  border: 1px solid rgba(224, 86, 79, 0.32);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.ban-note[hidden] { display: none; }
+.ban-note b { color: var(--text); }
+.ban-note .mini { margin-left: auto; }
+
+.toast[data-kind="ban"] .toast-icon { background: linear-gradient(180deg, #ffb3ad, #c9504a); }
+.toast[data-kind="ban"]::before { background: linear-gradient(180deg, #e0564f, transparent); }
+
+@media (max-width: 700px) {
+  .ban-layer { place-items: start center; padding: 12px; }
+  .ban-card { margin: 10px 0 24px; padding: 18px 16px 14px; border-radius: 14px; }
+  .ban-card h2 { font-size: 20px; }
+  .ban-lead { font-size: 13px; }
+  .ban-actions { flex-direction: column; }
+  .ban-actions .primary,
+  .ban-actions .ghost { width: 100%; flex: 1 1 auto; }
+  .ban-id-row { flex-wrap: wrap; }
+  .ban-id-row code { margin-left: 0; }
+  .ban-findings li { font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ban-layer,
+  .ban-card,
+  .ban-rules { animation: none; }
+  .ban-shield::after { animation: none; opacity: 0; }
+  .bm-bar i,
+  .bc-bar i { transition: none; }
+}

@@ -19,6 +19,7 @@
   var AccountStore = window.Accounts;
   var ErrorLog = window.ErrorLog;
   var Placement = window.Placement;
+  var AC = window.AntiCheat;
 
   var $ = function (id) { return document.getElementById(id); };
   var FILES = E.FILES;
@@ -76,6 +77,7 @@
     review: null,
     coachHint: null,
     net: null,
+    ban: null,
     variant: 'standard',
     checks: { w: 0, b: 0 },
     rush: null,
@@ -3584,26 +3586,196 @@
   var STATIC_HOST = /\.github\.io$/i.test(location.hostname) || location.protocol === 'file:';
   var NO_SERVER = STATIC_HOST && !SERVER;
 
-  function markStaticHost() {
-    if (!NO_SERVER) return;
+  var NET_HINT = 'Create a room, send the link or code to a friend, or pick one from the list. ' +
+    'Two browser windows work too.';
+  var STATIC_HINT = 'Online rooms need the Gambit server, and this copy is a static build, ' +
+    'so rooms are off here. The computer, puzzles, drills, review and the Elo test all work.';
+  var BAN_HINT = 'Online play is paused by the fair-play check. Everything offline still works.';
+  var BAN_KEY = 'gambit.ban';
+  var banTimer = null;
+
+  function banNow() {
+    return !!(AC && S.ban && AC.active(S.ban, Date.now()));
+  }
+
+  /* One gate for both reasons online can be off: a static build with no server,
+     or a fair-play ban. Runs on boot, on a ban, and when one expires. */
+  function paintOnlineGate() {
+    var banned = banNow();
+    var off = NO_SERVER || banned;
 
     var note = $('netHint');
-    if (note) {
-      note.textContent = 'Online rooms need the Gambit server, and this copy is a static build, ' +
-        'so rooms are off here. The computer, puzzles, drills, review and the Elo test all work.';
-    }
+    if (note) note.textContent = banned ? BAN_HINT : NO_SERVER ? STATIC_HINT : NET_HINT;
 
     ['netCreate', 'netQuick', 'netJoin', 'netRefresh'].forEach(function (id) {
       var el = $(id);
       if (!el) return;
-      el.disabled = true;
-      el.title = 'Needs the Gambit server';
+      el.disabled = off;
+      if (banned) el.title = 'Paused by the fair-play check';
+      else if (NO_SERVER) el.title = 'Needs the Gambit server';
+      else el.removeAttribute('title');
     });
 
     var code = $('netCode');
     if (code) {
-      code.disabled = true;
-      code.placeholder = 'static build';
+      code.disabled = off;
+      code.placeholder = NO_SERVER ? 'static build' : 'CODE';
+    }
+
+    var banNote = $('netBanNote');
+    if (banNote) {
+      banNote.hidden = !banned;
+      var text = $('netBanText');
+      if (text) {
+        text.textContent = !banned ? ''
+          : S.ban.severity === 'permanent' ? 'This one does not expire.'
+          : 'It lifts in ' + AC.formatLeft(AC.expiresIn(S.ban, Date.now())) + '.';
+      }
+    }
+  }
+
+  /* ---------------- fair-play ban screen ---------------- */
+
+  function storedBan() {
+    var ban = loadJSON(BAN_KEY, null);
+    if (!ban || !AC || !AC.active(ban, Date.now())) {
+      if (ban) saveJSON(BAN_KEY, null);
+      return null;
+    }
+    return ban;
+  }
+
+  function paintBan(ban) {
+    var card = $('banCard');
+    if (!AC || !ban || !card) return;
+
+    var permanent = ban.severity === 'permanent';
+    card.setAttribute('data-severity', permanent ? 'permanent' : 'temporary');
+
+    $('banKicker').textContent = permanent ? 'Permanent ban' : 'Temporary ban';
+    $('banPill').textContent = ban.strike > 1 ? 'Strike ' + ban.strike : 'First strike';
+    $('banTitle').textContent = permanent ? 'Online play is closed' : 'Online play is paused';
+    $('banLead').textContent = (ban.reasonLabel || 'Fair-play check') + '. ' + (ban.detail || '');
+    $('banCode').textContent = ban.id || '\u2014';
+
+    var points = Number(ban.points) || 0;
+    var cap = Number(ban.threshold) || AC.RULES.permBanAt;
+    $('banPoints').textContent = points + ' / ' + cap;
+    var meter = $('banPointsBar');
+    if (meter) meter.style.width = Math.max(4, Math.min(100, (points / cap) * 100)) + '%';
+
+    var list = $('banFindings');
+    if (list) {
+      list.innerHTML = '';
+      (ban.findings || []).forEach(function (f) {
+        var li = document.createElement('li');
+        var dot = document.createElement('span');
+        dot.className = 'bf-dot';
+        dot.setAttribute('aria-hidden', 'true');
+
+        var body = document.createElement('span');
+        body.className = 'bf-text';
+        var label = document.createElement('b');
+        label.textContent = f.label || f.id;
+        var detail = document.createElement('span');
+        detail.textContent = f.detail || '';
+        body.appendChild(label);
+        body.appendChild(detail);
+
+        li.appendChild(dot);
+        li.appendChild(body);
+        if (f.count > 1) {
+          var count = document.createElement('em');
+          count.className = 'bf-count';
+          count.textContent = '\u00d7' + f.count;
+          li.appendChild(count);
+        }
+        list.appendChild(li);
+      });
+    }
+
+    var countdown = $('banCountdown');
+    if (countdown) countdown.hidden = permanent;
+
+    var meta = $('banMeta');
+    if (meta) {
+      var when = new Date(Number(ban.issuedAt) || Date.now());
+      meta.textContent = 'Issued ' + when.toLocaleString() +
+        (ban.name ? ' \u00b7 playing as ' + ban.name : '');
+    }
+  }
+
+  function banTick() {
+    var ban = S.ban;
+    if (!AC || !ban) return;
+    if (!AC.active(ban, Date.now())) { clearBan(); return; }
+    if (!ban.expiresAt) return;
+
+    var left = AC.expiresIn(ban, Date.now());
+    var span = Math.max(1, ban.expiresAt - ban.issuedAt);
+    var label = $('banLeft');
+    if (label) label.textContent = 'Online play returns in ' + AC.formatLeft(left) + '.';
+    var bar = $('banBar');
+    if (bar) bar.style.width = Math.max(0, Math.min(100, (left / span) * 100)) + '%';
+
+    var note = $('netBanText');
+    if (note && !$('netBanNote').hidden) note.textContent = 'It lifts in ' + AC.formatLeft(left) + '.';
+  }
+
+  function showBan(ban, opts) {
+    if (!AC || !ban || !AC.active(ban, Date.now())) return;
+
+    S.ban = ban;
+    saveJSON(BAN_KEY, ban);
+    paintBan(ban);
+
+    var layer = $('banLayer');
+    if (layer) layer.hidden = false;
+    document.body.setAttribute('data-banned', '1');
+    paintOnlineGate();
+
+    if (S.net) netLeave(true);
+
+    clearInterval(banTimer);
+    banTimer = setInterval(banTick, 1000);
+    banTick();
+
+    if (!(opts && opts.quiet)) {
+      var off = $('banOffline');
+      if (off) off.focus();
+    }
+  }
+
+  function hideBan() {
+    var layer = $('banLayer');
+    if (layer) layer.hidden = true;
+  }
+
+  function clearBan() {
+    S.ban = null;
+    saveJSON(BAN_KEY, null);
+    clearInterval(banTimer);
+    banTimer = null;
+    hideBan();
+    document.body.removeAttribute('data-banned');
+    paintOnlineGate();
+    toast('Your ban has ended \u2014 online play is back.');
+  }
+
+  function copyBanId() {
+    var id = (S.ban && S.ban.id) || '';
+    var btn = $('banCopy');
+    if (!id || !btn) return;
+
+    function done(ok) {
+      btn.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1800);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(id).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
     }
   }
 
@@ -3612,11 +3784,15 @@
     try { S.net.ws.send(JSON.stringify(obj)); return true; } catch (err) { return false; }
   }
 
-  function netConnect(then, quiet) {
+  function netConnect(then, quiet, force) {
     if (NO_SERVER) {
       toast('Online rooms need the Gambit server \u2014 this copy has none configured.');
       return;
     }
+
+    /* A banned page does not even open the socket — unless the screen is
+       checking whether the ban has been lifted. */
+    if (!force && banNow()) { showBan(S.ban); return; }
 
     if (S.net && S.net.ws && (S.net.ws.readyState === 0 || S.net.ws.readyState === 1)) {
       if (S.net.ws.readyState === 1) then();
@@ -3704,6 +3880,15 @@
         break;
       case 'error':
         toast(msg.message);
+        break;
+      case 'warn':
+        notify('Fair play warning', msg.detail || msg.message || '', 'ban', 'reminders');
+        if (!settings.notify || !settings.notifyReminders) {
+          toast(msg.message || 'Fair-play warning', msg.detail, 'ban');
+        }
+        break;
+      case 'banned':
+        showBan(msg.ban);
         break;
       default: break;
     }
@@ -3916,10 +4101,12 @@
   }
 
   function loadLobby() {
+    if (banNow()) return;
     netConnect(function () { netSend({ t: 'lobby' }); }, true);
   }
 
   function netWatch(code) {
+    if (banNow()) return;
     netConnect(function () { netSend({ t: 'watch', code: code }); }, true);
   }
 
@@ -4295,6 +4482,29 @@
   });
   $('netQuick').addEventListener('click', netQuick);
   $('netRefresh').addEventListener('click', loadLobby);
+  $('netBanOpen').addEventListener('click', function () { if (S.ban) showBan(S.ban); });
+
+  /* ---- fair-play ban screen ---- */
+  $('banCopy').addEventListener('click', copyBanId);
+  $('banOffline').addEventListener('click', function () {
+    hideBan();
+    if (S.mode === 'online') {
+      netLeave(true);
+      newGame({ mode: 'ai', level: S.level, color: 'w', base: S.base, inc: S.inc }, { silent: true });
+    }
+    setScreen('play');
+    switchTab('new');
+  });
+  $('banRetry').addEventListener('click', function () {
+    if (!banNow()) { if (S.ban) clearBan(); else hideBan(); return; }
+    toast('Checking your standing\u2026', S.ban.id);
+    netConnect(function () { netSend({ t: 'sync' }); }, true, true);
+  });
+  $('banRules').addEventListener('click', function () {
+    var box = $('banRulesBox');
+    box.hidden = !box.hidden;
+    this.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
+  });
 
   setInterval(function () {
     var panel = document.querySelector('.tabpanel[data-panel="online"]');
@@ -4526,6 +4736,11 @@
   document.addEventListener('keydown', function (ev) {
     var tag = (ev.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    var banLayer = $('banLayer');
+    if (banLayer && !banLayer.hidden) {
+      if (ev.key === 'Escape') { hideBan(); ev.preventDefault(); }
+      return;
+    }
     if (ev.key === 'ArrowLeft') { navigate(-1); ev.preventDefault(); }
     else if (ev.key === 'ArrowRight') { navigate(1); ev.preventDefault(); }
     else if (ev.key === 'Home') { S.cursor = 0; S.selected = -1; renderBoard(); renderMoves(); renderStatus(); ev.preventDefault(); }
@@ -5559,6 +5774,7 @@
     if (kind === 'quest') return 'Quest';
     if (kind === 'reminder') return 'Reminder';
     if (kind === 'account') return 'Account';
+    if (kind === 'ban') return 'Fair play';
     return 'Note';
   }
 
@@ -6302,7 +6518,9 @@
   bootReminder();
   syncNewPanel();
   syncNav();
-  markStaticHost();
+  paintOnlineGate();
+  var bootBan = storedBan();
+  if (bootBan) showBan(bootBan, { quiet: true });
   var shared = sharedFen();
   newGame(shared
     ? { mode: 'human', level: 3, color: 'w', base: 0, inc: 0, variant: 'standard', fen: shared }

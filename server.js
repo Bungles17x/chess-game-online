@@ -12,6 +12,8 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const E = require('./js/engine.js');
+const AC = require('./js/anticheat.js');
+const { createModeration } = require('./moderation.js');
 const { createMailer, loadEnv } = require('./mailer.js');
 
 const root = __dirname;
@@ -21,6 +23,30 @@ loadEnv(path.join(root, '.env'));
 
 const mailer = createMailer({ env: process.env });
 const MAX_BODY = 8192;
+const MAX_FRAME = 8192;
+
+/* GAMBIT_AC_STRICT=1 lowers every fair-play threshold. It exists so the ban
+   test can walk the whole ladder in a second instead of a fortnight. */
+const AC_RULES = AC.withRules(process.env.GAMBIT_AC_STRICT === '1' ? {
+  messagesPerWindow: 3,
+  chatPerWindow: 2,
+  syncPerWindow: 2,
+  illegalPerWindow: 1,
+  instantMovesPerWindow: 2,
+  instantMoveMs: 5000,
+  instantMinLegal: 1,
+  repeatMs: 0,
+  warnAt: 2,
+  shortBanAt: 4,
+  longBanAt: 8,
+  permBanAt: 12
+} : null);
+
+/* Bans are keyed by address and kept on disk when there is a disk. */
+const moderation = createModeration({
+  file: process.env.GAMBIT_BANS || path.join(root, 'data', 'bans.json'),
+  rules: AC_RULES
+});
 const requestedPort = Number(process.env.PORT);
 const port = Number.isFinite(requestedPort) && requestedPort > 0 ? requestedPort : 8124;
 
@@ -43,7 +69,7 @@ const server = http.createServer((req, res) => {
 
   /* Used by hosts' health checks and by the keep-awake job. */
   if (urlPath === '/health') {
-    jsonReply(res, 200, { ok: true, rooms: rooms.size, at: Date.now() });
+    jsonReply(res, 200, { ok: true, rooms: rooms.size, bans: moderation.count(), at: Date.now() });
     return;
   }
 
@@ -93,6 +119,16 @@ function jsonReply(res, status, payload) {
 
 function clientIp(req) {
   return (req.socket && req.socket.remoteAddress) || 'local';
+}
+
+/* Behind a host's proxy the socket address is the proxy, so bans have to key on
+   the forwarded chain. Only the last hop is trustworthy: the earlier entries
+   are whatever the client chose to send. */
+function banKey(req) {
+  const chain = String(req.headers['x-forwarded-for'] || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  const ip = chain.length ? chain[chain.length - 1] : clientIp(req);
+  return ip.replace(/^::ffff:/, '');
 }
 
 /* The page posts from its own origin; anything else is refused. */
@@ -205,8 +241,19 @@ function send(client, obj) {
 
 const clients = new Set();
 
-function addClient(socket) {
-  const client = { socket, buf: Buffer.alloc(0), frag: Buffer.alloc(0), room: null, seat: null, closed: false };
+function addClient(socket, ip) {
+  const client = {
+    socket,
+    ip: ip || 'local',
+    name: '',
+    guard: AC.createGuard(AC_RULES),
+    buf: Buffer.alloc(0),
+    frag: Buffer.alloc(0),
+    room: null,
+    seat: null,
+    closed: false,
+    ban: null
+  };
   clients.add(client);
 
   socket.on('data', (chunk) => {
@@ -216,6 +263,7 @@ function addClient(socket) {
   socket.on('error', () => closeClient(client));
   socket.on('close', () => closeClient(client));
   socket.on('end', () => closeClient(client));
+  return client;
 }
 
 function drain(client) {
@@ -238,6 +286,8 @@ function drain(client) {
       len = Number(b.readBigUInt64BE(2));
       off = 10;
     }
+
+    if (len > MAX_FRAME) { closeClient(client); return; }
 
     const maskLen = masked ? 4 : 0;
     if (b.length < off + maskLen + len) return;
@@ -272,6 +322,58 @@ function closeClient(client) {
   clients.delete(client);
   leaveRoom(client);
   try { client.socket.destroy(); } catch (err) { /* gone */ }
+}
+
+/* ---------------- fair play ---------------- */
+
+function warnDetail(id) {
+  const meta = AC.FINDINGS[id] || { label: 'Fair play', detail: '' };
+  return meta.label + ' — ' + meta.detail + ' Another flag locks online play.';
+}
+
+/* Score the findings a guard just reported. A warning is a message; a ban is
+   the end of the connection, with the opponent awarded the game. */
+function strike(client, ids) {
+  if (!client || client.ban) return;
+  const list = ids || [];
+
+  for (let i = 0; i < list.length; i++) {
+    const out = moderation.strike(client.ip, { finding: list[i], name: client.name || '' });
+    if (!out) continue;
+
+    if (out.action === 'ban') {
+      banClient(client, out.ban);
+      return;
+    }
+
+    if (out.action === 'warn' && out.scored) {
+      send(client, {
+        t: 'warn',
+        message: out.verdict.label,
+        detail: warnDetail(list[i]),
+        points: out.points
+      });
+    }
+  }
+}
+
+function banClient(client, ban) {
+  if (!client || client.ban) return;
+  client.ban = ban;
+
+  /* A ban mid-game is a loss: the other seat gets the point, not a hang. */
+  const room = client.room;
+  if (room && client.seat && !room.result) {
+    room.result = { code: other(client.seat), reason: 'fair play' };
+    broadcast(room, { t: 'end', result: room.result });
+    pushLobby();
+  }
+
+  send(client, { t: 'banned', ban: AC.publicBan(ban) });
+  console.log('  fair play: ' + ban.id + ' ' + ban.severity + ' ban for ' + client.ip);
+
+  /* Give the frame time to arrive before the socket goes away. */
+  setTimeout(() => closeClient(client), 900).unref();
 }
 
 /* ---------------- rooms ---------------- */
@@ -432,6 +534,7 @@ function joinRoom(client, rawCode, name) {
   if (seat) {
     room.seats[seat] = client;
     room.names[seat] = cleanName(name) || (seat === 'w' ? 'White' : 'Black');
+    client.name = room.names[seat];
   }
 
   if (bothPresent(room) && !room.result) room.turnSince = Date.now();
@@ -457,7 +560,9 @@ function leaveRoom(client) {
   if (left) {
     room.drawOffer = null;
     room.rematch = { w: false, b: false };
-    broadcast(room, { t: 'left' });
+    /* Once there is a result the seat change is just state; a "left" notice
+       would talk over the result card. A banned player leaves this way. */
+    if (!room.result) broadcast(room, { t: 'left' });
     sendState(room);
   }
   client.seat = null;
@@ -480,6 +585,11 @@ function resetRoom(room) {
 /* ---------------- protocol ---------------- */
 
 function onMessage(client, msg) {
+  if (!msg || typeof msg !== 'object' || client.ban) return;
+
+  strike(client, client.guard.note('message'));
+  if (client.ban) return;
+
   const room = client.room;
 
   switch (msg.t) {
@@ -491,6 +601,7 @@ function onMessage(client, msg) {
       client.seat = seat;
       newRoom.seats[seat] = client;
       newRoom.names[seat] = cleanName(msg.name) || 'Player';
+      client.name = newRoom.names[seat];
       newRoom.turnSince = Date.now();
       sendState(newRoom);
       pushLobby();
@@ -507,6 +618,8 @@ function onMessage(client, msg) {
       return;
 
     case 'sync':
+      strike(client, client.guard.note('sync'));
+      if (client.ban) return;
       if (room) sendState(room);
       return;
 
@@ -522,6 +635,7 @@ function onMessage(client, msg) {
     case 'watch': {
       const watched = rooms.get(String(msg.code || '').toUpperCase().trim());
       if (!watched) return send(client, { t: 'error', message: 'That room has closed.' });
+      client.name = cleanName(msg.name) || client.name;
       leaveRoom(client);
       client.room = watched;
       client.seat = null;
@@ -537,6 +651,7 @@ function onMessage(client, msg) {
       const base = clampInt(msg.base, 0, 7200, 300);
       const inc = clampInt(msg.inc, 0, 180, 0);
       const name = cleanName(msg.name) || 'Player';
+      client.name = name;
 
       let target = null;
       rooms.forEach((r) => {
@@ -576,8 +691,17 @@ function onMessage(client, msg) {
       if (room.chess.turn !== client.seat) return send(client, { t: 'error', message: 'Not your turn.' });
 
       const legal = room.chess.legalMoves();
+      const think = room.started ? Math.max(0, Date.now() - room.turnSince) : 0;
       const move = E.fromUci(String(msg.uci || ''), legal);
-      if (!move) return send(client, { t: 'error', message: 'Illegal move.' });
+
+      if (!move) {
+        strike(client, client.guard.note('illegal'));
+        if (client.ban) return;
+        return send(client, { t: 'error', message: 'Illegal move.' });
+      }
+
+      strike(client, client.guard.note('move', { thinkMs: think, legal: legal.length }));
+      if (client.ban) return;
 
       const now = Date.now();
       const mover = room.chess.turn;
@@ -655,6 +779,8 @@ function onMessage(client, msg) {
       if (!room) return;
       const text = String(msg.text || '').slice(0, 200).trim();
       if (!text) return;
+      strike(client, client.guard.note('chat'));
+      if (client.ban) return;
       const entry = { from: room.names[client.seat] || 'Spectator', text, seat: client.seat };
       room.chat.push(entry);
       if (room.chat.length > 80) room.chat.shift();
@@ -692,7 +818,12 @@ server.on('upgrade', (req, socket) => {
     'Sec-WebSocket-Accept: ' + acceptKey(key)
   ].join('\r\n') + '\r\n\r\n');
   socket.setNoDelay(true);
-  addClient(socket);
+
+  /* The handshake is completed even for a banned address: the page can then
+     show the ban screen instead of an unexplained connection failure. */
+  const client = addClient(socket, banKey(req));
+  const ban = moderation.check(client.ip);
+  if (ban) banClient(client, ban);
 });
 
 server.listen(port, '0.0.0.0', () => {
