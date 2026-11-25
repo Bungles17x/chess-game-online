@@ -28,7 +28,7 @@ function createModeration(opts) {
 
   function blank(ip) {
     const at = clock();
-    return { ip, points: 0, findings: {}, bans: [], scored: {}, first: at, last: at };
+    return { ip, points: 0, findings: {}, bans: [], scored: {}, warned: false, first: at, last: at };
   }
 
   function get(ip) {
@@ -45,6 +45,7 @@ function createModeration(opts) {
       record.points = 0;
       record.findings = {};
       record.scored = {};
+      record.warned = false;
     }
     return record;
   }
@@ -117,7 +118,15 @@ function createModeration(opts) {
       scored = true;
     }
 
-    const verdict = AC.sentence(record.points, record.bans.length, rules);
+    /* The first scored finding is always a warning, even when its weight
+       already reaches the ban tier: one 3-point illegal or timing hit must not
+       skip straight to a five-minute pause. After that the ladder decides. */
+    const firstWarning = scored && !record.warned;
+    if (scored) record.warned = true;
+
+    const verdict = firstWarning
+      ? { action: 'warn', ms: 0, label: 'Fair-play warning' }
+      : AC.sentence(record.points, record.bans.length, rules);
 
     if (verdict.action === 'ban' || verdict.action === 'permanent') {
       const ban = issue(record, verdict, info, at);
@@ -131,6 +140,7 @@ function createModeration(opts) {
       verdict,
       points: record.points,
       scored,
+      first: firstWarning,
       record
     };
   }
@@ -249,6 +259,9 @@ function createModeration(opts) {
         findings: record.findings && typeof record.findings === 'object' ? record.findings : {},
         bans: Array.isArray(record.bans) ? record.bans : [],
         scored: record.scored && typeof record.scored === 'object' ? record.scored : {},
+        warned: record.warned === undefined
+          ? (Number(record.points) > 0 || (record.bans || []).length > 0)
+          : !!record.warned,
         first: Number(record.first) || clock(),
         last: Number(record.last) || clock()
       });

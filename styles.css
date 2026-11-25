@@ -1449,6 +1449,11 @@ body[data-screen="stats"] .side { display: none; }
 
 body[data-screen="stats"] .page-col { display: block; grid-column: 1 / -1; max-width: 780px; }
 
+body[data-screen="owner"] .board-col,
+body[data-screen="owner"] .side { display: none; }
+
+body[data-screen="owner"] .page-col { display: block; grid-column: 1 / -1; max-width: 980px; }
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));

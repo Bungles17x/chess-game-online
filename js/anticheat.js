@@ -39,13 +39,17 @@
       instant: 3
     },
 
-    warnAt: 3,
-    shortBanAt: 8,
-    longBanAt: 14,
-    permBanAt: 22,
+    /* Points, not incidents: 2 warns, 3 pauses for five minutes, 6 for an
+       hour, 11 for a day and 30 is permanent. */
+    warnAt: 2,
+    minBanAt: 3,
+    hourBanAt: 6,
+    dayBanAt: 11,
+    permBanAt: 30,
 
-    shortBanMs: 30 * 60 * 1000,
-    longBanMs: 24 * 60 * 60 * 1000
+    minBanMs: 5 * 60 * 1000,
+    hourBanMs: 60 * 60 * 1000,
+    dayBanMs: 24 * 60 * 60 * 1000
   };
 
   var FINDINGS = {
@@ -176,19 +180,16 @@
 
   /* ---------------- sentencing ---------------- */
 
-  /* The ladder: warning, half an hour, a day, then gone. `prior` is how many
-     bans this address has already served, so a repeat offence escalates. */
+  /* The ladder is decided by the score alone. `prior` stays in the signature
+     for callers, but a ban count no longer escalates: the points do. */
   function sentence(points, prior, rules) {
     var R = rules || BASE;
     var n = Math.max(0, Number(points) || 0);
-    var served = Math.max(0, Number(prior) || 0);
 
     if (n >= R.permBanAt) return { action: 'permanent', ms: 0, label: 'Permanent ban' };
-    if (n >= R.longBanAt) return { action: 'ban', ms: R.longBanMs, label: '24-hour ban' };
-    if (n >= R.shortBanAt) {
-      if (served >= 1) return { action: 'ban', ms: R.longBanMs, label: '24-hour ban' };
-      return { action: 'ban', ms: R.shortBanMs, label: '30-minute ban' };
-    }
+    if (n >= R.dayBanAt) return { action: 'ban', ms: R.dayBanMs, label: '24-hour ban' };
+    if (n >= R.hourBanAt) return { action: 'ban', ms: R.hourBanMs, label: '1-hour ban' };
+    if (n >= R.minBanAt) return { action: 'ban', ms: R.minBanMs, label: '5-minute ban' };
     if (n >= R.warnAt) return { action: 'warn', ms: 0, label: 'Fair-play warning' };
     return { action: null, ms: 0, label: '' };
   }

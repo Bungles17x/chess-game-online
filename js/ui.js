@@ -83,6 +83,10 @@
     ownerKey: '',
     ownerBusy: false,
     ownerBusyTimer: null,
+    ownerUnlocked: false,
+    ownerThreshold: 30,
+    ownerLog: [],
+    standing: null,
     variant: 'standard',
     checks: { w: 0, b: 0 },
     rush: null,
@@ -1001,6 +1005,29 @@
     doMove(cands[0]);
   }
 
+  /* The strip sits over its file. On phones the layer is pinned to the viewport
+     (see glass.css), so place the strip in screen coordinates and keep all four
+     choices on screen, clear of the dock. */
+  function placePromotion(strip, mover, dCol) {
+    var cs = getComputedStyle($('promoLayer'));
+    if (cs.position !== 'fixed') {
+      strip.style.left = (dCol * 12.5) + '%';
+      strip.style.width = '12.5%';
+      strip.style.top = mover === 'w' ? '0%' : '50%';
+      return;
+    }
+    var box = boardEl.getBoundingClientRect();
+    var sq = box.width / 8;
+    var view = document.documentElement;
+    var maxTop = view.clientHeight - (parseFloat(cs.paddingBottom) || 0) - sq * 4;
+    var top = mover === 'w' ? box.top : box.top + sq * 4;
+    top = Math.max(parseFloat(cs.paddingTop) || 0, Math.min(top, maxTop));
+    var left = Math.max(8, Math.min(box.left + dCol * sq, view.clientWidth - sq - 8));
+    strip.style.left = Math.round(left) + 'px';
+    strip.style.top = Math.round(top) + 'px';
+    strip.style.width = sq + 'px';
+  }
+
   function openPromotion(cands) {
     var mover = S.game.turn;
     var to = cands[0].to;
@@ -1008,9 +1035,7 @@
     var dCol = S.flipped ? 7 - col : col;
     var strip = $('promoCard');
 
-    strip.style.left = (dCol * 12.5) + '%';
-    strip.style.width = '12.5%';
-    strip.style.top = mover === 'w' ? '0%' : '50%';
+    placePromotion(strip, mover, dCol);
     strip.innerHTML = '';
 
     var order = mover === 'w' ? ['Q', 'R', 'B', 'N'] : ['N', 'B', 'R', 'Q'];
@@ -1105,6 +1130,8 @@
     S.ratingChange = applyRating(S.result);
     renderResultRating();
     $('resultLayer').hidden = false;
+    var resultReport = $('resultReport');
+    if (resultReport) resultReport.hidden = !(S.mode === 'online' && canReport());
     playEvent('end');
     renderStatus();
     renderClocks();
@@ -1515,6 +1542,9 @@
       renderLearn();
     } else if (name === 'stats') {
       renderStats();
+    } else if (name === 'owner') {
+      paintOwner();
+      if (S.ownerUnlocked) ownerSend('list');
     } else {
       if (saved.puzzles) { applyState(saved.puzzles); renderAll(); renderPuzzle(); }
       else startPuzzle(P.index);
@@ -3819,9 +3849,11 @@
     }
   }
 
-  /* ---------------- owner tools ---------------- */
+  /* ---------------- owner panel ---------------- */
 
   var OWNER_STORE = 'gambit.ownerKey';
+  var OWNER_UNLOCK = 'gambit.ownerUnlocked';
+  var OWNER_LOG_MAX = 24;
 
   function savedOwnerKey() {
     try { return String(localStorage.getItem(OWNER_STORE) || ''); } catch (err) { return ''; }
@@ -3835,6 +3867,43 @@
     } catch (err) { /* ignore */ }
   }
 
+  /* The panel is never in the player UI. Unlocking it adds the Owner tab and
+     remembers the state for this browser; the key itself stays in localStorage. */
+  function setOwnerUnlocked(on) {
+    S.ownerUnlocked = !!on;
+    try {
+      if (on) localStorage.setItem(OWNER_UNLOCK, '1');
+      else localStorage.removeItem(OWNER_UNLOCK);
+    } catch (err) { /* ignore */ }
+
+    ownerChrome();
+
+    if (!on) {
+      ownerNote('');
+      ownerGateNote('');
+      var pill = $('ownerServerPill');
+      if (pill) { pill.textContent = 'Locked'; pill.setAttribute('data-kind', 'idle'); }
+    }
+  }
+
+  /* One place decides what the owner sees. The phone dock scrolls sideways, so
+     the Owner tab is also pulled to the front and the dock rewound to show it. */
+  function ownerChrome() {
+    var nav = $('ownerNav');
+    if (nav) {
+      nav.hidden = !S.ownerUnlocked;
+      if (S.ownerUnlocked && nav.parentNode) nav.parentNode.scrollLeft = 0;
+    }
+    var gate = $('ownerGate');
+    if (gate) gate.hidden = !!S.ownerUnlocked;
+    var panel = $('ownerPanel');
+    if (panel) panel.hidden = !S.ownerUnlocked;
+    var lock = $('ownerLock');
+    if (lock) lock.hidden = !S.ownerUnlocked;
+    var input = $('ownerKey');
+    if (input) input.value = S.ownerKey || '';
+  }
+
   function ownerNote(text, kind) {
     var el = $('ownerNote');
     if (!el) return;
@@ -3843,21 +3912,136 @@
     else el.removeAttribute('data-kind');
   }
 
-  function renderOwnerStatus(status) {
-    var box = $('ownerStatus');
-    if (!box || !status) return;
-    var bits = [
-      'Risk ' + status.points + '/' + status.threshold,
-      status.bans + ' ban' + (status.bans === 1 ? '' : 's')
-    ];
-    if (status.ban) {
-      bits.push(status.ban.severity === 'permanent'
-        ? 'permanently banned'
-        : 'banned for ' + AC.formatLeft(AC.expiresIn(status.ban, Date.now())));
-    } else {
-      bits.push('not banned');
+  function ownerGateNote(text, kind) {
+    var el = $('ownerGateNote');
+    if (!el) return;
+    el.textContent = text || '';
+    if (kind) el.setAttribute('data-kind', kind);
+    else el.removeAttribute('data-kind');
+  }
+
+  /* The visible note: the gate while locked, the panel once unlocked. */
+  function ownerSay(text, kind) {
+    var el = $(S.ownerUnlocked ? 'ownerNote' : 'ownerGateNote');
+    if (!el) return;
+    el.textContent = text || '';
+    if (kind) el.setAttribute('data-kind', kind);
+    else el.removeAttribute('data-kind');
+  }
+
+  function ownerLogLine(text, kind) {
+    S.ownerLog.unshift({ at: Date.now(), text: String(text || ''), kind: kind || '' });
+    if (S.ownerLog.length > OWNER_LOG_MAX) S.ownerLog.length = OWNER_LOG_MAX;
+    renderOwnerLog();
+  }
+
+  function renderOwnerLog() {
+    var box = $('ownerLog');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!S.ownerLog.length) {
+      box.textContent = 'Nothing yet this session.';
+      return;
     }
-    box.textContent = bits.join(' \u00b7 ');
+    S.ownerLog.forEach(function (row) {
+      var line = document.createElement('div');
+      line.className = 'ol-row';
+      if (row.kind) line.setAttribute('data-kind', row.kind);
+      var time = document.createElement('time');
+      time.textContent = new Date(row.at).toLocaleTimeString();
+      var text = document.createElement('span');
+      text.textContent = row.text;
+      line.appendChild(time);
+      line.appendChild(text);
+      box.appendChild(line);
+    });
+  }
+
+  function riskKind(points, threshold) {
+    if (points >= threshold) return 'bad';
+    if (points >= threshold / 2) return 'warn';
+    return 'ok';
+  }
+
+  function renderOwnerStatus(status) {
+    if (!status) return;
+    var threshold = Number(status.threshold) || (AC ? AC.RULES.permBanAt : 30);
+    var points = Number(status.points) || 0;
+    S.ownerThreshold = threshold;
+    var risk = $('ownerRisk');
+    if (risk) risk.setAttribute('data-kind', riskKind(points, threshold));
+
+    var pts = $('ownerPoints');
+    if (pts) pts.textContent = points + ' / ' + threshold;
+    var bar = $('ownerPointsBar');
+    if (bar) bar.style.width = Math.max(0, Math.min(100, (points / threshold) * 100)) + '%';
+
+    var addr = $('ownerAddress');
+    if (addr) addr.textContent = status.ip || 'unknown address';
+    var banCount = $('ownerBanCount');
+    if (banCount) banCount.textContent = String(status.bans || 0);
+
+    var state = $('ownerBanState');
+    if (state) {
+      if (status.ban) {
+        state.textContent = status.ban.severity === 'permanent'
+          ? 'Permanent'
+          : AC.formatLeft(AC.expiresIn(status.ban, Date.now()));
+        state.setAttribute('data-kind', 'bad');
+      } else {
+        state.textContent = 'Clear';
+        state.setAttribute('data-kind', 'ok');
+      }
+    }
+
+    var findings = status.findings || [];
+    var total = findings.reduce(function (n, f) { return n + (Number(f.count) || 0); }, 0);
+    var findingCount = $('ownerFindingCount');
+    if (findingCount) findingCount.textContent = String(total);
+
+    var list = $('ownerStatusFindings');
+    if (list) {
+      list.innerHTML = '';
+      if (!findings.length) {
+        list.textContent = 'No findings on this address.';
+      } else {
+        findings.forEach(function (f) {
+          var row = document.createElement('div');
+          row.className = 'of-line';
+          var name = document.createElement('span');
+          name.textContent = f.label || f.id;
+          var meta = document.createElement('b');
+          meta.textContent = f.count + ' \u00d7 ' + (f.weight || 0) + ' pts';
+          row.appendChild(name);
+          row.appendChild(meta);
+          list.appendChild(row);
+        });
+      }
+    }
+
+    renderOwnerReports(status.reports || []);
+    if (status.server) renderOwnerServer(status.server);
+
+    var ladder = $('ownerLadder');
+    if (ladder && status.warnAt) {
+      ladder.textContent = 'Warning at ' + status.warnAt + ', 5 minutes at ' + status.minBanAt +
+        ', 1 hour at ' + status.hourBanAt + ', 24 hours at ' + status.dayBanAt +
+        ', permanent at ' + threshold + '. The same finding scores once per 30 seconds.';
+    }
+  }
+
+  function renderOwnerServer(server) {
+    if (!server) return;
+    var pill = $('ownerServerPill');
+    if (pill) {
+      pill.textContent = 'Connected';
+      pill.setAttribute('data-kind', 'ok');
+    }
+    var set = function (id, value) { var el = $(id); if (el) el.textContent = String(value); };
+    set('ownerRooms', server.rooms || 0);
+    set('ownerStrict', server.strict ? 'on' : 'off');
+    set('ownerUptime', AC ? AC.formatLeft((Number(server.uptime) || 0) * 1000) : (server.uptime || 0) + 's');
+    set('ownerLedger', server.ledger || 'memory');
   }
 
   function renderOwnerBans(list) {
@@ -3865,7 +4049,10 @@
     if (!box) return;
     box.innerHTML = '';
 
-    if (!list.length) {
+    var count = $('ownerBansCount');
+    if (count) count.textContent = String((list || []).length);
+
+    if (!list || !list.length) {
       box.textContent = 'No active bans.';
       box.hidden = false;
       return;
@@ -3882,23 +4069,151 @@
       when.textContent = ban.severity === 'permanent'
         ? 'permanent'
         : AC.formatLeft(AC.expiresIn(ban, Date.now())) + ' left';
+      var lift = document.createElement('button');
+      lift.className = 'mini';
+      lift.type = 'button';
+      lift.textContent = 'Lift';
+      lift.setAttribute('data-lift', ban.id);
       row.appendChild(id);
       row.appendChild(why);
       row.appendChild(when);
+      row.appendChild(lift);
       box.appendChild(row);
     });
     box.hidden = false;
   }
 
+  function renderOwnerReports(list) {
+    var box = $('ownerReports');
+    if (!box) return;
+    box.innerHTML = '';
+    list = list || [];
+
+    var count = $('ownerReportsCount');
+    if (count) count.textContent = String(list.length);
+
+    if (!list.length) {
+      box.textContent = 'No reports.';
+      box.hidden = false;
+      return;
+    }
+
+    list.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'ob-row';
+      var id = document.createElement('code');
+      id.textContent = r.id || 'RP';
+      var why = document.createElement('span');
+      why.textContent = (r.reporter || '?') + ' \u2192 ' + (r.accused || '?') + ' \u00b7 ' +
+        (r.label || r.reason || 'report');
+      var where = document.createElement('em');
+      where.textContent = 'room ' + (r.room || '?');
+      row.appendChild(id);
+      row.appendChild(why);
+      row.appendChild(where);
+      box.appendChild(row);
+      if (r.note) {
+        var note = document.createElement('p');
+        note.className = 'ob-note';
+        note.textContent = r.note;
+        box.appendChild(note);
+      }
+    });
+    box.hidden = false;
+  }
+
+  function renderOwnerRecords(records) {
+    var box = $('ownerRecords');
+    if (!box) return;
+    box.innerHTML = '';
+    records = records || [];
+
+    if (!records.length) {
+      box.textContent = 'The ledger is empty.';
+      return;
+    }
+
+    var threshold = S.ownerThreshold || 30;
+    records.forEach(function (rec) {
+      var row = document.createElement('div');
+      row.className = 'or-row';
+
+      var ip = document.createElement('code');
+      ip.textContent = rec.ip;
+      var risk = document.createElement('b');
+      risk.textContent = (rec.points || 0) + ' pts';
+      risk.setAttribute('data-kind', riskKind(rec.points || 0, threshold));
+      var why = document.createElement('span');
+      why.textContent = (rec.findings || []).map(function (f) {
+        return (f.label || f.id) + ' \u00d7 ' + f.count;
+      }).join(', ') || 'no findings';
+      var state = document.createElement('em');
+      state.textContent = rec.ban
+        ? (rec.ban.severity === 'permanent' ? 'permanent' : AC.formatLeft(AC.expiresIn(rec.ban, Date.now())) + ' left')
+        : (rec.bans ? rec.bans + ' past' : 'clear');
+
+      row.appendChild(ip);
+      row.appendChild(risk);
+      row.appendChild(why);
+      row.appendChild(state);
+      box.appendChild(row);
+    });
+  }
+
+  function renderOwnerFindings() {
+    var box = $('ownerFindingList');
+    if (!box || !AC) return;
+    box.innerHTML = '';
+
+    var ids = Object.keys(AC.FINDINGS).sort(function (a, b) {
+      return (AC.RULES.weight[b] || 0) - (AC.RULES.weight[a] || 0);
+    });
+
+    ids.forEach(function (id) {
+      var meta = AC.FINDINGS[id];
+      if (!meta) return;
+
+      var row = document.createElement('div');
+      row.className = 'of-row';
+
+      var text = document.createElement('div');
+      var name = document.createElement('b');
+      name.textContent = meta.label;
+      var detail = document.createElement('span');
+      detail.textContent = meta.detail;
+      text.appendChild(name);
+      text.appendChild(detail);
+
+      var weight = document.createElement('em');
+      weight.className = 'of-w';
+      weight.textContent = '+' + (AC.RULES.weight[id] || 1);
+
+      var btn = document.createElement('button');
+      btn.className = 'mini';
+      btn.type = 'button';
+      btn.textContent = 'Strike';
+      btn.setAttribute('data-finding', id);
+
+      row.appendChild(text);
+      row.appendChild(weight);
+      row.appendChild(btn);
+      box.appendChild(row);
+    });
+  }
+
   function ownerSend(action, extra) {
     var key = S.ownerKey || savedOwnerKey();
-    if (!key) { ownerNote('Save the server key first.', 'bad'); return; }
+    if (!key) {
+      setOwnerUnlocked(false);
+      ownerGateNote('Paste the server key to unlock the panel.', 'bad');
+      return;
+    }
     if (!AC) return;
 
-    ownerNote('Talking to the server\u2026', '');
+    ownerSay('Talking to the server\u2026', '');
     S.ownerBusy = true;
     clearTimeout(S.ownerBusyTimer);
-    S.ownerBusyTimer = setTimeout(function () { S.ownerBusy = false; }, 8000);
+    S.ownerBusyTimer = setTimeout(function () { S.ownerBusy = false; }, 12000);
 
     netConnect(function () {
       var payload = {
@@ -3919,9 +4234,22 @@
     clearTimeout(S.ownerBusyTimer);
 
     if (!msg.ok) {
-      ownerNote(msg.error || 'That did not work.', 'bad');
-      toast('Owner tools', msg.error || 'That did not work.', 'ban');
+      var error = msg.error || 'That did not work.';
+      if (/key is not right|too many wrong keys/i.test(error)) {
+        storeOwnerKey('');
+        setOwnerUnlocked(false);
+      }
+      ownerSay(error, 'bad');
+      ownerLogLine(error, 'bad');
+      toast('Owner panel', error, 'ban');
       return;
+    }
+
+    if (!S.ownerUnlocked) {
+      setOwnerUnlocked(true);
+      ownerGateNote('');
+      ownerLogLine('Key accepted for this browser.', 'ok');
+      toast('Owner panel unlocked', 'Live status and every test tool are open.', 'account');
     }
 
     if (msg.status) renderOwnerStatus(msg.status);
@@ -3936,8 +4264,9 @@
       hideBan();
       document.body.removeAttribute('data-banned');
       paintOnlineGate();
-      ownerNote('Ban lifted. Online play should work again.', 'ok');
-      toast('Ban lifted', 'Online play is back.', 'account');
+      ownerNote('Ban ' + (msg.banId || '') + ' lifted.', 'ok');
+      ownerLogLine('Lifted ' + (msg.banId || 'the live ban') + '.', 'ok');
+      ownerSend('list');
       return;
     }
 
@@ -3952,22 +4281,30 @@
       document.body.removeAttribute('data-banned');
       paintOnlineGate();
       ownerNote('Record cleared: no points and no bans.', 'ok');
+      ownerLogLine('Reset the record on this address.', 'ok');
+      ownerSend('list');
       return;
     }
 
     if (msg.action === 'strike') {
-      ownerNote('Finding scored: ' + (msg.verdict || 'no warning yet') + '.', 'ok');
+      var verdict = msg.verdict || 'no warning yet';
+      ownerNote('Finding scored: ' + verdict + '.', 'ok');
+      ownerLogLine('Scored a finding \u2014 ' + verdict + '.', msg.banId ? 'bad' : 'ok');
+      if (msg.banId) toast('Test ban issued', 'Reference ' + msg.banId, 'ban');
       return;
     }
 
     if (msg.action === 'ban') {
-      ownerNote('Test ban ' + msg.banId + ' issued.', 'ok');
+      ownerNote('Test ban ' + msg.banId + ' issued' + (msg.permanent ? ' permanently' : '') + '.', 'ok');
+      ownerLogLine('Issued test ban ' + msg.banId + '.', 'bad');
       return;
     }
 
     if (msg.action === 'list') {
       renderOwnerBans(msg.bans || []);
-      ownerNote((msg.count || 0) + ' active ban' + (msg.count === 1 ? '' : 's') + '.', 'ok');
+      renderOwnerRecords(msg.records || []);
+      ownerNote((msg.count || 0) + ' active ban' + (msg.count === 1 ? '' : 's') + ' \u00b7 ' +
+        ((msg.records || []).length) + ' on the ledger.', 'ok');
       return;
     }
 
@@ -3996,6 +4333,63 @@
       strike: 1,
       name: 'Preview'
     }, { preview: true });
+  }
+
+  function paintOwner() {
+    ownerChrome();
+    renderOwnerFindings();
+    renderOwnerLog();
+  }
+
+  /* ---------------- reporting an opponent ---------------- */
+
+  var reportReason = 'engine';
+
+  /* Both report buttons need the same thing: a seat, and a name for the other
+     player — kept after they leave, so a disconnect cannot block a report. */
+  function canReport() {
+    return !!(S.net && S.net.code && S.net.seat && S.net.oppName);
+  }
+
+  function openReport() {
+    if (!canReport()) {
+      toast(S.net && S.net.code && S.net.seat ? 'There is no opponent to report yet.' : 'Join a game before reporting.');
+      return;
+    }
+
+    var title = $('reportTitle');
+    if (title) title.textContent = 'Report ' + S.net.oppName;
+    reportReason = 'engine';
+    var reasons = $('reportReasons');
+    if (reasons) {
+      reasons.querySelectorAll('button[data-reason]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-reason') === reportReason);
+      });
+    }
+    var note = $('reportNote');
+    if (note) note.value = '';
+    var send = $('reportSend');
+    if (send) send.disabled = false;
+    $('reportLayer').hidden = false;
+    if (note) note.focus();
+  }
+
+  function closeReport() {
+    var layer = $('reportLayer');
+    if (layer) layer.hidden = true;
+    var send = $('reportSend');
+    if (send) send.disabled = false;
+  }
+
+  function sendReport() {
+    var note = $('reportNote');
+    var text = note ? String(note.value || '').trim().slice(0, 200) : '';
+    if (!netSend({ t: 'report', reason: reportReason, note: text })) {
+      toast('Not connected to the server.');
+      return;
+    }
+    var send = $('reportSend');
+    if (send) send.disabled = true;
   }
 
   function netSend(obj) {
@@ -4030,7 +4424,7 @@
       catch (err) { toast('Could not open a connection.'); return; }
 
       var opened = false;
-      S.net = { ws: ws, code: null, seat: null, names: {}, present: {}, chat: [], open: false, queued: then, quiet: !!quiet };
+      S.net = { ws: ws, code: null, seat: null, names: {}, present: {}, oppName: '', chat: [], open: false, queued: then, quiet: !!quiet };
 
       ws.onopen = function () {
         if (!S.net || S.net.ws !== ws) return;
@@ -4058,7 +4452,7 @@
         S.net.present = {};
         if (!opened && SERVER && Date.now() - firstTry < 90000) {
           tries++;
-          if (tries === 1) toast('Waking the online server \u2014 the first visit can take a minute.');
+          if (tries === 1 && !quiet) toast('Waking the online server \u2014 the first visit can take a minute.');
           setTimeout(open, Math.min(8000, 1000 * tries));
           return;
         }
@@ -4099,6 +4493,14 @@
         break;
       case 'error':
         toast(msg.message);
+        if ($('reportSend')) $('reportSend').disabled = false;
+        break;
+      case 'reportOk':
+        closeReport();
+        toast('Report sent', 'Reference ' + (msg.id || '') + '. The owner will review it.', 'ban');
+        break;
+      case 'standing':
+        renderStanding(msg);
         break;
       case 'warn':
         notify('Fair play warning', msg.detail || msg.message || '', 'ban', 'reminders');
@@ -4159,12 +4561,18 @@
     $('promoLayer').hidden = true;
 
     if (S.net) {
+      if (S.net.code !== msg.code) S.net.oppName = '';
       S.net.code = msg.code;
       S.net.seat = msg.seat;
       S.net.names = msg.names || {};
       S.net.present = msg.present || {};
       S.net.chat = msg.chat || [];
       S.net.drawOffered = false;
+      /* Remember the opponent after they leave, so the report button and the
+         result screen still know who is being reported. */
+      var oppSeat = S.net.seat === 'w' ? 'b' : 'w';
+      var oppName = S.net.names[oppSeat];
+      if (oppName && oppName !== 'Waiting\u2026') S.net.oppName = oppName;
     }
 
     if (S.screen !== 'play') {
@@ -4198,6 +4606,15 @@
   function setOnlineResult(result, clocks) {
     if (clocks) { S.clocks = { w: clocks.w, b: clocks.b }; renderClocks(); }
     if (result && !S.result) finishGame(result.code, result.reason);
+    /* A ban mid-game ends the game for both seats; the note says who was
+       removed and for how long, so the opponent is not left guessing. */
+    if (result && result.note) {
+      if (!S.result) S.result = { code: result.code, reason: result.reason };
+      S.result.note = result.note;
+      var sub = $('resultSub');
+      if (sub) sub.textContent = result.note;
+      toast(result.note);
+    }
     renderRoom();
   }
 
@@ -4250,6 +4667,8 @@
     $('rmStatus').textContent = status;
 
     $('rmPending').hidden = !(net.drawOffered && !S.result);
+    var reportBtn = $('rmReport');
+    if (reportBtn) reportBtn.hidden = !canReport();
     renderChat();
   }
 
@@ -4733,28 +5152,46 @@
     this.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
   });
 
-  /* ---- owner console ---- */
+  /* ---- owner panel ---- */
   $('ownerSave').addEventListener('click', function () {
     var key = String($('ownerKey').value || '').trim();
-    storeOwnerKey(key);
     if (!key) {
-      ownerNote('Key removed from this browser.', '');
-      $('ownerStatus').textContent = 'No key saved.';
+      ownerGateNote('Paste the server key first.', 'bad');
       return;
     }
-    ownerNote('Key saved. Checking it with the server\u2026', '');
-    ownerSend('status');
+    storeOwnerKey(key);
+    ownerSend('list');
   });
   $('ownerKey').addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter') { ev.preventDefault(); $('ownerSave').click(); }
   });
-  $('ownerPreview').addEventListener('click', previewBan);
+  $('ownerLock').addEventListener('click', function () {
+    storeOwnerKey('');
+    setOwnerUnlocked(false);
+    ownerGateNote('Panel locked. The key is gone from this browser.', 'ok');
+    setScreen('play');
+    toast('Owner panel locked', 'The key is gone from this browser.', 'account');
+  });
+  $('ownerRefresh').addEventListener('click', function () { ownerSend('list'); });
   $('ownerList').addEventListener('click', function () { ownerSend('list'); });
   $('ownerLift').addEventListener('click', function () { ownerSend('lift'); });
   $('ownerReset').addEventListener('click', function () { ownerSend('reset'); });
-  $('ownerBan').addEventListener('click', function () { ownerSend('ban'); });
-  $('ownerStrike').addEventListener('click', function () {
-    ownerSend('strike', { finding: $('ownerFinding').value || 'illegal' });
+  $('ownerPreview').addEventListener('click', previewBan);
+  $('ownerBan10').addEventListener('click', function () { ownerSend('ban', { ms: 600000 }); });
+  $('ownerBan60').addEventListener('click', function () { ownerSend('ban', { ms: 3600000 }); });
+  $('ownerBanDay').addEventListener('click', function () { ownerSend('ban', { ms: 86400000 }); });
+  $('ownerBanPerm').addEventListener('click', function () { ownerSend('ban', { permanent: true }); });
+  $('ownerFindingList').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-finding]');
+    if (btn) ownerSend('strike', { finding: btn.getAttribute('data-finding') });
+  });
+  $('ownerBans').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-lift]');
+    if (btn) ownerSend('lift', { banId: btn.getAttribute('data-lift') });
+  });
+  $('ownerLogClear').addEventListener('click', function () {
+    S.ownerLog = [];
+    renderOwnerLog();
   });
   $('banOwnerLift').addEventListener('click', function () { ownerSend('lift'); });
   $('banOwnerReset').addEventListener('click', function () { ownerSend('reset'); });
@@ -4779,6 +5216,19 @@
     netLeave();
     toast('Left the online game.');
     newGame(pending, { silent: true });
+  });
+
+  $('rmReport').addEventListener('click', openReport);
+  $('resultReport').addEventListener('click', openReport);
+  $('reportCancel').addEventListener('click', closeReport);
+  $('reportSend').addEventListener('click', sendReport);
+  $('reportReasons').addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('button[data-reason]') : null;
+    if (!btn) return;
+    reportReason = btn.getAttribute('data-reason');
+    $('reportReasons').querySelectorAll('button[data-reason]').forEach(function (b) {
+      b.classList.toggle('on', b === btn);
+    });
   });
 
   $('rmAccept').addEventListener('click', function () { netSend({ t: 'draw', accept: true }); });
@@ -6155,6 +6605,67 @@
     clearErrors();
   }
 
+  /* The profile shows points only when the server says there are some. The
+     read travels on the existing socket and is ignored by the flood guard. */
+  function loadStanding() {
+    if (NO_SERVER) return;
+    if (S.net && S.net.ws && S.net.ws.readyState === 1) {
+      netSend({ t: 'standing' });
+      return;
+    }
+    netConnect(function () { netSend({ t: 'standing' }); }, true);
+  }
+
+  function renderStanding(msg) {
+    var block = $('fairBlock');
+    if (!block) return;
+    if (!msg || typeof msg.points !== 'number') { block.hidden = true; return; }
+    S.standing = msg;
+
+    var points = Math.max(0, msg.points);
+    /* Shown even at zero, because the first-finding rule belongs in the
+       profile before a player ever earns a point. */
+    block.hidden = false;
+
+    var cap = Number(msg.permBanAt) || (AC ? AC.RULES.permBanAt : 30);
+    var label = $('fairPoints');
+    if (label) label.textContent = points + ' / ' + cap;
+    var bar = $('fairBar');
+    if (bar) bar.style.width = points ? Math.max(4, Math.min(100, (points / cap) * 100)) + '%' : '0%';
+
+    var ladder = $('fairLadder');
+    if (ladder && msg.warnAt) {
+      ladder.textContent = msg.warnAt + ' warning \u00b7 ' + msg.minBanAt + ' five minutes \u00b7 ' +
+        msg.hourBanAt + ' one hour \u00b7 ' + msg.dayBanAt + ' twenty-four hours \u00b7 ' +
+        cap + ' permanent.';
+    }
+
+    var tier = $('fairTier');
+    if (tier) {
+      var warned = msg.warned !== false;
+      if (msg.ban) {
+        tier.textContent = msg.ban.severity === 'permanent'
+          ? 'A permanent ban is on record.'
+          : 'Online play is paused for ' + AC.formatLeft(AC.expiresIn(msg.ban, Date.now())) + '.';
+      } else if (points >= cap) {
+        tier.textContent = 'Permanent ban reached.';
+      } else if (!warned) {
+        tier.textContent = 'Your first scored finding is always a warning, whatever its weight.';
+      } else if (points >= msg.dayBanAt) {
+        tier.textContent = 'The next finding is a 24-hour ban or permanent.';
+      } else if (points >= msg.hourBanAt) {
+        tier.textContent = 'The next finding is a 1-hour ban or longer.';
+      } else if (points >= msg.minBanAt) {
+        tier.textContent = 'The next finding is a 5-minute ban or longer.';
+      } else if (points >= msg.warnAt) {
+        tier.textContent = 'The next finding pauses online play.';
+      } else {
+        tier.textContent = 'Next at ' + msg.warnAt + ' points: a warning (' +
+          (msg.warnAt - points) + ' more).';
+      }
+    }
+  }
+
   function openAccount(tab) {
     hideNotifyPanel();
     clearErrors();
@@ -6171,6 +6682,7 @@
       setAccTab(tab === 'up' || tab === 'reset' ? tab : 'in');
     }
     renderErrorList();
+    loadStanding();
   }
 
   function closeAccount() {
@@ -6772,7 +7284,9 @@
   syncNewPanel();
   syncNav();
   S.ownerKey = savedOwnerKey();
-  $('ownerKey').value = S.ownerKey;
+  var ownerWasOpen = false;
+  try { ownerWasOpen = localStorage.getItem(OWNER_UNLOCK) === '1'; } catch (err) { ownerWasOpen = false; }
+  setOwnerUnlocked(ownerWasOpen && !!S.ownerKey);
   paintOnlineGate();
   var bootBan = storedBan();
   if (bootBan) showBan(bootBan, { quiet: true });
@@ -6784,6 +7298,11 @@
   renderLadder();
   if (shared) toast('Shared position loaded.');
   else resumeGame();
+
+  if (/(?:^#|&)owner(?:$|&|=)/.test(location.hash || '')) setScreen('owner');
+  window.addEventListener('hashchange', function () {
+    if (/(?:^#|&)owner(?:$|&|=)/.test(location.hash || '')) setScreen('owner');
+  });
 
   (function bootRoom() {
     var code = null;

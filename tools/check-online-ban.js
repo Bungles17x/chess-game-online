@@ -122,7 +122,7 @@ function client() {
 
     const warn = await a.wait((m) => m.t === 'warn', 5000, 'a fair-play warning');
     check(warn.message === 'Fair-play warning', 'the first offence warns', warn.message);
-    check(/Another flag/.test(warn.detail || ''), 'the warning explains what comes next', warn.detail);
+    check(/Points add up|Another finding/.test(warn.detail || ''), 'the warning explains what comes next', warn.detail);
 
     const banned = await a.wait((m) => m.t === 'banned', 5000, 'a ban frame');
     check(/^GB-[0-9A-F]{4}-[0-9A-F]{4}$/.test(banned.ban.id), 'the ban has a reference', banned.ban.id);
@@ -199,6 +199,53 @@ function client() {
     const reset = await admin.wait((m) => m.t === 'owner' && m.action === 'reset', 4000, 'owner reset');
     check(reset.ok && reset.status.points === 0, 'reset clears the score');
     check((await health()).bans === 0, 'reset also clears the ban');
+
+    /* --- reporting an opponent --- */
+    const r1 = client();
+    const r2 = client();
+    await r1.open;
+    await r2.open;
+
+    r1.send({ t: 'create', name: 'Reporter', base: 60, inc: 0, color: 'w' });
+    const reportRoom = await r1.wait((m) => m.t === 'state', 5000, 'report room');
+    r2.send({ t: 'join', code: reportRoom.code, name: 'Accused' });
+    await r2.wait((m) => m.t === 'state' && m.code === reportRoom.code, 5000, 'report join');
+    await r1.wait((m) => m.t === 'state' && m.present.b, 5000, 'reporter sees the opponent');
+
+    r1.send({ t: 'report', reason: 'engine', note: 'Moved like an engine.' });
+    const reportOk = await r1.wait((m) => m.t === 'reportOk', 5000, 'report receipt');
+    check(/^RP-[0-9A-F]{4}$/.test(reportOk.id), 'a report gets a reference', reportOk.id);
+
+    admin.send({ t: 'owner', key: OWNER, action: 'status' });
+    const ownerState = await admin.wait((m) => m.t === 'owner' && m.action === 'status', 5000, 'owner status with reports');
+    const seenReports = (ownerState.status && ownerState.status.reports) || [];
+    check(seenReports.some((r) => r.id === reportOk.id && r.accused === 'Accused' && r.reason === 'engine'),
+      'the owner sees the report and who it names', JSON.stringify(seenReports));
+
+    /* The opponent leaves; the report must still work and still name them. */
+    r2.ws.close();
+    await r1.wait((m) => m.t === 'left' || (m.t === 'state' && !m.present.b), 5000, 'the opponent to leave');
+    r1.send({ t: 'report', reason: 'abuse', note: 'Left after losing.' });
+    const afterLeave = await r1.wait((m) => m.t === 'reportOk', 5000, 'a report after the opponent left');
+    check(/^RP-[0-9A-F]{4}$/.test(afterLeave.id), 'a report still works after the opponent leaves', afterLeave.id);
+
+    admin.send({ t: 'owner', key: OWNER, action: 'status' });
+    const afterState = await admin.wait((m) => m.t === 'owner' && m.action === 'status', 5000, 'owner status after the leave');
+    const afterReports = (afterState.status && afterState.status.reports) || [];
+    check(afterReports.some((r) => r.id === afterLeave.id && r.accused === 'Accused' && r.reason === 'abuse'),
+      'the report after a disconnect names the player who left', JSON.stringify(afterReports));
+
+    r1.send({ t: 'report', reason: 'stall' });
+    await r1.wait((m) => m.t === 'reportOk', 5000, 'third report');
+    /* Strict mode flags four messages inside ten seconds as flooding; let the
+       window clear so the fourth report is judged by the report limiter. */
+    await sleep(10500);
+    r1.send({ t: 'report', reason: 'other' });
+    const limited = await r1.wait((m) => m.t === 'error' && /Too many reports/.test(m.message || ''), 5000, 'report rate limit');
+    check(/Too many reports/.test(limited.message), 'reports are rate limited', limited.message);
+
+    r1.ws.close();
+    r2.ws.close();
   } catch (err) {
     failures++;
     console.log('FAIL  ' + err.message);

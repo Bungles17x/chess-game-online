@@ -96,13 +96,14 @@ check(spreadHits.length === 0, 'quick moves spread over a minute are not flagged
 
 function act(points, prior) { return AC.sentence(points, prior || 0).action; }
 
-check(act(0) === null && act(2) === null, 'low scores are not punished');
-check(act(3) === 'warn' && act(7) === 'warn', 'three points is a warning');
-check(AC.sentence(8, 0).action === 'ban' && AC.sentence(8, 0).ms === AC.RULES.shortBanMs,
-  'eight points is a 30-minute ban');
-check(AC.sentence(8, 1).ms === AC.RULES.longBanMs, 'a repeat offender gets a day instead');
-check(AC.sentence(14, 0).ms === AC.RULES.longBanMs, 'fourteen points is a day');
-check(AC.sentence(22, 0).action === 'permanent', 'twenty-two points is permanent');
+check(act(0) === null && act(1) === null, 'low scores are not punished');
+check(act(2) === 'warn', 'two points is a warning');
+check(AC.sentence(3, 0).action === 'ban' && AC.sentence(3, 0).ms === AC.RULES.minBanMs,
+  'three points is a 5-minute ban');
+check(AC.sentence(6, 0).ms === AC.RULES.hourBanMs, 'six points is an hour');
+check(AC.sentence(11, 0).ms === AC.RULES.dayBanMs, 'eleven points is a day');
+check(AC.sentence(30, 0).action === 'permanent', 'thirty points is permanent');
+check(AC.sentence(3, 9).ms === AC.RULES.minBanMs, 'the score alone decides the tier');
 
 /* ---------------- ban helpers ---------------- */
 
@@ -118,7 +119,7 @@ check(AC.active({ expiresAt: 0 }, now) === true, 'a permanent ban never expires'
 check(AC.expiresIn({ expiresAt: now + 5000 }, now) === 5000, 'remaining time is exact');
 
 const secret = AC.publicBan({
-  id: 'GB-1', ip: '10.0.0.1', points: 9, threshold: 22, findings: [], severity: 'temporary'
+  id: 'GB-1', ip: '10.0.0.1', points: 9, threshold: 30, findings: [], severity: 'temporary'
 });
 check(secret.ip === undefined, 'a public ban does not leak the address');
 
@@ -129,16 +130,19 @@ const file = path.join(dir, 'bans.json');
 let clock = 1000000;
 const mod = createModeration({ file, now: () => clock });
 
-const first = mod.strike('203.0.113.9', { finding: 'illegal', name: 'Tester' });
-check(first.action === 'warn' && first.points === 3, 'three points warns', JSON.stringify(first.points));
+const first = mod.strike('203.0.113.9', { finding: 'chat', name: 'Tester' });
+check(first.action === 'warn' && first.points === 1 && first.first === true,
+  'the first scored finding always warns', String(first.points));
 
-const second = mod.strike('203.0.113.9', { finding: 'instant' });
-check(second.action === 'warn' && second.points === 6, 'a second signal warns again', String(second.points));
+clock += 31000;
+const second = mod.strike('203.0.113.9', { finding: 'chat' });
+check(second.action === 'warn' && second.points === 2, 'the ladder still warns at two points', String(second.points));
 
+clock += 31000;
 const third = mod.strike('203.0.113.9', { finding: 'flood' });
-check(third.action === 'ban' && third.ban.severity === 'temporary', 'eight points bans');
-check(third.ban.expiresAt === clock + AC.RULES.shortBanMs, 'the ban carries an expiry');
-check(third.ban.findings.length === 3 && third.ban.strike === 1, 'the record lists the evidence');
+check(third.action === 'ban' && third.ban.severity === 'temporary', 'four points is a 5-minute ban');
+check(third.ban.expiresAt === clock + AC.RULES.minBanMs, 'the ban carries an expiry');
+check(third.ban.findings.length === 2 && third.ban.strike === 1, 'the record lists the evidence');
 
 check(mod.check('203.0.113.9') !== null, 'the address is now blocked');
 check(mod.check('203.0.113.10') === null, 'another address is untouched');
@@ -161,7 +165,7 @@ check(burst.get('198.51.100.4').findings.chat.count === 3, 'but every occurrence
 
 /* a clean player's score fades after a day */
 const fading = createModeration({ file: '', now: () => clock });
-fading.strike('198.51.100.5', { finding: 'illegal' });
+fading.strike('198.51.100.5', { finding: 'chat' });
 clock += 25 * 3600000;
 fading.strike('198.51.100.5', { finding: 'chat' });
 check(fading.get('198.51.100.5').points === 1, 'a day of quiet resets the score', String(fading.get('198.51.100.5').points));
@@ -181,10 +185,21 @@ for (let i = 0; i < 40; i++) {
     else break;
   }
 }
-check(bans === 6, 'the ladder escalates on every offence', String(bans));
+check(bans === 9, 'the points ladder ends in a permanent ban', String(bans));
 check(lastBan && lastBan.severity === 'permanent' && lastBan.expiresAt === 0,
   'the last ban is permanent', lastBan && lastBan.severity);
 check(ladder.get(ip).bans.length === bans, 'every ban is kept in the history');
+
+/* The first finding gets a warning even when it is already over the ban tier. */
+const grace = createModeration({ file: '', now: () => clock });
+const heavy = grace.strike('198.51.100.88', { finding: 'illegal' });
+check(heavy.action === 'warn' && heavy.points === 3 && heavy.first === true,
+  'a 3-point first finding warns instead of banning', heavy.action + '/' + heavy.points);
+check(grace.check('198.51.100.88') === null, 'the first warning blocks nothing');
+clock += 31000;
+const afterGrace = grace.strike('198.51.100.88', { finding: 'chat' });
+check(afterGrace.action === 'ban' && afterGrace.ban.severity === 'temporary',
+  'the next finding after the first warning bans', afterGrace.action);
 
 /* ---------------- owner actions ---------------- */
 

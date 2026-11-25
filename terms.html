@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit — terms and fair play</title>
+<meta name="description" content="The house rules for playing Gambit online, the fair-play point ladder, bans, accounts and what the server keeps.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2381b64c'/%3E%3Ctext x='16' y='24' font-size='21' text-anchor='middle' fill='%23262421'%3E%E2%99%9E%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="glass.css">
+<style>
+  .terms-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 18px 20px 0;
+  }
+  .terms-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .terms-brand span {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    color: var(--accent-hi);
+    background: rgba(129, 182, 76, 0.16);
+    border: 1px solid rgba(129, 182, 76, 0.3);
+  }
+  .terms-back {
+    color: var(--muted);
+    font-size: 12px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 1px;
+  }
+  .terms-back:hover { color: var(--text); border-bottom-color: var(--text); }
+  .terms { max-width: 780px; margin: 0 auto; padding: 24px 20px 70px; }
+  .terms h1 { font-size: 34px; letter-spacing: -0.04em; margin: 0 0 6px; }
+  .terms-lead { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 6px; }
+  .terms-date { color: var(--muted); font-size: 11px; font-family: var(--mono); margin: 0 0 24px; }
+  .terms h2 { font-size: 18px; letter-spacing: -0.02em; margin: 28px 0 8px; }
+  .terms p, .terms li { font-size: 13px; line-height: 1.7; color: #cfd3de; }
+  .terms p { margin: 0 0 10px; }
+  .terms ul { margin: 0 0 12px; padding-left: 18px; }
+  .terms li { margin-bottom: 6px; }
+  .terms code { font-family: var(--mono); font-size: 11.5px; color: var(--text); }
+  .terms-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: linear-gradient(180deg, rgba(129, 182, 76, 0.08), transparent 70%), rgba(255, 255, 255, 0.03);
+    font-size: 13px;
+    line-height: 1.65;
+    color: #cfd3de;
+  }
+  .terms-card b { color: var(--text); }
+  .terms-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0 14px; }
+  .terms-table th, .terms-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .terms-table th { color: var(--muted); font-weight: 500; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .terms-table td:first-child { font-family: var(--mono); color: var(--accent-hi); width: 70px; }
+  .terms-foot { margin-top: 30px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 11.5px; color: var(--muted); }
+  .terms a.inline { color: var(--accent-hi); text-decoration: none; border-bottom: 1px solid rgba(129, 182, 76, 0.4); }
+  .terms a.inline:hover { border-bottom-color: var(--accent-hi); }
+  @media (max-width: 560px) {
+    .terms-top { padding: 14px 14px 0; }
+    .terms { padding: 20px 14px 60px; }
+    .terms h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body data-theme="green" data-glass="frosted">
+
+<div class="wall" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<header class="terms-top">
+  <a class="terms-brand" href="./"><span aria-hidden="true">&#9822;</span>Gambit</a>
+  <a class="terms-back" href="./">&larr; Back to the board</a>
+</header>
+
+<main class="terms">
+  <h1>Terms and fair play</h1>
+  <p class="terms-lead">Gambit is a free chess board. These are the house rules for playing online, the point system behind automatic bans, and what the app and its server keep. They are written to be read, not to hide anything.</p>
+  <p class="terms-date">Last updated 25 November 2026</p>
+
+  <div class="terms-card">
+    <b>The short version.</b> Play your own moves, keep chat civil, and do not flood or probe the server. Your first scored finding is always a warning, whatever its weight. After that points add up: 3 pauses online play for five minutes, 6 for an hour, 11 for a day, and 30 is permanent. Offline play, puzzles, stats and your rating are never touched. Accounts and games live in this browser; the server keeps online rooms and a fair-play record keyed by your address.
+  </div>
+
+  <h2>Using Gambit</h2>
+  <p>Gambit is free and needs no account. An account is optional, lives only in this browser, and is a convenience for a display name and preferences. Online play needs the Gambit server; when it is unreachable, the offline board, puzzles, lessons and analysis still work.</p>
+  <p>Do not use the service to break the law, attack the server, or interfere with anyone else's game. Rooms, chat and moves are relayed by the server and are visible to the people in that room.</p>
+
+  <h2>Fair-play points</h2>
+  <p>While an online game is live, the server watches the traffic a game produces. It flags things a person does not do: moves that are not legal in the position, floods of messages or chat, repeated requests for the whole game state, and long runs of moves chosen faster than a person can read the board. Each confirmed finding adds 1&ndash;3 points to the address you connect from.</p>
+  <p><b>The first scored finding is always a warning, even when it is worth 3 points.</b> A single illegal-move or machine-speed finding pauses nothing. From the second finding on, the score decides what happens:</p>
+  <table class="terms-table">
+    <thead><tr><th>Points</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>2</td><td>A warning. The first finding always warns, whatever its weight.</td></tr>
+      <tr><td>3</td><td>Online play pauses for 5 minutes.</td></tr>
+      <tr><td>6</td><td>Online play pauses for 1 hour.</td></tr>
+      <tr><td>11</td><td>Online play pauses for 24 hours.</td></tr>
+      <tr><td>30</td><td>Permanent ban.</td></tr>
+    </tbody>
+  </table>
+  <p>Points are not a rating and do not change your Elo. They never affect the offline board, puzzles, lessons, review, stats or saved games. A record with no ban fades after a day without findings. Once a ban is on record the points stay, so repeat findings climb the ladder instead of starting over.</p>
+  <p>Engines, opening books and outside help are off while an online game is live. Hints, coach notes and the analysis board come back as soon as the game ends.</p>
+
+  <h2>Bans and appeals</h2>
+  <p>Bans are automatic and apply to online play only. A ban screen names the finding, the points and a reference such as <code>GB-1A2B-3C4D</code>. Keep that reference. If you think a ban is wrong, quote it when you get in touch; the owner can review the record and lift a ban. Bans are keyed by the address you connect from, so a shared connection can carry a record for everyone behind it.</p>
+
+  <h2>Chat and conduct</h2>
+  <p>Chat is for the game. No harassment, threats, spam, advertising or illegal content. Messages are relayed to the room and kept only in the server's memory while the room exists; they are not a private channel and are not a place to share personal information.</p>
+
+  <h2>Accounts, storage and privacy</h2>
+  <ul>
+    <li>Accounts, saved games, settings, ratings and puzzle progress are stored in this browser's local storage. Passwords are hashed in the browser and never sent anywhere. Your email stays on the device unless you ask for a verification code.</li>
+    <li>If email verification is configured, the address and a six-digit code are sent to the mail provider so the code can be delivered. Nothing else is sent.</li>
+    <li>The online server keeps room state in memory and a fair-play record keyed by the address you connect from: points, findings, ban references and timestamps. On a free host that record may be lost when the service restarts.</li>
+    <li>Reports you send about an opponent are kept in the server's memory with the room code, both display names, the reason and your note, so the owner can review them. The reported player is not told, and reports are lost when the server restarts.</li>
+    <li>There are no ads, no analytics, no third-party trackers and no cookies. The app uses local storage for its own settings and saves.</li>
+    <li>Deleting an account removes it from this browser. It does not erase a fair-play record held by the server; a ban can still be appealed with its reference.</li>
+  </ul>
+
+  <h2>Availability and changes</h2>
+  <p>Gambit is a free project on free hosting. It can change, pause or stop at any time, and no uptime or data retention is promised. The software is provided as it is, without warranties. To the extent the law allows, the project is not liable for lost games, lost ratings, missed notifications or anything else that follows from using it.</p>
+  <p>These terms may be updated as the app changes; the date at the top is the version you are reading. Continuing to use Gambit after a change means the new version applies.</p>
+
+  <h2>If you are young</h2>
+  <p>If you are not old enough to agree to these rules on your own, use Gambit with a parent or guardian.</p>
+
+  <p class="terms-foot">Questions, appeals and bug reports: use the reference from the ban screen or the error details in the app. <a class="inline" href="./">Back to the board</a>.</p>
+</main>
+
+</body>
+</html>

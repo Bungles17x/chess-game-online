@@ -26,6 +26,7 @@
     <button class="nav-btn" data-screen="analysis">Analysis</button>
     <button class="nav-btn" data-screen="learn">Learn</button>
     <button class="nav-btn" data-screen="stats">Stats</button>
+    <button class="nav-btn" data-screen="owner" id="ownerNav" hidden>Owner</button>
   </nav>
 
   <div class="topbar-right">
@@ -120,6 +121,7 @@
               <button class="primary" id="rematchBtn">Rematch</button>
               <button class="ghost" id="watchBtn">Watch replay</button>
               <button class="ghost" id="reviewBtn">Review</button>
+              <button class="ghost" id="resultReport" type="button" hidden>Report opponent</button>
               <button class="ghost" id="newGameBtn">New game</button>
             </div>
           </div>
@@ -189,6 +191,7 @@
         <div class="rm-status" id="rmStatus">Connecting&hellip;</div>
         <div class="rm-actions">
           <button class="ghost" id="rmCopy">Copy invite</button>
+          <button class="ghost" id="rmReport" type="button" hidden>Report</button>
           <button class="ghost" id="rmLeave">Leave</button>
         </div>
         <div class="rm-pending" id="rmPending" hidden>
@@ -520,49 +523,7 @@
       <button class="ghost wide" id="resetSettings">Reset settings</button>
       <p class="hint">Keys: &larr; &rarr; step &middot; <b>1</b>&ndash;<b>6</b> screens &middot; <b>F</b> flip &middot; <b>U</b> undo &middot; <b>W</b> replay &middot; <b>N</b> new game &middot; <b>P</b> copy PGN &middot; <b>L</b> link &middot; <b>B</b> blindfold &middot; <b>Z</b> focus &middot; <b>T</b> theme &middot; <b>S</b> sound &middot; <b>?</b> list them. Right-drag on the board draws an arrow; Esc clears it.</p>
 
-      <div class="owner-card" id="ownerCard">
-        <div class="oc-head">
-          <span class="oc-shield" aria-hidden="true">&#9878;</span>
-          <b>Owner tools</b>
-          <span class="oc-tag">Bungles17x</span>
-        </div>
-        <p class="hint">Fair-play testing on the live server. Add <code>OWNER_KEY</code> to the server's environment, then paste the same key here. The key stays in this browser.</p>
-
-        <div class="field">
-          <label class="label" for="ownerKey">Owner key</label>
-          <div class="join-row">
-            <input class="text-input" id="ownerKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste the server key">
-            <button class="ghost" id="ownerSave" type="button">Save</button>
-          </div>
-        </div>
-
-        <div class="owner-actions">
-          <button class="ghost" id="ownerPreview" type="button">Preview the ban screen</button>
-          <button class="ghost" id="ownerList" type="button">List active bans</button>
-          <button class="ghost" id="ownerLift" type="button">Lift my ban</button>
-          <button class="ghost" id="ownerReset" type="button">Reset my record</button>
-          <button class="ghost" id="ownerBan" type="button">Ban me for 10 minutes</button>
-        </div>
-
-        <div class="field">
-          <label class="label" for="ownerFinding">Score a finding</label>
-          <div class="join-row">
-            <select class="text-input" id="ownerFinding">
-              <option value="illegal">Illegal moves / tampering</option>
-              <option value="instant">Machine-like timing</option>
-              <option value="flood">Message flooding</option>
-              <option value="chat">Chat spam</option>
-              <option value="sync">State scraping</option>
-            </select>
-            <button class="ghost" id="ownerStrike" type="button">Strike</button>
-          </div>
-          <p class="hint">Each strike runs the real scoring. Three points warns, eight bans, twenty-two is permanent.</p>
-        </div>
-
-        <p class="owner-status" id="ownerStatus">No key saved.</p>
-        <p class="owner-note" id="ownerNote"></p>
-        <div class="owner-bans" id="ownerBans" hidden></div>
-      </div>
+      <p class="hint"><a class="terms-link" href="terms.html">Terms and fair play</a> &mdash; the point ladder, what gets a ban, and what the server keeps.</p>
     </div>
   </aside>
 
@@ -682,6 +643,111 @@
       </div>
     </div>
     <div class="game-list" id="gameList"></div>
+  </section>
+
+  <section class="page-col owner-page" id="ownerPage">
+    <div class="op-head">
+      <div class="op-title">
+        <span class="op-shield" aria-hidden="true">&#9878;</span>
+        <div>
+          <h1>Owner console</h1>
+          <p class="lead">Fair play, bans and the server. This screen only opens with the server key.</p>
+        </div>
+        <span class="op-tag">Bungles17x</span>
+      </div>
+      <div class="op-head-actions">
+        <span class="op-pill" id="ownerServerPill" data-kind="idle">Locked</span>
+        <button class="ghost mini" id="ownerLock" type="button" hidden>Lock panel</button>
+      </div>
+    </div>
+
+    <div class="owner-gate" id="ownerGate">
+      <p class="og-lead">Paste the key the server holds in <code>OWNER_KEY</code>. It is checked by the server and kept only in this browser.</p>
+      <label class="label" for="ownerKey">Owner key</label>
+      <div class="join-row">
+        <input class="text-input" id="ownerKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste the server key">
+        <button class="primary" id="ownerSave" type="button">Unlock</button>
+      </div>
+      <p class="owner-note" id="ownerGateNote"></p>
+      <p class="hint">Five wrong keys lock this address for ten minutes. With no <code>OWNER_KEY</code> on the server, every action is refused.</p>
+    </div>
+
+    <div class="owner-panel" id="ownerPanel" hidden>
+      <div class="owner-grid">
+        <div class="op-card">
+          <div class="op-card-head"><b>Your record</b><span class="op-mono" id="ownerAddress">&mdash;</span></div>
+          <div class="op-risk" id="ownerRisk" data-kind="ok">
+            <div class="op-risk-head"><span>Fair-play risk</span><b id="ownerPoints">0 / 30</b></div>
+            <div class="op-risk-bar"><i id="ownerPointsBar"></i></div>
+          </div>
+          <div class="op-facts">
+            <div><span>Bans</span><b id="ownerBanCount">0</b></div>
+            <div><span>State</span><b id="ownerBanState">Clear</b></div>
+            <div><span>Findings</span><b id="ownerFindingCount">0</b></div>
+          </div>
+          <div class="op-findings" id="ownerStatusFindings"></div>
+        </div>
+
+        <div class="op-card">
+          <div class="op-card-head"><b>Server</b></div>
+          <div class="op-facts">
+            <div><span>Rooms</span><b id="ownerRooms">0</b></div>
+            <div><span>Strict mode</span><b id="ownerStrict">off</b></div>
+            <div><span>Uptime</span><b id="ownerUptime">&mdash;</b></div>
+          </div>
+          <p class="op-foot">Ledger file: <code id="ownerLedger">memory</code></p>
+          <button class="ghost wide" id="ownerRefresh" type="button">Refresh everything</button>
+        </div>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head"><b>Test bans</b><span>Issued on this address through the real ban path</span></div>
+        <div class="owner-actions">
+          <button class="ghost" id="ownerBan10" type="button">10 minutes</button>
+          <button class="ghost" id="ownerBan60" type="button">1 hour</button>
+          <button class="ghost" id="ownerBanDay" type="button">24 hours</button>
+          <button class="ghost danger" id="ownerBanPerm" type="button">Permanent</button>
+        </div>
+        <div class="owner-actions">
+          <button class="ghost" id="ownerPreview" type="button">Preview the ban screen</button>
+          <button class="ghost" id="ownerLift" type="button">Lift my ban</button>
+          <button class="ghost" id="ownerReset" type="button">Reset my record</button>
+        </div>
+        <p class="hint">A test ban is a real ban: the screen, the countdown and the block are the ones players get. Lift it here or from the ban screen.</p>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head"><b>Score a finding</b><span>The detector's own weights, scored as if it fired</span></div>
+        <div class="op-finding-list" id="ownerFindingList"></div>
+        <p class="hint" id="ownerLadder">Warning at 2, 5 minutes at 3, 1 hour at 6, 24 hours at 11, permanent at 30. The same finding scores once per 30 seconds.</p>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head">
+          <b>Active bans</b><span id="ownerBansCount">0</span>
+          <button class="mini" id="ownerList" type="button">Reload</button>
+        </div>
+        <div class="owner-bans" id="ownerBans" hidden></div>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head"><b>Player reports</b><span id="ownerReportsCount">0</span></div>
+        <div class="owner-bans" id="ownerReports"></div>
+        <p class="op-foot">Reports live in server memory and clear when it restarts.</p>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head"><b>Watchlist</b><span>Every address with points or a ban</span></div>
+        <div class="owner-records" id="ownerRecords"></div>
+      </div>
+
+      <div class="op-card">
+        <div class="op-card-head"><b>Session log</b><button class="mini" id="ownerLogClear" type="button">Clear</button></div>
+        <div class="owner-log" id="ownerLog"></div>
+      </div>
+
+      <p class="owner-note" id="ownerNote"></p>
+    </div>
   </section>
 </main>
 
@@ -929,6 +995,16 @@
       </form>
     </div>
 
+    <div class="acc-block fair-block" id="fairBlock" hidden>
+      <h3 class="acc-h3">Fair play</h3>
+      <p class="acc-note">Points come from what the server sees in online games: illegal moves, message floods, chat spam, state scraping and machine-speed play. Your first scored finding is always a warning, even a 3-point one; after that points decide the pause. They never touch offline play, puzzles, stats or your rating.</p>
+      <div class="fair-score"><span>Ban points</span><b id="fairPoints">0 / 30</b></div>
+      <div class="fair-bar"><i id="fairBar"></i></div>
+      <p class="fair-tier" id="fairTier"></p>
+      <p class="fair-ladder" id="fairLadder"></p>
+      <a class="fair-link" href="terms.html">Terms and fair play</a>
+    </div>
+
     <div class="acc-block">
       <h3 class="acc-h3">Problems</h3>
       <p class="acc-note">Anything that went wrong in the app is listed here. Nothing is sent anywhere.</p>
@@ -1012,7 +1088,7 @@
     <p class="ban-lead" id="banLead"></p>
 
     <div class="ban-meter">
-      <div class="bm-head"><span>Fair-play risk score</span><b id="banPoints">0 / 22</b></div>
+      <div class="bm-head"><span>Fair-play risk score</span><b id="banPoints">0 / 30</b></div>
       <div class="bm-bar"><i id="banPointsBar"></i></div>
     </div>
 
@@ -1047,9 +1123,35 @@
       <ul>
         <li>Play your own moves. Engines, books and outside help are off while an online game is live.</li>
         <li>Hints, coach notes and the analysis board come back when the game ends.</li>
-        <li>Bans escalate: a warning, then 30 minutes, then a day, then permanently.</li>
+        <li>The first scored finding is always a warning, whatever its weight. After that points decide: 3 pauses online play for 5 minutes, 6 for an hour, 11 for a day, and 30 is permanent.</li>
       </ul>
-      <p class="ban-appeal">Think this is a mistake? Keep the reference above and quote it when you get in touch. Nothing on this device is deleted: your games, puzzles and Elo stay exactly as they were.</p>
+      <p class="ban-appeal">Think this is a mistake? Keep the reference above and quote it when you get in touch. Nothing on this device is deleted: your games, puzzles and Elo stay exactly as they were. <a href="terms.html">Read the terms and fair play page</a>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="editor-layer" id="reportLayer" hidden>
+  <div class="editor-card report-card" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <div class="ed-head">
+      <h2 id="reportTitle">Report your opponent</h2>
+      <button class="mini" id="reportCancel" type="button">Close</button>
+    </div>
+    <p class="ed-sub">This goes to the server owner for review. Your opponent is not told who reported them.</p>
+    <div class="field">
+      <label class="label">What happened</label>
+      <div class="seg report-reasons" id="reportReasons">
+        <button type="button" data-reason="engine" class="on">Engine or outside help</button>
+        <button type="button" data-reason="stall">Stalling</button>
+        <button type="button" data-reason="abuse">Abusive chat</button>
+        <button type="button" data-reason="other">Something else</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" for="reportNote">Anything else (optional)</label>
+      <input class="input" id="reportNote" maxlength="200" placeholder="What should the owner know?">
+    </div>
+    <div class="ed-actions">
+      <button class="primary" id="reportSend" type="button">Send report</button>
     </div>
   </div>
 </div>

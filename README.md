@@ -86,37 +86,56 @@ node tools/check-online-ban.js    # starts its own server on :8131 with tiny
 
 Neither one touches the deployed server or your own address.
 
-### The owner console (live)
+### Fair-play points
+
+Every confirmed finding adds 1–3 points to the address. The first scored
+finding is always a warning, whatever its weight, so a single 3-point illegal or
+machine-timing hit cannot skip to a ban. After that the ladder is 3 (a 5-minute
+ban), 6 (1 hour), 11 (24 hours) and 30 (permanent), with 2 as the warning band.
+Points never touch offline play, puzzles, stats or rating. The profile shows the
+rule and the ladder even at zero points, and when a ban lands mid-game the game
+ends with a note naming the banned player and the length of the ban. The
+player-facing rules live in `terms.html`.
+
+### The owner panel (live)
+
+The panel is not linked anywhere in the player UI. It lives at `#owner` and only
+renders after the server accepts the key, so a visitor never sees it.
 
 1. Give the server a key. Locally: copy `.env.example` to `.env` and set
    `OWNER_KEY=` to any long random string. On Render: **Environment → add
    `OWNER_KEY` → save**, which redeploys the service.
 2. Restart the local server, or wait for the Render deploy.
-3. Open the app → **Settings → Owner tools**, paste the key, press **Save**.
-   The key is kept in this browser only.
-4. Then use the buttons:
+3. Open `https://…/#owner` (or `http://127.0.0.1:8124/#owner`), paste the key
+   and press **Unlock**. The key is kept in this browser only; the nav grows an
+   **Owner** tab until you press **Lock panel**. On phones that tab sits first
+   in the bottom dock, so you can always come back to the panel.
 
-| Button | What it does |
+What is on it:
+
+| Card | What it does |
 | --- | --- |
-| Preview the ban screen | paints a complete sample ban — no server call, no lock |
-| Ban me for 10 minutes | issues a real temporary ban for your address and shows the screen |
-| Score a finding | runs the real scoring for the finding you picked; 3 points warns, 8 bans, 22 is permanent |
-| Lift my ban | lifts the newest ban on your address so online play works again |
-| Reset my record | clears every point, finding and ban for your address |
-| List active bans | shows the live ledger: reference, reason and time left |
+| Your record | risk score and meter, bans, live ban countdown, findings with their weights |
+| Server | rooms, strict mode, uptime and the ledger file |
+| Test bans | 10 minutes, 1 hour, 24 hours, permanent; preview, lift, reset |
+| Score a finding | one Strike per detector finding, scored with the real weights |
+| Active bans | every live ban with its reference, reason, time left and a Lift button |
+| Watchlist | every address with points or bans, its findings and its state |
+| Session log | what this browser did this session |
 
-Lifting also works from the ban screen itself, which grows an **Owner tools** row
-once a key is saved.
+Test bans are real bans: the block, the countdown and the ban screen are the
+ones players get. Lift them from the panel or from the ban screen's **Owner
+tools** row. Lift buttons in **Active bans** work on any address, not just
+yours.
 
-Owner actions apply to the address you are using, five wrong keys lock the
-console for ten minutes, and the key is only ever sent to your own server. With
-no `OWNER_KEY` set, the server refuses every owner action and the console says
-so.
+Five wrong keys lock the panel for ten minutes, and the key is only ever sent to
+your own server. With no `OWNER_KEY` set, the server refuses every owner action
+and the panel says so.
 
-One catch when testing locally: `js/config.js` names the hosted server, so a page
-opened from `node server.js` still talks to that host. Put `''` in that file
-while you test against a local server (or do the test on the published site,
-where the hosted server already answers).
+`js/config.js` sends a page served from `localhost` or `127.0.0.1` to the local
+server automatically, so `node server.js` plus `http://127.0.0.1:8124/#owner`
+uses the `OWNER_KEY` in `.env`. The published page still talks to the deployed
+server, which needs the same key in its environment.
 
 ### A hostile client, with the thresholds turned down
 

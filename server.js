@@ -36,10 +36,11 @@ const AC_RULES = AC.withRules(process.env.GAMBIT_AC_STRICT === '1' ? {
   instantMoveMs: 5000,
   instantMinLegal: 1,
   repeatMs: 0,
-  warnAt: 2,
-  shortBanAt: 4,
-  longBanAt: 8,
-  permBanAt: 12
+  warnAt: 1,
+  minBanAt: 4,
+  hourBanAt: 5,
+  dayBanAt: 7,
+  permBanAt: 9
 } : null);
 
 /* The owner console is off unless the host sets this. It is never sent to a
@@ -331,9 +332,12 @@ function closeClient(client) {
 
 /* ---------------- fair play ---------------- */
 
-function warnDetail(id) {
+function warnDetail(id, points) {
   const meta = AC.FINDINGS[id] || { label: 'Fair play', detail: '' };
-  return meta.label + ' — ' + meta.detail + ' Another flag locks online play.';
+  const next = (Number(points) || 0) + 1 >= AC_RULES.minBanAt
+    ? ' Another finding pauses online play.'
+    : ' Points add up; enough of them pause online play.';
+  return meta.label + ' — ' + meta.detail + next;
 }
 
 /* Score the findings a guard just reported. A warning is a message; a ban is
@@ -355,22 +359,39 @@ function strike(client, ids) {
       send(client, {
         t: 'warn',
         message: out.verdict.label,
-        detail: warnDetail(list[i]),
+        detail: warnDetail(list[i], out.points),
         points: out.points
       });
     }
   }
 }
 
+/* A ban's length in words, for the message the other seat reads. */
+function banTerm(ban) {
+  if (!ban || ban.severity === 'permanent') return 'a permanent ban';
+  const mins = Math.round((Number(ban.expiresAt) - Number(ban.issuedAt)) / 60000);
+  if (mins >= 24 * 60) return 'a 24-hour ban';
+  if (mins >= 60) return 'a 1-hour ban';
+  return 'a ' + Math.max(1, mins) + '-minute ban';
+}
+
 function banClient(client, ban) {
   if (!client || client.ban) return;
   client.ban = ban;
 
-  /* A ban mid-game is a loss: the other seat gets the point, not a hang. */
+  /* A ban mid-game is a loss: the other seat gets the point, not a hang. The
+     result carries a plain-language note so the opponent is told the player
+     was removed and why, not just that the game ended. */
   const room = client.room;
-  if (room && client.seat && !room.result) {
-    room.result = { code: other(client.seat), reason: 'fair play' };
+  const opponent = room && client.seat ? room.seats[other(client.seat)] : null;
+  if (room && client.seat && opponent && !room.result) {
+    const who = room.names[client.seat] || 'Your opponent';
+    const note = ban.test
+      ? who + ' was removed from online play by the owner (' + banTerm(ban) + ').'
+      : who + ' was banned for fair play (' + banTerm(ban) + ').';
+    room.result = { code: other(client.seat), reason: 'fair play', note };
     broadcast(room, { t: 'end', result: room.result });
+    broadcast(room, { t: 'notice', message: note });
     pushLobby();
   }
 
@@ -382,6 +403,69 @@ function banClient(client, ban) {
   if (client.owner) return;
   client.banClose = setTimeout(() => closeClient(client), 4000);
   if (client.banClose.unref) client.banClose.unref();
+}
+
+/* A player's own standing: points and the public ladder, never the address or
+   anyone else's record. */
+function standingFor(ip) {
+  const record = moderation.get(ip);
+  const current = moderation.check(ip);
+  return {
+    t: 'standing',
+    points: record.points,
+    warnAt: AC_RULES.warnAt,
+    minBanAt: AC_RULES.minBanAt,
+    hourBanAt: AC_RULES.hourBanAt,
+    dayBanAt: AC_RULES.dayBanAt,
+    permBanAt: AC_RULES.permBanAt,
+    warned: !!record.warned,
+    ban: current ? AC.publicBan(current) : null
+  };
+}
+
+/* A player's report about the other seat. It is private: the accused is never
+   told, and only the owner's status carries the list. */
+function handleReport(client, msg) {
+  const room = client.room;
+  if (!room || !client.seat) return send(client, { t: 'error', message: 'Join a game before reporting.' });
+
+  const accusedSeat = other(client.seat);
+  /* The seat can be empty: a disconnect must not make the report impossible. */
+  const accused = room.seats[accusedSeat]
+    ? room.names[accusedSeat]
+    : (room.lastNames && room.lastNames[accusedSeat]);
+  if (!accused) return send(client, { t: 'error', message: 'There is no opponent to report.' });
+
+  const reason = String(msg.reason || '');
+  /* A plain lookup would also accept 'constructor' and friends. */
+  const label = Object.prototype.hasOwnProperty.call(REPORT_REASONS, reason) ? REPORT_REASONS[reason] : '';
+  if (!label) return send(client, { t: 'error', message: 'Pick a reason for the report.' });
+
+  const now = Date.now();
+  const rate = reportRate.get(client.ip) || { count: 0, since: now };
+  if (now - rate.since > REPORT_WINDOW_MS) { rate.count = 0; rate.since = now; }
+  if (rate.count >= REPORTS_PER_WINDOW) {
+    return send(client, { t: 'error', message: 'Too many reports. Try again in a few minutes.' });
+  }
+  rate.count++;
+  reportRate.set(client.ip, rate);
+
+  const note = String(msg.note || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200);
+  const report = {
+    id: 'RP-' + crypto.randomBytes(2).toString('hex').toUpperCase(),
+    at: now,
+    room: room.code,
+    reporter: room.names[client.seat] || 'Player',
+    accused,
+    reason,
+    label,
+    note
+  };
+  reports.push(report);
+  if (reports.length > REPORTS_MAX) reports.shift();
+
+  console.log('  report: ' + report.id + ' ' + report.reporter + ' -> ' + report.accused + ' (' + report.label + ')');
+  send(client, { t: 'reportOk', id: report.id });
 }
 
 /* ---------------- owner tools ---------------- */
@@ -404,9 +488,25 @@ function ownerStatus(client) {
     ip: client.ip,
     points: record.points,
     threshold: AC_RULES.permBanAt,
+    warnAt: AC_RULES.warnAt,
+    minBanAt: AC_RULES.minBanAt,
+    hourBanAt: AC_RULES.hourBanAt,
+    dayBanAt: AC_RULES.dayBanAt,
     bans: record.bans.length,
     ban: current ? AC.publicBan(current) : null,
-    findings: Object.keys(record.findings).map((id) => ({ id, count: record.findings[id].count }))
+    reports: reports.slice(-20).reverse(),
+    findings: Object.keys(record.findings).map((id) => ({
+      id,
+      label: (AC.FINDINGS[id] && AC.FINDINGS[id].label) || id,
+      count: record.findings[id].count,
+      weight: AC_RULES.weight[id] || 0
+    })),
+    server: {
+      rooms: rooms.size,
+      strict: process.env.GAMBIT_AC_STRICT === '1',
+      uptime: Math.round(process.uptime()),
+      ledger: moderation.file ? path.basename(moderation.file) : 'memory'
+    }
   };
 }
 
@@ -483,9 +583,16 @@ function handleOwner(client, msg) {
   }
 
   if (action === 'lift') {
-    const current = moderation.check(me) || moderation.latest(me);
-    if (!current) return ownerNo(client, 'Nothing to lift on this address.');
-    moderation.lift(current.id);
+    /* With a reference the panel can lift any address's ban, not just the
+       caller's; without one it keeps the original "lift mine" behaviour. */
+    const wanted = String(msg.banId || '').trim();
+    const current = wanted
+      ? moderation.lift(wanted)
+      : (moderation.check(me) || moderation.latest(me));
+    if (!current) {
+      return ownerNo(client, wanted ? 'That ban is not active any more.' : 'Nothing to lift on this address.');
+    }
+    if (!wanted) moderation.lift(current.id);
     if (client.ban && client.ban.id === current.id) client.ban = null;
     if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
     return ownerOk(client, { action: 'lift', banId: current.id });
@@ -502,7 +609,8 @@ function handleOwner(client, msg) {
     return ownerOk(client, {
       action: 'list',
       count: moderation.count(),
-      bans: moderation.activeBans().map(AC.publicBan)
+      bans: moderation.activeBans().map(AC.publicBan),
+      records: moderation.list()
     });
   }
 
@@ -512,6 +620,20 @@ function handleOwner(client, msg) {
 /* ---------------- rooms ---------------- */
 
 const rooms = new Map();
+
+/* Player reports are kept in memory only: they name two players and are for the
+   owner to read, not for scoring and not for automatic action. */
+const REPORTS_MAX = 100;
+const REPORTS_PER_WINDOW = 3;
+const REPORT_WINDOW_MS = 10 * 60 * 1000;
+const REPORT_REASONS = {
+  engine: 'Engine or outside help',
+  stall: 'Stalling or refusing to play',
+  abuse: 'Abusive chat',
+  other: 'Something else'
+};
+const reports = [];
+const reportRate = new Map();
 
 function makeCode() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -685,6 +807,12 @@ function leaveRoom(client) {
   let left = false;
   ['w', 'b'].forEach((color) => {
     if (room.seats[color] === client) {
+      /* Keep the last real name so the other seat can still report this player
+         after a disconnect. */
+      if (room.names[color] && room.names[color] !== 'Waiting\u2026') {
+        room.lastNames = room.lastNames || { w: '', b: '' };
+        room.lastNames[color] = room.names[color];
+      }
       room.seats[color] = null;
       room.names[color] = 'Waiting\u2026';
       left = true;
@@ -724,6 +852,12 @@ function onMessage(client, msg) {
      point, and the key is checked before anything happens. */
   if (msg.t === 'owner') {
     handleOwner(client, msg);
+    return;
+  }
+
+  /* Reading your own points is not traffic; it must not count as a message. */
+  if (msg.t === 'standing') {
+    send(client, standingFor(client.ip));
     return;
   }
 
@@ -916,6 +1050,10 @@ function onMessage(client, msg) {
       pushLobby();
       return;
     }
+
+    case 'report':
+      handleReport(client, msg);
+      return;
 
     case 'chat': {
       if (!room) return;

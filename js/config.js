@@ -10,4 +10,8 @@
  *
  * http(s) or ws(s) both work; /ws is appended if you leave it off.
  */
-window.GAMBIT_SERVER = 'https://chess-game-online-u34h.onrender.com';
+/* A page served from this machine uses the server on this machine, so
+   `node server.js` needs no edit. The published page keeps the deployed one. */
+window.GAMBIT_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? ''
+  : 'https://chess-game-online-u34h.onrender.com';
