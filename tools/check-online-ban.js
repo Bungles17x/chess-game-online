@@ -160,6 +160,7 @@ function client() {
     admin.send({ t: 'owner', key: 'wrong-key', action: 'status' });
     const refused = await admin.wait((m) => m.t === 'owner' && !m.ok, 4000, 'the key refusal');
     check(/key is not right/i.test(refused.error || ''), 'a wrong owner key is refused', refused.error);
+    check(refused.status === undefined, 'a refusal does not leak the record');
 
     admin.send({ t: 'owner', key: OWNER, action: 'status' });
     const state = await admin.wait((m) => m.t === 'owner' && m.ok, 4000, 'owner status');

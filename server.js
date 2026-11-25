@@ -393,6 +393,10 @@ function ownerMatches(input) {
   return crypto.timingSafeEqual(given, real);
 }
 
+/* Wrong-key attempts are counted per address, so a new socket does not reset
+   the count. Memory only: an owner lockout need not survive a restart. */
+const ownerFails = new Map();
+
 function ownerStatus(client) {
   const record = moderation.get(client.ip);
   const current = moderation.check(client.ip);
@@ -410,8 +414,10 @@ function ownerOk(client, payload) {
   send(client, Object.assign({ t: 'owner', ok: true, status: ownerStatus(client) }, payload));
 }
 
+/* A refused caller gets the reason and nothing else: the status object names an
+   address and describes its record, so it is for authenticated eyes only. */
 function ownerNo(client, error) {
-  send(client, { t: 'owner', ok: false, error, status: ownerStatus(client) });
+  send(client, { t: 'owner', ok: false, error });
 }
 
 /* The owner console over the existing socket: the same ledger and the same ban
@@ -422,21 +428,24 @@ function handleOwner(client, msg) {
   }
 
   const now = Date.now();
-  if (client.ownerLock && now < client.ownerLock) {
-    const mins = Math.max(1, Math.ceil((client.ownerLock - now) / 60000));
+  const fail = ownerFails.get(client.ip) || { tries: 0, until: 0 };
+
+  if (fail.until && now < fail.until) {
+    const mins = Math.max(1, Math.ceil((fail.until - now) / 60000));
     return ownerNo(client, 'Too many wrong keys. Owner tools are locked for ' + mins + ' min.');
   }
 
   if (!ownerMatches(msg.key)) {
-    client.ownerTries = (client.ownerTries || 0) + 1;
-    if (client.ownerTries >= 5) {
-      client.ownerTries = 0;
-      client.ownerLock = now + 10 * 60000;
+    fail.tries++;
+    if (fail.tries >= 5) {
+      fail.tries = 0;
+      fail.until = now + 10 * 60000;
     }
+    ownerFails.set(client.ip, fail);
     return ownerNo(client, 'That key is not right.');
   }
 
-  client.ownerTries = 0;
+  ownerFails.delete(client.ip);
   client.owner = true;
   /* A banned owner may still drive the tools from this connection. */
   if (client.banClose) { clearTimeout(client.banClose); client.banClose = null; }
